@@ -25,7 +25,7 @@ template bench(name: string, body: untyped): float =
 
 proc buildErdosRenyi(n: int, m: int): Graph[int] =
   ## Build a random graph with n nodes and m edges (fast, no duplicate check).
-  result = newGraph[int]()
+  result = newGraph[int](capacity = n)
   for i in 0 ..< n:
     result.addNode(i)
   var rng = initRand(42)
@@ -39,7 +39,7 @@ proc buildErdosRenyi(n: int, m: int): Graph[int] =
 
 proc buildWeightedErdosRenyi(n: int, m: int): Graph[int] =
   ## Build a random weighted graph.
-  result = newGraph[int]()
+  result = newGraph[int](capacity = n)
   for i in 0 ..< n:
     result.addNode(i)
   var rng = initRand(42)

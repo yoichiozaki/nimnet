@@ -9,7 +9,7 @@ proc grid2dGraph*(m, n: int, periodic: bool = false): Graph[int] =
   ## Generate a 2D grid graph with m rows and n columns.
   ## If periodic=true, creates a torus (wrapping both dimensions).
   ## Nodes numbered 0..m*n-1 in row-major order.
-  result = newGraph[int]()
+  result = newGraph[int](capacity = m * n)
   for i in 0 ..< m * n:
     result.addNode(i)
   for r in 0 ..< m:
@@ -29,7 +29,7 @@ proc grid2dGraph*(m, n: int, periodic: bool = false): Graph[int] =
 proc triangularLatticeGraph*(m, n: int): Graph[int] =
   ## Generate a triangular lattice graph with m rows and n columns.
   ## Each square cell in the grid gets an additional diagonal.
-  result = newGraph[int]()
+  result = newGraph[int](capacity = m * n)
   for i in 0 ..< m * n:
     result.addNode(i)
   for r in 0 ..< m:
@@ -47,7 +47,7 @@ proc hypercubeGraph*(dim: int): Graph[int] =
   ## Generate a hypercube graph Q_dim with 2^dim nodes.
   ## Two nodes are adjacent if their binary representations differ in exactly one bit.
   let nNodes = 1 shl dim
-  result = newGraph[int]()
+  result = newGraph[int](capacity = nNodes)
   for i in 0 ..< nNodes:
     result.addNode(i)
   for i in 0 ..< nNodes:

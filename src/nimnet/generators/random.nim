@@ -8,7 +8,7 @@ proc erdosRenyiGraph*(n: int, p: float, seed: int64 = 0): Graph[int] =
   ## Generate an Erdős-Rényi random graph G(n, p).
   ## Each edge exists independently with probability p.
   var rng = if seed != 0: initRand(seed) else: initRand()
-  result = newGraph[int]()
+  result = newGraph[int](capacity = n)
   for i in 0 ..< n:
     result.addNode(i)
   for i in 0 ..< n:
@@ -21,7 +21,7 @@ proc barabasiAlbertGraph*(n, m: int, seed: int64 = 0): Graph[int] =
   ## n: final number of nodes
   ## m: number of edges to attach from each new node (m <= initial nodes)
   var rng = if seed != 0: initRand(seed) else: initRand()
-  result = newGraph[int]()
+  result = newGraph[int](capacity = n)
 
   # Start with a complete graph of m+1 nodes
   for i in 0 .. m:
@@ -56,7 +56,7 @@ proc wattsStrogatzGraph*(n, k: int, p: float, seed: int64 = 0): Graph[int] =
   ## k: each node connected to k nearest neighbors in ring (must be even)
   ## p: probability of rewiring each edge
   var rng = if seed != 0: initRand(seed) else: initRand()
-  result = newGraph[int]()
+  result = newGraph[int](capacity = n)
 
   for i in 0 ..< n:
     result.addNode(i)
@@ -85,7 +85,7 @@ proc wattsStrogatzGraph*(n, k: int, p: float, seed: int64 = 0): Graph[int] =
 proc gnmRandomGraph*(n, m: int, seed: int64 = 0): Graph[int] =
   ## Generate a random graph G(n, m) with exactly m edges.
   var rng = if seed != 0: initRand(seed) else: initRand()
-  result = newGraph[int]()
+  result = newGraph[int](capacity = n)
   for i in 0 ..< n:
     result.addNode(i)
 
@@ -117,7 +117,7 @@ proc randomRegularGraph*(n, d: int, seed: int64 = 0): Graph[int] =
   var rng = if seed != 0: initRand(seed) else: initRand()
 
   for attempt in 0 ..< 100:
-    result = newGraph[int]()
+    result = newGraph[int](capacity = n)
     for i in 0 ..< n:
       result.addNode(i)
 
@@ -144,7 +144,7 @@ proc randomRegularGraph*(n, d: int, seed: int64 = 0): Graph[int] =
       return result
 
   # Fallback: return last attempt
-  result = newGraph[int]()
+  result = newGraph[int](capacity = n)
   for i in 0 ..< n:
     result.addNode(i)
 
@@ -152,7 +152,7 @@ proc newmanWattsStrogatzGraph*(n, k: int, p: float, seed: int64 = 0): Graph[int]
   ## Generate a Newman-Watts-Strogatz small-world graph.
   ## Like Watts-Strogatz but adds shortcut edges instead of rewiring.
   var rng = if seed != 0: initRand(seed) else: initRand()
-  result = newGraph[int]()
+  result = newGraph[int](capacity = n)
   for i in 0 ..< n:
     result.addNode(i)
 
@@ -178,7 +178,6 @@ proc stochasticBlockModel*(sizes: seq[int], p: seq[seq[float]], seed: int64 = 0)
   ## `sizes`: number of nodes in each community.
   ## `p`: k×k matrix of edge probabilities between communities.
   var rng = if seed != 0: initRand(seed) else: initRand()
-  result = newGraph[int]()
 
   let k = sizes.len
   var communityOffset: seq[int] = @[]
@@ -187,6 +186,8 @@ proc stochasticBlockModel*(sizes: seq[int], p: seq[seq[float]], seed: int64 = 0)
     communityOffset.add(offset)
     offset += s
   let n = offset
+
+  result = newGraph[int](capacity = n)
 
   for i in 0 ..< n:
     result.addNode(i)
