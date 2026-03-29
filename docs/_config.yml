@@ -1,0 +1,14 @@
+title: nimnet
+description: A comprehensive network science library for Nim, inspired by NetworkX
+url: "https://yoichiozaki.github.io"
+baseurl: "/nimnet"
+
+remote_theme: just-the-docs/just-the-docs
+
+color_scheme: dark
+
+aux_links:
+  "GitHub":
+    - "https://github.com/yoichiozaki/nimnet"
+
+footer_content: "nimnet is distributed under the <a href=\"https://github.com/yoichiozaki/nimnet/blob/main/LICENSE\">MIT License</a>."
