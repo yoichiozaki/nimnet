@@ -15,6 +15,7 @@ task build_tests, "Compile all tests":
   exec "nim c -p:src --nimcache:build/nimcache/talgorithms_core tests/talgorithms_core.nim"
   exec "nim c -p:src --nimcache:build/nimcache/talgorithms_io_gen tests/talgorithms_io_gen.nim"
   exec "nim c -p:src --nimcache:build/nimcache/talgorithms_extended tests/talgorithms_extended.nim"
+  exec "nim c -p:src --nimcache:build/nimcache/talgorithms_networkx tests/talgorithms_networkx.nim"
 
 task run_tests, "Run compiled tests":
   when defined(windows):
@@ -24,6 +25,7 @@ task run_tests, "Run compiled tests":
     exec "tests\\talgorithms_core.exe"
     exec "tests\\talgorithms_io_gen.exe"
     exec "tests\\talgorithms_extended.exe"
+    exec "tests\\talgorithms_networkx.exe"
   else:
     exec "./tests/ttypes"
     exec "./tests/tgraph"
@@ -31,6 +33,7 @@ task run_tests, "Run compiled tests":
     exec "./tests/talgorithms_core"
     exec "./tests/talgorithms_io_gen"
     exec "./tests/talgorithms_extended"
+    exec "./tests/talgorithms_networkx"
 
 task test, "Compile and run all tests":
   exec "nim c -r -p:src --nimcache:build/nimcache/ttypes tests/ttypes.nim"
@@ -39,3 +42,4 @@ task test, "Compile and run all tests":
   exec "nim c -r -p:src --nimcache:build/nimcache/talgorithms_core tests/talgorithms_core.nim"
   exec "nim c -r -p:src --nimcache:build/nimcache/talgorithms_io_gen tests/talgorithms_io_gen.nim"
   exec "nim c -r -p:src --nimcache:build/nimcache/talgorithms_extended tests/talgorithms_extended.nim"
+  exec "nim c -r -p:src --nimcache:build/nimcache/talgorithms_networkx tests/talgorithms_networkx.nim"

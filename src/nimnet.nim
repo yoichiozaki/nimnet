@@ -44,12 +44,22 @@ import nimnet/algorithms/min_cost_flow;  export min_cost_flow
 import nimnet/algorithms/tree_decomposition; export tree_decomposition
 import nimnet/algorithms/bridges;            export bridges
 import nimnet/algorithms/ego;                export ego
+import nimnet/algorithms/distance_measures;  export distance_measures
+import nimnet/algorithms/simple_paths;       export simple_paths
+import nimnet/algorithms/efficiency;         export efficiency
+import nimnet/algorithms/richclub;           export richclub
+import nimnet/algorithms/wiener;             export wiener
+import nimnet/algorithms/cycles;             export cycles
+import nimnet/algorithms/matching;           export matching
+import nimnet/algorithms/graph_products;     export graph_products
 
 # --- Generators ---
-import nimnet/generators/classic; export classic
-import nimnet/generators/random;  export random
-import nimnet/generators/small;   export small
-import nimnet/generators/trees;   export trees
+import nimnet/generators/classic;    export classic
+import nimnet/generators/random;     export random
+import nimnet/generators/small;      export small
+import nimnet/generators/trees;      export trees
+import nimnet/generators/line_graph; export line_graph
+import nimnet/generators/lattice;    export lattice
 
 # --- I/O ---
 import nimnet/io/edgelist;   export edgelist
@@ -58,6 +68,7 @@ import nimnet/io/json_graph; export json_graph
 import nimnet/io/dot;        export dot
 import nimnet/io/gml;        export gml
 import nimnet/io/graphml;    export graphml
+import nimnet/io/gexf;       export gexf
 
 # --- Operators & Conversions ---
 import nimnet/operators; export operators

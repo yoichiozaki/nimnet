@@ -46,20 +46,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Coloring**: Greedy coloring (largest-first, smallest-last, DSATUR), chromatic number
 - **Bipartite**: Bipartiteness testing, bipartite sets, maximum matching
 - **Euler**: Eulerian circuit/path (Hierholzer), semi-Eulerian detection, Hamiltonian detection
+- **Bridges**: Bridge detection, articulation points, biconnected components
+- **Ego**: Ego graph extraction (BFS with distance tracking)
+- **Distance Measures**: Eccentricity, diameter, radius, center, periphery, barycenter
+- **Simple Paths**: All simple paths enumeration, isSimplePath, allSimplePathsSeq
+- **Efficiency**: Global efficiency, local efficiency, average local efficiency
+- **Rich Club**: Rich-club coefficient per degree
+- **Wiener Index**: Wiener index (sum of all shortest path distances)
+- **Cycles**: Cycle basis (fundamental cycles), simple cycles for directed graphs (Johnson's)
+- **Matching**: Maximal matching, max-weight matching, min-weight matching, isMatching, isPerfectMatching
+- **Graph Products**: Cartesian product, tensor product, strong product, lexicographic product
 
-#### Graph Generators (4 modules)
-- **Classic**: Complete, cycle, path, star, wheel, grid, complete bipartite
+#### Graph Generators (6 modules)
+- **Classic**: Complete, cycle, path, star, wheel, grid, complete bipartite, barbell, lollipop, ladder, circular ladder, tadpole, Turán, book, friendship (windmill), null, trivial
 - **Random**: Erdős-Rényi (G(n,p) and G(n,m)), Barabási-Albert, Watts-Strogatz, Newman-Watts-Strogatz, random regular, stochastic block model, power-law cluster
 - **Small**: Petersen graph, Zachary karate club, Florentine families
 - **Trees**: Balanced tree, random tree
+- **Line Graph**: Line graph generator
+- **Lattice**: Grid2d (with periodic/torus option), triangular lattice, hypercube
 
-#### I/O Formats (6 modules)
+#### I/O Formats (7 modules)
 - Edge list format read/write
 - Adjacency list format read/write
 - JSON node-link format read/write
 - DOT/Graphviz export
 - GML format read/write
 - GraphML XML format read/write
+- GEXF format read/write (Gephi compatible)
 
 #### Operators & Conversions
 - Graph complement, union, intersection, difference
@@ -68,6 +81,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Adjacency matrix, edge list, degree sequence conversions
 
 ### Testing
-- 347 tests across 6 test files (ttypes, tgraph, tdigraph, talgorithms, talgorithms2, talgorithms3)
+- 470 tests across 7 test files (ttypes, tgraph, tdigraph, talgorithms_core, talgorithms_io_gen, talgorithms_extended, talgorithms_networkx)
 - Coverage measurement via lcov + Codecov integration
 - Coverage badge on README
