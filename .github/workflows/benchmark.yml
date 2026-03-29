@@ -1,0 +1,56 @@
+name: Benchmark
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'src/**'
+      - 'benchmarks/**'
+  workflow_dispatch:
+
+jobs:
+  benchmark:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Cache choosenim and nimble
+        uses: actions/cache@v5
+        with:
+          path: |
+            ~/.choosenim
+            ~/.nimble
+          key: ${{ runner.os }}-nim-stable-v3
+
+      - uses: jiro4989/setup-nim-action@v2
+        with:
+          nim-version: 'stable'
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install Python dependencies
+        run: pip install networkx numpy scipy
+
+      - name: Install Nim dependencies
+        run: nimble install -y
+
+      - name: Compile NimNet benchmark
+        run: nim c -d:release -d:danger --opt:speed -p:src -o:build/bench_nimnet benchmarks/bench_nimnet.nim
+
+      - name: Run NimNet benchmark
+        run: ./build/bench_nimnet | tee results_nimnet.csv
+
+      - name: Run NetworkX benchmark
+        run: python benchmarks/bench_networkx.py | tee results_networkx.csv
+
+      - name: Upload benchmark results
+        uses: actions/upload-artifact@v4
+        with:
+          name: benchmark-results
+          path: |
+            results_nimnet.csv
+            results_networkx.csv

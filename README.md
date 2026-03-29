@@ -13,9 +13,9 @@ A comprehensive network science library for [Nim](https://nim-lang.org/), inspir
 ## Features
 
 - **Graph types**: Undirected (`Graph`) and directed (`DiGraph`) graphs with generic node types
-- **29 Algorithm modules**: BFS/DFS traversal, shortest paths (Dijkstra, Bellman-Ford, A*, Floyd-Warshall, Johnson's), centrality (degree, closeness, PageRank, eigenvector, Katz, HITS), connected/strongly connected components, clustering coefficients, community detection (greedy modularity, Louvain), MST (Kruskal, Prim), max flow (Edmonds-Karp), topological sort, transitive closure/reduction, graph isomorphism (VF2), planarity testing, TSP heuristics, min-cost flow, tree decomposition, k-core decomposition, clique enumeration, graph coloring, bipartite matching, Eulerian/Hamiltonian paths, link prediction, bridges & articulation points, ego graphs, and more
-- **4 Generator modules**: Classic graphs (complete, cycle, path, star, wheel, grid), random graphs (Erdős-Rényi, Barabási-Albert, Watts-Strogatz, random regular, stochastic block model), small/famous graphs (Petersen, karate club), tree generators
-- **6 I/O formats**: Edge list, adjacency list, JSON graph, DOT/Graphviz, GML, GraphML
+- **36 Algorithm modules**: BFS/DFS traversal, shortest paths (Dijkstra, Bellman-Ford, A*, Floyd-Warshall, Johnson's), centrality (degree, closeness, PageRank, eigenvector, Katz, HITS), connected/strongly connected components, clustering coefficients, community detection (greedy modularity, Louvain), MST (Kruskal, Prim), max flow (Edmonds-Karp), topological sort, transitive closure/reduction, graph isomorphism (VF2), planarity testing, TSP heuristics, min-cost flow, tree decomposition, k-core decomposition, clique enumeration, graph coloring, bipartite matching, Eulerian/Hamiltonian paths, link prediction, bridges & articulation points, ego graphs, distance measures, simple paths, efficiency, rich-club coefficient, Wiener index, cycle basis, matching, graph products, and more
+- **6 Generator modules**: Classic graphs (complete, cycle, path, star, wheel, grid, barbell, lollipop, ladder, etc.), random graphs (Erdős-Rényi, Barabási-Albert, Watts-Strogatz, random regular, stochastic block model), small/famous graphs (Petersen, karate club), tree generators, line graph, lattice (grid2d, triangular, hypercube)
+- **7 I/O formats**: Edge list, adjacency list, JSON graph, DOT/Graphviz, GML, GraphML, GEXF
 - **Operators**: Union, complement, intersection, difference, node relabeling, directed ↔ undirected conversion
 - **Builder DSL**: Fluent graph construction with method chaining and `buildGraph` template
 - **Built-in datasets**: Dolphins social network, Florentine families, les misérables
@@ -119,6 +119,49 @@ let loaded = readGml("my_graph.gml")
 | Euler | `euler` | Eulerian circuits/paths, Hamiltonian detection |
 | Bridges | `bridges` | Bridges (cut edges), articulation points, biconnected components |
 | Ego Graph | `ego` | Ego graph extraction (k-hop neighborhood subgraph) |
+| Distance Measures | `distance_measures` | Diameter, radius, center, periphery, eccentricity, barycenter |
+| Simple Paths | `simple_paths` | All simple paths enumeration |
+| Efficiency | `efficiency` | Global efficiency, local efficiency |
+| Rich Club | `richclub` | Rich-club coefficient |
+| Wiener Index | `wiener` | Wiener index |
+| Cycles | `cycles` | Cycle basis, simple cycles (directed) |
+| Matching | `matching` | Maximal matching, max/min-weight matching |
+| Graph Products | `graph_products` | Cartesian, tensor, strong, lexicographic product |
+
+## Performance
+
+Benchmark results comparing NimNet (compiled Nim, pure implementation) vs NetworkX 3.6 (Python + scipy/numpy C backend) on Erdős-Rényi random graphs. Times are in seconds; lower is better.
+
+**Medium graph (1,000 nodes, 5,000 edges):**
+
+| Benchmark | NimNet | NetworkX | Ratio |
+|-----------|--------|----------|-------|
+| Graph creation | 0.009 | 0.005 | 1.9× |
+| BFS | 0.005 | 0.002 | 3.2× |
+| DFS | 0.004 | 0.001 | 4.1× |
+| Dijkstra | 0.009 | 0.001 | 13.2× |
+| PageRank | 0.091 | 0.003 | 26.3×\* |
+| Connected components | 0.014 | 0.000 | — |
+| MST (Kruskal) | 0.017 | 0.005 | 3.3× |
+| Louvain | 0.816 | 0.091 | 9.0× |
+| Clustering | 0.021 | 0.015 | 1.4× |
+| Triangles | 0.007 | 0.003 | 2.0× |
+
+**Large graph (10,000 nodes, 50,000 edges):**
+
+| Benchmark | NimNet | NetworkX | Ratio |
+|-----------|--------|----------|-------|
+| Graph creation | 0.154 | 0.057 | 2.7× |
+| BFS | 0.062 | 0.017 | 3.7× |
+| DFS | 0.063 | 0.011 | 5.9× |
+| Dijkstra | 1.449 | 0.012 | 116× |
+| PageRank | 1.233 | 0.038 | 32.4×\* |
+| Connected components | 0.059 | 0.005 | 11.7× |
+| MST (Kruskal) | 0.173 | 0.086 | 2.0× |
+
+\*NetworkX PageRank uses scipy (C/Fortran); NimNet is pure Nim.
+
+> **Note:** NimNet is a pure Nim implementation with no C/Fortran bindings. NetworkX leverages NumPy/SciPy for numerically intensive algorithms. These benchmarks identify optimization targets for future releases. See [`benchmarks/`](benchmarks/) for details and reproduction scripts.
 
 ## Examples
 
