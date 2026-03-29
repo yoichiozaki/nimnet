@@ -1,15 +1,4 @@
 ## Tests for newly implemented features from NetworkX gap analysis
-## Issues: #119 (isolates, local bridges, chain decomposition)
-##         #106 (harmonic centrality)
-##         #107 (reciprocity)
-##         #122 (extended clustering)
-##         #126 (extended traversal)
-##         #125 (extended DAG)
-##         #128 (extended Euler & cycles)
-##         #120 (extended assortativity)
-##         #121 (additional centrality)
-##         #127 (extended tree/MST)
-##         And more as implemented
 
 import std/[unittest, tables, sets, math, sequtils, algorithm]
 import nimnet
@@ -57,23 +46,17 @@ suite "Local Bridges (#119)":
   test "local bridges on triangle":
     var g = newGraph[int]()
     g.addEdgesFrom([(1, 2), (2, 3), (3, 1)])
-    # No local bridges in a triangle
     check localBridges(g).len == 0
 
   test "local bridges on path":
     var g = newGraph[int]()
     g.addEdgesFrom([(1, 2), (2, 3), (3, 4)])
     let lb = localBridges(g)
-    # All edges in a path are local bridges
     check lb.len == 3
 
   test "local bridge with span":
     var g = newGraph[int]()
     g.addEdgesFrom([(1, 2), (2, 3), (3, 4), (4, 1)])
-    # 1-2 and 3-4 are not local bridges (part of 4-cycle with shortcuts)
-    # Actually in a 4-cycle, 1-2 has common neighbor? No:
-    # neighbors of 1: {2, 4}, neighbors of 2: {1, 3}
-    # Common: none. So 1-2 IS a local bridge with span 3
     let lb = localBridges(g)
     check lb.len > 0
 
@@ -81,7 +64,6 @@ suite "Chain Decomposition (#119)":
   test "chain decomposition of tree":
     var g = newGraph[int]()
     g.addEdgesFrom([(1, 2), (1, 3), (2, 4)])
-    # Tree has no back edges => no chains
     let chains = chainDecomposition(g)
     check chains.len == 0
 
@@ -89,9 +71,76 @@ suite "Chain Decomposition (#119)":
     var g = newGraph[int]()
     g.addEdgesFrom([(1, 2), (2, 3), (3, 1)])
     let chains = chainDecomposition(g)
-    # One cycle => one chain
     check chains.len >= 1
 
   test "chain decomposition of empty graph":
     let g = newGraph[int]()
     check chainDecomposition(g).len == 0
+
+suite "Harmonic Centrality (#106)":
+  test "harmonic centrality complete graph":
+    var g = newGraph[int]()
+    g.addEdgesFrom([(1, 2), (2, 3), (3, 1)])
+    let hc = harmonicCentrality(g)
+    for n in g.nodes:
+      check abs(hc[n] - 1.0) < 1e-10
+
+  test "harmonic centrality path graph":
+    var g = newGraph[int]()
+    g.addEdgesFrom([(1, 2), (2, 3)])
+    let hc = harmonicCentrality(g)
+    check abs(hc[2] - 1.0) < 1e-10
+    check abs(hc[1] - 0.75) < 1e-10
+
+  test "harmonic centrality disconnected":
+    var g = newGraph[int]()
+    g.addEdge(1, 2)
+    g.addNode(3)
+    let hc = harmonicCentrality(g)
+    check abs(hc[3] - 0.0) < 1e-10
+    check abs(hc[1] - 0.5) < 1e-10
+
+  test "harmonic centrality empty graph":
+    let g = newGraph[int]()
+    check harmonicCentrality(g).len == 0
+
+  test "harmonic centrality digraph":
+    var dg = newDiGraph[int]()
+    dg.addEdge(1, 2)
+    dg.addEdge(2, 3)
+    let hc = harmonicCentrality(dg)
+    check abs(hc[3] - 0.75) < 1e-10
+    check abs(hc[1] - 0.0) < 1e-10
+
+suite "Directed Reciprocity (#107)":
+  test "fully reciprocal digraph":
+    var dg = newDiGraph[int]()
+    dg.addEdge(1, 2)
+    dg.addEdge(2, 1)
+    dg.addEdge(2, 3)
+    dg.addEdge(3, 2)
+    check abs(reciprocity(dg) - 1.0) < 1e-10
+
+  test "no reciprocal edges":
+    var dg = newDiGraph[int]()
+    dg.addEdge(1, 2)
+    dg.addEdge(2, 3)
+    dg.addEdge(3, 1)
+    check abs(reciprocity(dg) - 0.0) < 1e-10
+
+  test "partial reciprocity":
+    var dg = newDiGraph[int]()
+    dg.addEdge(1, 2)
+    dg.addEdge(2, 1)
+    dg.addEdge(2, 3)
+    check abs(reciprocity(dg) - 2.0/3.0) < 1e-10
+
+  test "empty digraph reciprocity":
+    let dg = newDiGraph[int]()
+    check abs(reciprocity(dg) - 0.0) < 1e-10
+
+  test "overall reciprocity alias":
+    var dg = newDiGraph[int]()
+    dg.addEdge(1, 2)
+    dg.addEdge(2, 1)
+    check abs(overallReciprocity(dg) - 1.0) < 1e-10

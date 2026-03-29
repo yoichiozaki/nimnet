@@ -415,3 +415,69 @@ proc katzCentrality*[N](g: Graph[N], alpha: float = 0.1,
     swap(result, newVals)
     if diff < tol:
       break
+
+# =============================================================================
+# Harmonic centrality
+# =============================================================================
+
+proc harmonicCentrality*[N](g: Graph[N]): Table[N, float] =
+  ## Compute harmonic centrality for all nodes.
+  ## H(u) = sum(1/d(u,v) for all reachable v != u) / (n-1)
+  ## Handles disconnected graphs naturally (unreachable nodes contribute 0).
+  let n = g.numberOfNodes()
+  result = initTable[N, float]()
+  if n <= 1:
+    for node in g.nodes:
+      result[node] = 0.0
+    return
+  let norm = 1.0 / float(n - 1)
+  for source in g.nodes:
+    var dist = initTable[N, int]()
+    dist[source] = 0
+    var queue = initDeque[N]()
+    queue.addLast(source)
+    while queue.len > 0:
+      let current = queue.popFirst()
+      let cd = dist[current]
+      for neighbor in g.neighbors(current):
+        if neighbor notin dist:
+          dist[neighbor] = cd + 1
+          queue.addLast(neighbor)
+    var harmSum = 0.0
+    for node, d in dist:
+      if node != source and d > 0:
+        harmSum += 1.0 / float(d)
+    result[source] = harmSum * norm
+
+proc harmonicCentrality*[N](g: DiGraph[N]): Table[N, float] =
+  ## Compute harmonic centrality for all nodes in a directed graph.
+  ## H(u) = sum(1/d(v,u) for all v that can reach u) / (n-1)
+  let n = g.numberOfNodes()
+  result = initTable[N, float]()
+  if n <= 1:
+    for node in g.nodes:
+      result[node] = 0.0
+    return
+  # For each source, BFS gives distances to all reachable nodes.
+  # For harmonic centrality of v, we need sum(1/d(u,v)) from all u.
+  # So we accumulate contributions from each source's BFS.
+  for node in g.nodes:
+    result[node] = 0.0
+  let norm = 1.0 / float(n - 1)
+  for source in g.nodes:
+    var dist = initTable[N, int]()
+    dist[source] = 0
+    var queue = initDeque[N]()
+    queue.addLast(source)
+    while queue.len > 0:
+      let current = queue.popFirst()
+      let cd = dist[current]
+      for neighbor in g.neighbors(current):
+        if neighbor notin dist:
+          dist[neighbor] = cd + 1
+          queue.addLast(neighbor)
+    for target, d in dist:
+      if target != source and d > 0:
+        result[target] += 1.0 / float(d)
+  for node in g.nodes:
+    result[node] *= norm

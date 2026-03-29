@@ -5,6 +5,7 @@
 import std/[tables, sets, deques, strformat]
 import ../types
 import ../graph
+import ../digraph
 
 proc info*[N](g: Graph[N]): string =
   ## Return a human-readable summary of the graph.
@@ -93,3 +94,20 @@ proc density*[N](g: Graph[N]): float =
 proc reciprocity*[N](g: Graph[N]): float =
   ## For undirected graphs, reciprocity is always 1.0.
   result = 1.0
+
+proc reciprocity*[N](g: DiGraph[N]): float =
+  ## Compute the overall reciprocity of a directed graph.
+  ## reciprocity = (number of reciprocal edges) / (total number of edges)
+  ## where a reciprocal edge is one where both (u,v) and (v,u) exist.
+  let m = g.numberOfEdges()
+  if m == 0:
+    return 0.0
+  var reciprocal = 0
+  for (u, v) in g.edges:
+    if g.hasEdge(v, u):
+      reciprocal.inc
+  result = reciprocal.float / m.float
+
+proc overallReciprocity*[N](g: DiGraph[N]): float =
+  ## Alias for reciprocity on directed graphs.
+  reciprocity(g)
