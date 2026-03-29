@@ -38,6 +38,12 @@ proc louvainCommunities*[N](g: Graph[N], resolution: float = 1.0, seed: int64 = 
       degSum += g.getEdgeAttr(node, neighbor).getWeight()
     ki[node] = degSum
 
+  # Initialize sigmaTot once — maintained incrementally during Phase 1
+  var sigmaTot = initTable[int, float]()
+  for node in nodes:
+    let c = community[node]
+    sigmaTot[c] = sigmaTot.getOrDefault(c, 0.0) + ki[node]
+
   # Phase 1: Local moves
   var improved = true
   while improved:
@@ -54,12 +60,6 @@ proc louvainCommunities*[N](g: Graph[N], resolution: float = 1.0, seed: int64 = 
         let ncom = community[neighbor]
         let w = g.getEdgeAttr(node, neighbor).getWeight()
         neighborComs[ncom] = neighborComs.getOrDefault(ncom, 0.0) + w
-
-      # Calculate sigma_tot for each community
-      var sigmaTot = initTable[int, float]()
-      for v in nodes:
-        let c = community[v]
-        sigmaTot[c] = sigmaTot.getOrDefault(c, 0.0) + ki[v]
 
       # Try removing node from current community
       let kiNode = ki[node]
@@ -85,6 +85,9 @@ proc louvainCommunities*[N](g: Graph[N], resolution: float = 1.0, seed: int64 = 
       if bestCom != currentCom:
         community[node] = bestCom
         improved = true
+        # Incrementally update sigmaTot — O(1) instead of recomputing O(V)
+        sigmaTot[currentCom] = sigmaTot.getOrDefault(currentCom, 0.0) - kiNode
+        sigmaTot[bestCom] = sigmaTot.getOrDefault(bestCom, 0.0) + kiNode
 
   # Collect communities
   var comNodes = initTable[int, HashSet[N]]()

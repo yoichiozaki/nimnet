@@ -7,7 +7,7 @@ import ../digraph
 
 proc completeGraph*[N: SomeInteger](n: N): Graph[N] =
   ## Generate a complete graph K_n with nodes 0..n-1.
-  result = newGraph[N]()
+  result = newGraph[N](capacity = int(n))
   for i in N(0) ..< n:
     result.addNode(i)
   for i in N(0) ..< n:
@@ -16,7 +16,7 @@ proc completeGraph*[N: SomeInteger](n: N): Graph[N] =
 
 proc cycleGraph*[N: SomeInteger](n: N): Graph[N] =
   ## Generate a cycle graph C_n.
-  result = newGraph[N]()
+  result = newGraph[N](capacity = int(n))
   if n <= 0:
     return
   for i in N(0) ..< n:
@@ -26,7 +26,7 @@ proc cycleGraph*[N: SomeInteger](n: N): Graph[N] =
 
 proc pathGraph*[N: SomeInteger](n: N): Graph[N] =
   ## Generate a path graph P_n.
-  result = newGraph[N]()
+  result = newGraph[N](capacity = int(n))
   for i in N(0) ..< n:
     result.addNode(i)
   for i in N(0) ..< n - 1:
@@ -34,14 +34,14 @@ proc pathGraph*[N: SomeInteger](n: N): Graph[N] =
 
 proc starGraph*[N: SomeInteger](n: N): Graph[N] =
   ## Generate a star graph S_n with center node 0 and n outer nodes.
-  result = newGraph[N]()
+  result = newGraph[N](capacity = int(n) + 1)
   result.addNode(N(0))
   for i in N(1) .. n:
     result.addEdge(N(0), i)
 
 proc wheelGraph*[N: SomeInteger](n: N): Graph[N] =
   ## Generate a wheel graph W_n (hub + cycle of n nodes).
-  result = newGraph[N]()
+  result = newGraph[N](capacity = int(n) + 1)
   if n <= 0:
     return
   result.addNode(N(0))  # hub
@@ -55,7 +55,7 @@ proc wheelGraph*[N: SomeInteger](n: N): Graph[N] =
 proc gridGraph*(rows, cols: int): Graph[int] =
   ## Generate a 2D grid graph with rows x cols nodes.
   ## Nodes are numbered 0 to rows*cols-1, row-major.
-  result = newGraph[int]()
+  result = newGraph[int](capacity = rows * cols)
   for r in 0 ..< rows:
     for c in 0 ..< cols:
       let node = r * cols + c
@@ -68,7 +68,7 @@ proc gridGraph*(rows, cols: int): Graph[int] =
 proc completeBipartiteGraph*(n1, n2: int): Graph[int] =
   ## Generate a complete bipartite graph K_{n1,n2}.
   ## First set: 0..n1-1, second set: n1..n1+n2-1.
-  result = newGraph[int]()
+  result = newGraph[int](capacity = n1 + n2)
   for i in 0 ..< n1 + n2:
     result.addNode(i)
   for i in 0 ..< n1:
@@ -77,7 +77,7 @@ proc completeBipartiteGraph*(n1, n2: int): Graph[int] =
 
 proc emptyGraph*[N: SomeInteger](n: N): Graph[N] =
   ## Generate an empty graph with n nodes and no edges.
-  result = newGraph[N]()
+  result = newGraph[N](capacity = int(n))
   for i in N(0) ..< n:
     result.addNode(i)
 
@@ -95,7 +95,7 @@ proc barbellGraph*(m1, m2: int): Graph[int] =
   ## connected by a path of m2 nodes.
   ## Nodes: 0..m1-1 (left clique), m1..m1+m2-1 (bridge),
   ## m1+m2..2*m1+m2-1 (right clique).
-  result = newGraph[int]()
+  result = newGraph[int](capacity = 2 * m1 + m2)
   let total = 2 * m1 + m2
   for i in 0 ..< total:
     result.addNode(i)
@@ -119,7 +119,7 @@ proc barbellGraph*(m1, m2: int): Graph[int] =
 proc lollipopGraph*(m, n: int): Graph[int] =
   ## Generate a lollipop graph: a complete graph K_m connected to a
   ## path graph P_n. Nodes: 0..m-1 (clique), m..m+n-1 (path).
-  result = newGraph[int]()
+  result = newGraph[int](capacity = m + n)
   let total = m + n
   for i in 0 ..< total:
     result.addNode(i)
@@ -136,7 +136,7 @@ proc lollipopGraph*(m, n: int): Graph[int] =
 proc ladderGraph*(n: int): Graph[int] =
   ## Generate a ladder graph — two parallel paths of n nodes each,
   ## connected by rungs. Nodes: 0..n-1 (first path), n..2n-1 (second path).
-  result = newGraph[int]()
+  result = newGraph[int](capacity = 2 * n)
   for i in 0 ..< 2 * n:
     result.addNode(i)
   # First path
@@ -152,7 +152,7 @@ proc ladderGraph*(n: int): Graph[int] =
 proc circularLadderGraph*(n: int): Graph[int] =
   ## Generate a circular ladder graph (Möbius-Kantor-like).
   ## Two cycles of n nodes each, connected by rungs.
-  result = newGraph[int]()
+  result = newGraph[int](capacity = 2 * n)
   for i in 0 ..< 2 * n:
     result.addNode(i)
   # First cycle
@@ -168,7 +168,7 @@ proc circularLadderGraph*(n: int): Graph[int] =
 proc tadpoleGraph*(m, n: int): Graph[int] =
   ## Generate a tadpole graph: a cycle of m nodes connected to a
   ## path of n nodes. Nodes: 0..m-1 (cycle), m..m+n-1 (tail).
-  result = newGraph[int]()
+  result = newGraph[int](capacity = m + n)
   let total = m + n
   for i in 0 ..< total:
     result.addNode(i)
@@ -184,7 +184,7 @@ proc tadpoleGraph*(m, n: int): Graph[int] =
 proc turanGraph*(n, r: int): Graph[int] =
   ## Generate a Turán graph T(n, r) — the complete r-partite graph
   ## with n nodes distributed as evenly as possible among r parts.
-  result = newGraph[int]()
+  result = newGraph[int](capacity = n)
   for i in 0 ..< n:
     result.addNode(i)
   # Assign nodes to parts

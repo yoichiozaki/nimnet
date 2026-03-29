@@ -59,7 +59,7 @@ proc addNode*[N](g: var MultiGraph[N], n: N) =
     g.adj[n] = initTable[N, Table[int, EdgeAttr]]()
 
 proc addEdge*[N](g: var MultiGraph[N], u, v: N,
-                  attr: EdgeAttr = initTable[string, string]()): int =
+                  attr: EdgeAttr = newEdgeAttr()): int =
   ## Add an edge between u and v, return the edge key.
   g.addNode(u)
   g.addNode(v)
@@ -161,7 +161,7 @@ proc addNode*[N](g: var MultiDiGraph[N], n: N) =
     g.pred[n] = initTable[N, Table[int, EdgeAttr]]()
 
 proc addEdge*[N](g: var MultiDiGraph[N], u, v: N,
-                  attr: EdgeAttr = initTable[string, string]()): int =
+                  attr: EdgeAttr = newEdgeAttr()): int =
   g.addNode(u)
   g.addNode(v)
   let key = g.nextKey

@@ -24,15 +24,25 @@ type
 
 # --- Constructors ---
 
-func newDiGraph*[N](name: string = ""): DiGraph[N] =
+func newDiGraph*[N](name: string = "", capacity: int = 0): DiGraph[N] =
   ## Create a new empty directed graph.
-  DiGraph[N](
-    adj: initTable[N, Table[N, EdgeAttr]](),
-    pred: initTable[N, Table[N, EdgeAttr]](),
-    nodeAttr: initTable[N, NodeAttr](),
-    edgeCount: 0,
-    name: name
-  )
+  ## Pass ``capacity`` to pre-allocate adjacency, predecessor, and node attribute tables.
+  if capacity > 0:
+    DiGraph[N](
+      adj: initTable[N, Table[N, EdgeAttr]](capacity),
+      pred: initTable[N, Table[N, EdgeAttr]](capacity),
+      nodeAttr: initTable[N, NodeAttr](capacity),
+      edgeCount: 0,
+      name: name
+    )
+  else:
+    DiGraph[N](
+      adj: initTable[N, Table[N, EdgeAttr]](),
+      pred: initTable[N, Table[N, EdgeAttr]](),
+      nodeAttr: initTable[N, NodeAttr](),
+      edgeCount: 0,
+      name: name
+    )
 
 # --- Metrics (O(1)) ---
 
