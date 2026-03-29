@@ -11,8 +11,9 @@ import ../digraph
 
 proc connectedComponents*[N](g: Graph[N]): seq[HashSet[N]] =
   ## Return connected components as a sequence of node sets.
-  var visited = initHashSet[N]()
-  for startNode in g.nodes:
+  let nNodes = g.numberOfNodes()
+  var visited = initHashSet[N](nNodes)
+  for startNode in g.adj.keys:
     if startNode notin visited:
       var component = initHashSet[N]()
       var queue = initDeque[N]()
@@ -21,7 +22,7 @@ proc connectedComponents*[N](g: Graph[N]): seq[HashSet[N]] =
       component.incl(startNode)
       while queue.len > 0:
         let current = queue.popFirst()
-        for neighbor in g.neighbors(current):
+        for neighbor in g.adj[current].keys:
           if neighbor notin visited:
             visited.incl(neighbor)
             component.incl(neighbor)
@@ -30,10 +31,25 @@ proc connectedComponents*[N](g: Graph[N]): seq[HashSet[N]] =
 
 proc isConnected*[N](g: Graph[N]): bool =
   ## Return true if the graph is connected.
-  if g.numberOfNodes() == 0:
+  let nNodes = g.numberOfNodes()
+  if nNodes == 0:
     return true
-  let components = connectedComponents(g)
-  components.len == 1
+  # Single BFS from first node — check if all nodes reached
+  var startNode: N
+  for n in g.adj.keys:
+    startNode = n
+    break
+  var visited = initHashSet[N](nNodes)
+  visited.incl(startNode)
+  var queue = initDeque[N]()
+  queue.addLast(startNode)
+  while queue.len > 0:
+    let current = queue.popFirst()
+    for neighbor in g.adj[current].keys:
+      if neighbor notin visited:
+        visited.incl(neighbor)
+        queue.addLast(neighbor)
+  visited.len == nNodes
 
 proc numberOfConnectedComponents*[N](g: Graph[N]): int =
   ## Return the number of connected components.
@@ -49,7 +65,7 @@ proc nodeConnectedComponent*[N](g: Graph[N], n: N): HashSet[N] =
   visited.incl(n)
   while queue.len > 0:
     let current = queue.popFirst()
-    for neighbor in g.neighbors(current):
+    for neighbor in g.adj[current].keys:
       if neighbor notin visited:
         visited.incl(neighbor)
         queue.addLast(neighbor)
@@ -75,7 +91,7 @@ proc stronglyConnectedComponents*[N](g: DiGraph[N]): seq[HashSet[N]] =
     stack.add(v)
     onStack.incl(v)
 
-    for w in g.neighbors(v):
+    for w in g.adj[v].keys:
       if w notin indices:
         strongConnect(w)
         lowlink[v] = min(lowlink[v], lowlink[w])

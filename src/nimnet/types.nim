@@ -50,11 +50,12 @@ type
 
 func newEdgeAttr*(): EdgeAttr {.inline.} =
   ## Create an empty edge attribute table.
-  initTable[string, string]()
+  ## Uses zero-initialized Table (valid for reads; auto-initializes on first write).
+  discard
 
 func newEdgeAttr*(weight: float): EdgeAttr {.inline.} =
   ## Create edge attributes with a weight.
-  result = initTable[string, string]()
+  result = initTable[string, string](initialSize = 2)
   result["weight"] = $weight
 
 func newEdgeAttr*(pairs: openArray[(string, string)]): EdgeAttr =
@@ -66,7 +67,7 @@ func newEdgeAttr*(pairs: openArray[(string, string)]): EdgeAttr =
 
 func newNodeAttr*(): NodeAttr {.inline.} =
   ## Create an empty node attribute table.
-  initTable[string, string]()
+  discard
 
 func newNodeAttr*(pairs: openArray[(string, string)]): NodeAttr =
   ## Create node attributes from key-value pairs.
@@ -76,11 +77,11 @@ func newNodeAttr*(pairs: openArray[(string, string)]): NodeAttr =
 
 func getWeight*(attr: EdgeAttr, default: float = 1.0): float {.inline.} =
   ## Get numeric weight from edge attributes.
-  ## Returns ``default`` if the ``"weight"`` key is absent or not a valid float.
-  if "weight" in attr:
-    try: parseFloat(attr["weight"])
-    except ValueError: default
-  else: default
+  ## Returns ``default`` if the ``"weight"`` key is absent.
+  if attr.len == 0: return default
+  let w = attr.getOrDefault("weight", "")
+  if w.len == 0: return default
+  parseFloat(w)
 
 func `weight=`*(attr: var EdgeAttr, w: float) {.inline.} =
   ## Sugar for setting the weight: ``attr.weight = 3.0``

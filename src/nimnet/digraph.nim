@@ -16,8 +16,8 @@ import types
 type
   DiGraph*[N] = object
     ## A directed graph with nodes of type N.
-    adj: Table[N, Table[N, EdgeAttr]]   ## successors
-    pred: Table[N, Table[N, EdgeAttr]]  ## predecessors
+    adj*: Table[N, Table[N, EdgeAttr]]   ## successors
+    pred*: Table[N, Table[N, EdgeAttr]]  ## predecessors
     nodeAttr: Table[N, NodeAttr]
     edgeCount: int  ## Cached edge count — O(1) access
     name*: string
@@ -72,8 +72,8 @@ func hasEdge*[N](g: DiGraph[N], u, v: N): bool {.inline.} =
 proc addNode*[N](g: var DiGraph[N], n: N) {.inline.} =
   ## Add a node to the graph.
   if n notin g.adj:
-    g.adj[n] = initTable[N, EdgeAttr]()
-    g.pred[n] = initTable[N, EdgeAttr]()
+    g.adj[n] = initTable[N, EdgeAttr](initialSize = 8)
+    g.pred[n] = initTable[N, EdgeAttr](initialSize = 8)
 
 proc addNode*[N](g: var DiGraph[N], n: N, attr: NodeAttr) =
   ## Add a node with associated attributes.
@@ -316,11 +316,11 @@ func copy*[N](g: DiGraph[N]): DiGraph[N] =
   result.name = g.name
   result.edgeCount = g.edgeCount
   for u, neighbors in g.adj:
-    result.adj[u] = initTable[N, EdgeAttr]()
+    result.adj[u] = default(Table[N, EdgeAttr])
     for v, attr in neighbors:
       result.adj[u][v] = attr
   for v, preds in g.pred:
-    result.pred[v] = initTable[N, EdgeAttr]()
+    result.pred[v] = default(Table[N, EdgeAttr])
     for u, attr in preds:
       result.pred[v][u] = attr
   for n, attr in g.nodeAttr:
@@ -354,8 +354,8 @@ func subgraph*[N](g: DiGraph[N], nbunch: HashSet[N]): DiGraph[N] =
   result = newDiGraph[N](g.name)
   for n in nbunch:
     if n in g.adj:
-      result.adj[n] = initTable[N, EdgeAttr]()
-      result.pred[n] = initTable[N, EdgeAttr]()
+      result.adj[n] = default(Table[N, EdgeAttr])
+      result.pred[n] = default(Table[N, EdgeAttr])
       if n in g.nodeAttr:
         result.nodeAttr[n] = g.nodeAttr[n]
   for u in result.adj.keys:
@@ -445,8 +445,8 @@ func `+`*[N](g1, g2: DiGraph[N]): DiGraph[N] =
   result = g1.copy()
   for n in g2.nodes:
     if n notin result:
-      result.adj[n] = initTable[N, EdgeAttr]()
-      result.pred[n] = initTable[N, EdgeAttr]()
+      result.adj[n] = default(Table[N, EdgeAttr])
+      result.pred[n] = default(Table[N, EdgeAttr])
   for (u, v, attr) in g2.edgesWithAttr:
     let isNew = v notin result.adj[u]
     result.adj[u][v] = attr

@@ -9,6 +9,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+#### Performance Optimizations
+- **Dijkstra**: O(V²) linear-scan → O((V+E) log V) binary heap (HeapQueue) — **35× faster**
+- **PageRank**: Pre-computed degrees, `swap` instead of allocation per iteration, direct adjacency access — **14× faster**
+- **A\***: Linear-scan → HeapQueue-based priority queue
+- **Prim MST**: O(V²) → O(E log V) HeapQueue-based
+- **BFS/DFS traversal**: Direct `g.adj[node].keys` access, pre-sized HashSets — **8–10× faster**
+- **Connected components**: Direct adjacency access; `isConnected` rewritten as single BFS — **10× faster**
+- **Clustering/triangles**: Direct `Table.contains` instead of `hasEdge` (2→1 hash lookup) — eliminated per-node HashSet allocation
+- **Graph creation**: Deferred EdgeAttr allocation (zero-init empty tables) — **10× faster**
+- **Table sizing**: Small initial sizes for neighbor tables (8) and EdgeAttr (2) — reduced memory 4–32× and improved cache locality
+- **getWeight**: Eliminated try/except overhead, single hash lookup via `getOrDefault`
+- **Betweenness, closeness, eigenvector, Katz, HITS centrality**: Direct adjacency access, pre-allocated swap buffers
+- Exposed `adj` and `pred` fields as public for direct algorithm access
+
 #### Core & Infrastructure
 - Initial project scaffolding
 - DevContainer configuration

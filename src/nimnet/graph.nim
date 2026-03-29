@@ -21,7 +21,7 @@ type
     ##
     ## Internally stores an adjacency map ``Table[N, Table[N, EdgeAttr]]``
     ## and a cached edge count for O(1) ``numberOfEdges``.
-    adj: Table[N, Table[N, EdgeAttr]]
+    adj*: Table[N, Table[N, EdgeAttr]]
     nodeAttr: Table[N, NodeAttr]
     edgeCount: int  ## Cached edge count — O(1) access
     name*: string
@@ -78,7 +78,7 @@ func hasEdge*[N](g: Graph[N], u, v: N): bool {.inline.} =
 proc addNode*[N](g: var Graph[N], n: N) {.inline.} =
   ## Add a node to the graph. No-op if node already exists.
   if n notin g.adj:
-    g.adj[n] = initTable[N, EdgeAttr]()
+    g.adj[n] = initTable[N, EdgeAttr](initialSize = 8)
 
 proc addNode*[N](g: var Graph[N], n: N, attr: NodeAttr) =
   ## Add a node with attributes.
@@ -327,7 +327,7 @@ func copy*[N](g: Graph[N]): Graph[N] =
   result.name = g.name
   result.edgeCount = g.edgeCount
   for u, neighbors in g.adj:
-    result.adj[u] = initTable[N, EdgeAttr]()
+    result.adj[u] = default(Table[N, EdgeAttr])
     for v, attr in neighbors:
       result.adj[u][v] = attr
   for n, attr in g.nodeAttr:
@@ -365,7 +365,7 @@ func subgraph*[N](g: Graph[N], nbunch: HashSet[N]): Graph[N] =
   result = newGraph[N](g.name)
   for n in nbunch:
     if n in g.adj:
-      result.adj[n] = initTable[N, EdgeAttr]()
+      result.adj[n] = default(Table[N, EdgeAttr])
       if n in g.nodeAttr:
         result.nodeAttr[n] = g.nodeAttr[n]
   for u in result.adj.keys:
