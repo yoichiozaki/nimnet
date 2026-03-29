@@ -139,4 +139,4 @@ Compiled with `nim c -d:release -d:danger --opt:speed`.
 - NimNet is a pure Nim implementation with no C/Fortran dependencies.
 - NetworkX PageRank uses scipy (C/Fortran backend), making direct comparison less meaningful for that benchmark.
 - All graphs use the same random seed (42) for reproducibility.
-- Timings are single-run wall-clock measurements; variance is expected.
+- Each benchmark is run 5 times after a warmup; the median time is reported.
