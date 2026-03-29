@@ -34,7 +34,11 @@ jobs:
       - name: Add Nim to PATH (cache hit)
         if: steps.cache-nim.outputs.cache-hit == 'true'
         shell: bash
-        run: echo "$HOME/.nimble/bin" >> $GITHUB_PATH
+        run: |
+          echo "$HOME/.nimble/bin" >> $GITHUB_PATH
+          for dir in "$HOME/.choosenim/toolchains"/nim-*/bin; do
+            [ -d "$dir" ] && echo "$dir" >> $GITHUB_PATH
+          done
 
       - name: Cache nimcache
         uses: actions/cache@v5
