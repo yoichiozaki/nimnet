@@ -111,14 +111,15 @@ tests/                       → Test files
   ttypes.nim                 → 11 tests — types and edge attributes
   tgraph.nim                 → 53 tests — undirected graph operations
   tdigraph.nim               → 40 tests — directed graph operations
-  talgorithms.nim            → 100 tests — batch 1 algorithms
-  talgorithms2.nim           → 43 tests — batch 2 algorithms + I/O + generators
+  talgorithms_core.nim       → 100 tests — core algorithms (traversal, paths, centrality, etc.)
+  talgorithms_io_gen.nim     → 43 tests — advanced algorithms, I/O, generators, builder, datasets
+  talgorithms_extended.nim   → 73 tests — extended coverage (DiGraph variants, operators, convert)
 ```
 
 ## Testing
 - Framework: `std/unittest` (see ADR-0004)
 - Test files: `tests/t<module>.nim` with `t` prefix
-- Run: `nimble test` (runs all 5 test files, 247 total tests)
+- Run: `nimble test` (runs all 6 test files, 347 total tests)
 - Every public proc MUST have corresponding tests
 - Use `suite` and `test` blocks, `check` for assertions, `expect` for exceptions
 
@@ -129,14 +130,14 @@ tests/                       → Test files
 2. Import `../types`, `../graph`, `../digraph` as needed
 3. Export procs with `*`
 4. Add `import nimnet/algorithms/<name>` and `export <name>` to `src/nimnet.nim`
-5. Create tests in `tests/talgorithms.nim` or `tests/talgorithms2.nim`
+5. Create tests in the appropriate `tests/talgorithms_*.nim` file
 6. Update CHANGELOG.md
 
 ### Adding a new graph generator
 1. Create `src/nimnet/generators/<name>.nim`
 2. Return `Graph[int]` or `Graph[N]` from generator procs
 3. Add to `src/nimnet.nim` exports
-4. Create tests in `tests/talgorithms.nim` or dedicated file
+4. Create tests in the appropriate `tests/talgorithms_*.nim` file
 
 ### Adding a top-level module (e.g. builder.nim, datasets.nim)
 1. Create `src/nimnet/<name>.nim`

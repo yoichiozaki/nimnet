@@ -25,7 +25,7 @@ jobs:
 
       - name: Run tests with coverage
         run: |
-          for test in ttypes tgraph tdigraph talgorithms talgorithms2 talgorithms3; do
+          for test in ttypes tgraph tdigraph talgorithms_core talgorithms_io_gen talgorithms_extended; do
             nim c --passC:--coverage --passL:--coverage -r -p:src --nimcache:build/nimcache/$test tests/$test.nim
           done
 
