@@ -13,6 +13,8 @@ jobs:
       contents: write
     steps:
       - uses: actions/checkout@v5
+        with:
+          ref: ${{ github.ref_name }}
 
       - uses: jiro4989/setup-nim-action@v2
         with:
@@ -43,7 +45,7 @@ jobs:
       - name: Extract coverage percentage
         id: cov
         run: |
-          PERCENT=$(lcov --summary coverage.info 2>&1 | grep 'lines\.\.\.\.\.\.' | sed 's/.*:\s*//' | sed 's/%.*//')
+          PERCENT=$(lcov --summary coverage.info 2>&1 | grep 'lines\.\.\.\.\.\.' | sed 's/.*:\s*//' | sed 's/%.*//' | tr -d ' ')
           if [ -z "$PERCENT" ]; then PERCENT="0"; fi
           echo "percent=$PERCENT" >> $GITHUB_OUTPUT
           echo "Coverage: ${PERCENT}%"
@@ -76,5 +78,4 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add docs/badges/coverage.json
-          git diff --cached --quiet || git commit -m "ci: update coverage badge [skip ci]"
-          git push
+          git diff --cached --quiet || (git commit -m "ci: update coverage badge [skip ci]" && git push)
