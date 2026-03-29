@@ -187,3 +187,23 @@ let lesmis = lesMiserablesGraph()
 
 - [API Reference]({{ site.baseurl }}/api/nimnet.html) — Full module documentation (auto-generated from source)
 - [ADR Documents](https://github.com/yoichiozaki/nimnet/tree/main/docs/adr) — Architecture Decision Records
+
+## Performance
+
+nimnet is a pure Nim implementation with no C/Fortran dependencies — yet it outperforms Python's NetworkX (which uses scipy/numpy C backends) on most benchmarks.
+
+**Large graph (10,000 nodes, 50,000 edges):**
+
+| Benchmark | NimNet | NetworkX | Result |
+|-----------|--------|----------|--------|
+| Graph creation | 0.014s | 0.051s | **NimNet 3.6× faster** |
+| BFS traversal | 0.008s | 0.015s | **NimNet 1.9× faster** |
+| DFS traversal | 0.006s | 0.010s | **NimNet 1.7× faster** |
+| Dijkstra | 0.040s | 0.012s | NetworkX 3.3× faster |
+| PageRank | 0.079s | 0.035s | NetworkX 2.3× faster\* |
+| Connected components | 0.006s | 0.005s | ~1× |
+| MST (Kruskal) | 0.077s | 0.088s | **NimNet 1.1× faster** |
+
+\*NetworkX PageRank uses scipy sparse matrix operations (C/Fortran); NimNet is pure Nim.
+
+To reproduce benchmarks, see the [`benchmarks/`](https://github.com/yoichiozaki/nimnet/tree/main/benchmarks) directory.

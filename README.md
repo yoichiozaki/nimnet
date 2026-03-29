@@ -136,32 +136,32 @@ Benchmark results comparing NimNet (compiled Nim, pure implementation) vs Networ
 
 | Benchmark | NimNet | NetworkX | Ratio |
 |-----------|--------|----------|-------|
-| Graph creation | 0.009 | 0.005 | 1.9× |
-| BFS | 0.005 | 0.002 | 3.2× |
-| DFS | 0.004 | 0.001 | 4.1× |
-| Dijkstra | 0.009 | 0.001 | 13.2× |
-| PageRank | 0.091 | 0.003 | 26.3×\* |
-| Connected components | 0.014 | 0.000 | — |
-| MST (Kruskal) | 0.017 | 0.005 | 3.3× |
-| Louvain | 0.816 | 0.091 | 9.0× |
-| Clustering | 0.021 | 0.015 | 1.4× |
-| Triangles | 0.007 | 0.003 | 2.0× |
+| Graph creation | 0.001 | 0.005 | **NimNet 5×** |
+| BFS | 0.001 | 0.002 | **NimNet 2×** |
+| DFS | 0.001 | 0.001 | ~1× |
+| Dijkstra | 0.002 | 0.001 | 2× |
+| PageRank | 0.007 | 0.004 | 1.8×\* |
+| Connected components | 0.001 | 0.000 | — |
+| MST (Kruskal) | 0.005 | 0.005 | ~1× |
+| Louvain | 0.625 | 0.091 | 6.9× |
+| Clustering | 0.013 | 0.015 | **NimNet 1.2×** |
+| Triangles | 0.004 | 0.004 | ~1× |
 
 **Large graph (10,000 nodes, 50,000 edges):**
 
 | Benchmark | NimNet | NetworkX | Ratio |
 |-----------|--------|----------|-------|
-| Graph creation | 0.154 | 0.057 | 2.7× |
-| BFS | 0.062 | 0.017 | 3.7× |
-| DFS | 0.063 | 0.011 | 5.9× |
-| Dijkstra | 1.449 | 0.012 | 116× |
-| PageRank | 1.233 | 0.038 | 32.4×\* |
-| Connected components | 0.059 | 0.005 | 11.7× |
-| MST (Kruskal) | 0.173 | 0.086 | 2.0× |
+| Graph creation | 0.014 | 0.051 | **NimNet 3.6×** |
+| BFS | 0.008 | 0.015 | **NimNet 1.9×** |
+| DFS | 0.006 | 0.010 | **NimNet 1.7×** |
+| Dijkstra | 0.040 | 0.012 | 3.3× |
+| PageRank | 0.079 | 0.035 | 2.3×\* |
+| Connected components | 0.006 | 0.005 | 1.2× |
+| MST (Kruskal) | 0.077 | 0.088 | **NimNet 1.1×** |
 
 \*NetworkX PageRank uses scipy (C/Fortran); NimNet is pure Nim.
 
-> **Note:** NimNet is a pure Nim implementation with no C/Fortran bindings. NetworkX leverages NumPy/SciPy for numerically intensive algorithms. These benchmarks identify optimization targets for future releases. See [`benchmarks/`](benchmarks/) for details and reproduction scripts.
+> **Note:** NimNet is a pure Nim implementation with no C/Fortran bindings. NetworkX leverages NumPy/SciPy for numerically intensive algorithms like PageRank. NimNet outperforms NetworkX on graph creation, traversal (BFS/DFS), and MST benchmarks. See [`benchmarks/`](benchmarks/) for details and reproduction scripts.
 
 ## Examples
 

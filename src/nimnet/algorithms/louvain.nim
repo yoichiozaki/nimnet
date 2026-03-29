@@ -88,6 +88,9 @@ proc louvainCommunities*[N](g: Graph[N], resolution: float = 1.0, seed: int64 = 
         sigmaTot[bestCom] = sigmaTot.getOrDefault(bestCom, 0.0) + kiNode
         community[node] = bestCom
         improved = true
+        # Incrementally update sigmaTot — O(1) instead of recomputing O(V)
+        sigmaTot[currentCom] = sigmaTot.getOrDefault(currentCom, 0.0) - kiNode
+        sigmaTot[bestCom] = sigmaTot.getOrDefault(bestCom, 0.0) + kiNode
 
   # Collect communities
   var comNodes = initTable[int, HashSet[N]]()

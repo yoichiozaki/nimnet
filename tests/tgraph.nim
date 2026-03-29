@@ -1,4 +1,4 @@
-import std/[unittest, sets, tables, algorithm]
+import std/[unittest, sets, tables, algorithm, json]
 import nimnet/graph
 import nimnet/types
 
@@ -18,10 +18,10 @@ suite "Graph - Node operations":
   test "addNode with attributes":
     var g = newGraph[string]()
     var attr = newNodeAttr()
-    attr["color"] = "red"
+    attr["color"] = newJString("red")
     g.addNode("A", attr)
     check g.hasNode("A")
-    check g.getNodeAttr("A")["color"] == "red"
+    check g.getNodeAttr("A")["color"].getStr() == "red"
 
   test "addNodesFrom batch":
     var g = newGraph[int]()
@@ -160,7 +160,7 @@ suite "Graph - Subscript operators":
     var g = newGraph[int]()
     g.addWeightedEdge(1, 2, 5.0)
     let attr = g[1, 2]
-    check attr["weight"] == "5.0"
+    check attr["weight"].getFloat() == 5.0
 
   test "g[u, v] raises on missing edge":
     var g = newGraph[int]()
@@ -238,7 +238,7 @@ suite "Graph - Other iterators":
     g.setNodeAttr(1, "color", "red")
     for n, attr in g.nodesWithAttr:
       if n == 1:
-        check attr["color"] == "red"
+        check attr["color"].getStr() == "red"
 
 suite "Graph - Degree":
   test "degree":
@@ -347,7 +347,7 @@ suite "Graph - Subgraph":
     g.addEdge(1, 2)
     g.setNodeAttr(1, "color", "red")
     let sg = g.subgraph(@[1, 2])
-    check sg.getNodeAttr(1)["color"] == "red"
+    check sg.getNodeAttr(1)["color"].getStr() == "red"
 
 suite "Graph - Operators + and -":
   test "graph union (+)":
@@ -389,14 +389,14 @@ suite "Graph - Attributes":
     var g = newGraph[int]()
     g.addNode(1)
     g.setNodeAttr(1, "label", "first")
-    check g.getNodeAttr(1)["label"] == "first"
+    check g.getNodeAttr(1)["label"].getStr() == "first"
 
   test "edge attributes":
     var g = newGraph[int]()
     g.addEdge(1, 2)
     g.setEdgeAttr(1, 2, "color", "blue")
-    check g.getEdgeAttr(1, 2)["color"] == "blue"
-    check g.getEdgeAttr(2, 1)["color"] == "blue"  # symmetric
+    check g.getEdgeAttr(1, 2)["color"].getStr() == "blue"
+    check g.getEdgeAttr(2, 1)["color"].getStr() == "blue"  # symmetric
 
   test "string nodes":
     var g = newGraph[string]()

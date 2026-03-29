@@ -2,7 +2,7 @@
 ##
 ## Read and write graphs in GML format.
 
-import std/[tables, strutils, streams, strformat]
+import std/[tables, strutils, streams, strformat, json]
 import ../types
 import ../graph
 import ../digraph
@@ -24,7 +24,8 @@ proc writeGml*[N](g: Graph[N], filename: string) =
     f.writeLine(fmt"    id {node}")
     let attrs = g.getNodeAttr(node)
     if "label" in attrs:
-      f.writeLine(fmt"    label ""{attrs[""label""]}""")
+      let label = attrs["label"].getStr()
+      f.writeLine(fmt"    label ""{label}""")
     f.writeLine("  ]")
 
   for (u, v) in g.edges:
@@ -33,7 +34,9 @@ proc writeGml*[N](g: Graph[N], filename: string) =
     f.writeLine(fmt"    target {v}")
     let attrs = g.getEdgeAttr(u, v)
     if "weight" in attrs:
-      f.writeLine(fmt"    weight {attrs[""weight""]}")
+      let wNode = attrs["weight"]
+      let w = if wNode.kind == JString: wNode.getStr() else: $wNode
+      f.writeLine(fmt"    weight {w}")
     f.writeLine("  ]")
 
   f.writeLine("]")
@@ -61,7 +64,9 @@ proc writeGml*[N](g: DiGraph[N], filename: string) =
     f.writeLine(fmt"    target {v}")
     let attrs = g.getEdgeAttr(u, v)
     if "weight" in attrs:
-      f.writeLine(fmt"    weight {attrs[""weight""]}")
+      let wNode = attrs["weight"]
+      let w = if wNode.kind == JString: wNode.getStr() else: $wNode
+      f.writeLine(fmt"    weight {w}")
     f.writeLine("  ]")
 
   f.writeLine("]")

@@ -19,7 +19,7 @@ proc toJsonNode*[N](g: Graph[N]): JsonNode =
     nodeObj["id"] = newJString($n)
     let attr = g.getNodeAttr(n)
     for k, v in attr:
-      nodeObj[k] = newJString(v)
+      nodeObj[k] = v
     nodes.add(nodeObj)
   result["nodes"] = nodes
 
@@ -29,7 +29,7 @@ proc toJsonNode*[N](g: Graph[N]): JsonNode =
     linkObj["source"] = newJString($u)
     linkObj["target"] = newJString($v)
     for k, val in attr:
-      linkObj[k] = newJString(val)
+      linkObj[k] = val
     links.add(linkObj)
   result["links"] = links
 
@@ -54,7 +54,7 @@ proc toJsonNode*[N](g: DiGraph[N]): JsonNode =
     linkObj["source"] = newJString($u)
     linkObj["target"] = newJString($v)
     for k, val in attr:
-      linkObj[k] = newJString(val)
+      linkObj[k] = val
     links.add(linkObj)
   result["links"] = links
 
@@ -82,7 +82,7 @@ proc readJsonGraph*(filename: string): Graph[string] =
     var attr = newNodeAttr()
     for k, v in nodeObj:
       if k != "id":
-        attr[k] = v.getStr()
+        attr[k] = v
     if attr.len > 0:
       result.setNodeAttr(id, attr)
 
@@ -92,5 +92,5 @@ proc readJsonGraph*(filename: string): Graph[string] =
     var attr = newEdgeAttr()
     for k, v in linkObj:
       if k != "source" and k != "target":
-        attr[k] = v.getStr()
+        attr[k] = v
     result.addEdge(source, target, attr)
