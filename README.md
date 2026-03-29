@@ -13,9 +13,9 @@ A comprehensive network science library for [Nim](https://nim-lang.org/), inspir
 ## Features
 
 - **Graph types**: Undirected (`Graph`) and directed (`DiGraph`) graphs with generic node types
-- **36 Algorithm modules**: BFS/DFS traversal, shortest paths (Dijkstra, Bellman-Ford, A*, Floyd-Warshall, Johnson's), centrality (degree, closeness, PageRank, eigenvector, Katz, HITS), connected/strongly connected components, clustering coefficients, community detection (greedy modularity, Louvain), MST (Kruskal, Prim), max flow (Edmonds-Karp), topological sort, transitive closure/reduction, graph isomorphism (VF2), planarity testing, TSP heuristics, min-cost flow, tree decomposition, k-core decomposition, clique enumeration, graph coloring, bipartite matching, Eulerian/Hamiltonian paths, link prediction, bridges & articulation points, ego graphs, distance measures, simple paths, efficiency, rich-club coefficient, Wiener index, cycle basis, matching, graph products, and more
-- **6 Generator modules**: Classic graphs (complete, cycle, path, star, wheel, grid, barbell, lollipop, ladder, etc.), random graphs (Erdős-Rényi, Barabási-Albert, Watts-Strogatz, random regular, stochastic block model), small/famous graphs (Petersen, karate club), tree generators, line graph, lattice (grid2d, triangular, hypercube)
-- **7 I/O formats**: Edge list, adjacency list, JSON graph, DOT/Graphviz, GML, GraphML, GEXF
+- **48 Algorithm modules**: BFS/DFS traversal, shortest paths (Dijkstra, Bellman-Ford, A*, Floyd-Warshall, Johnson's), centrality (degree, closeness, PageRank, eigenvector, Katz, HITS), connected/strongly connected components, clustering coefficients, community detection (greedy modularity, Louvain), MST (Kruskal, Prim), max flow (Edmonds-Karp), topological sort, transitive closure/reduction, graph isomorphism (VF2), planarity testing, TSP heuristics, min-cost flow, tree decomposition, k-core decomposition, clique enumeration, graph coloring, bipartite matching, Eulerian/Hamiltonian paths, link prediction, bridges & articulation points, ego graphs, distance measures, simple paths, efficiency, rich-club coefficient, Wiener index, cycle basis, matching, graph products, small-world metrics, graph hashing (WL), similarity (SimRank, graph edit distance), spectral analysis, triads, voronoi, LCA, layout (spring, circular, shell), minors, cuts, parallel algorithms (PageRank, betweenness, closeness, clustering, Johnson's)
+- **10 Generator modules**: Classic graphs (complete, cycle, path, star, wheel, grid, barbell, lollipop, ladder, etc.), random graphs (Erdős-Rényi, Barabási-Albert, Watts-Strogatz, random regular, stochastic block model), small/famous graphs (Petersen, karate club), tree generators, line graph, lattice (grid2d, triangular, hypercube), geometric graphs (random geometric, Waxman), community generators (caveman, planted partition), degree sequence generators (configuration model, Havel-Hakimi), directed graph generators (GN, GNR, GNC, random k-out)
+- **10 I/O formats**: Edge list, adjacency list, JSON graph, DOT/Graphviz, GML, GraphML, GEXF, Graph6, Pajek, SVG export
 - **Operators**: Union, complement, intersection, difference, node relabeling, directed ↔ undirected conversion
 - **Builder DSL**: Fluent graph construction with method chaining and `buildGraph` template
 - **Built-in datasets**: Dolphins social network, Florentine families, les misérables
@@ -127,6 +127,17 @@ let loaded = readGml("my_graph.gml")
 | Cycles | `cycles` | Cycle basis, simple cycles (directed) |
 | Matching | `matching` | Maximal matching, max/min-weight matching |
 | Graph Products | `graph_products` | Cartesian, tensor, strong, lexicographic product |
+| Small-World | `smallworld` | Small-world sigma (σ) and omega (ω) coefficients |
+| Graph Hashing | `graph_hashing` | Weisfeiler-Lehman graph/subgraph hashes |
+| Similarity | `similarity` | SimRank, graph edit distance |
+| Spectral | `spectral` | Laplacian spectrum, algebraic connectivity, spectral radius, Fiedler vector |
+| Triads | `triads` | Triad census, triadic closure |
+| Voronoi | `voronoi` | Voronoi partitions on graphs |
+| LCA | `lca` | Lowest common ancestor in DAGs |
+| Layout | `layout` | Spring (Fruchterman-Reingold), circular, shell, random, spectral layout |
+| Minors | `minors` | Edge contraction, graph minors |
+| Cuts | `cuts` | Minimum node/edge cuts, Stoer-Wagner |
+| Parallel | `parallel` | Parallel PageRank, betweenness, closeness, clustering, Johnson's (malebolgia) |
 
 ## Performance
 
@@ -169,7 +180,7 @@ See the [`examples/`](examples/) directory for complete, runnable programs:
 
 - **Social network analysis** — centrality, clustering, community detection on the karate club graph
 - **Shortest path demo** — Dijkstra, Bellman-Ford, A* on a weighted city network
-- **Graph I/O roundtrip** — export/import in all 6 supported formats
+- **Graph I/O roundtrip** — export/import in all 10 supported formats
 - **Network resilience** — bridges, articulation points, connectivity analysis
 
 ```bash
