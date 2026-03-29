@@ -1,6 +1,6 @@
 ## Shortest path algorithms for nimnet
 
-import std/[tables, sets, deques, sequtils, hashes, algorithm]
+import std/[tables, sets, deques, sequtils, hashes, algorithm, heapqueue]
 import ../types
 import ../graph
 import ../digraph
@@ -181,34 +181,30 @@ proc dijkstraPath*[N](g: Graph[N], source, target: N): seq[N] =
   if source == target:
     return @[source]
 
+  type Entry = tuple[dist: float, node: N]
+  var pq = initHeapQueue[Entry]()
   var dist = initTable[N, float]()
   var pred = initTable[N, N]()
   var visited = initHashSet[N]()
+
   dist[source] = 0.0
+  pq.push((0.0, source))
 
-  while true:
-    # Find unvisited node with minimum distance
-    var minDist = Inf
-    var minNode: N
-    var found = false
-    for node, d in dist:
-      if node notin visited and d < minDist:
-        minDist = d
-        minNode = node
-        found = true
-    if not found:
+  while pq.len > 0:
+    let (d, u) = pq.pop()
+    if u in visited:
+      continue
+    if u == target:
       break
-    if minNode == target:
-      break
-
-    visited.incl(minNode)
-    for neighbor in g.neighbors(minNode):
+    visited.incl(u)
+    for neighbor in g.neighbors(u):
       if neighbor notin visited:
-        let w = g.weight(minNode, neighbor)
-        let newDist = dist[minNode] + w
+        let w = g.weight(u, neighbor)
+        let newDist = d + w
         if neighbor notin dist or newDist < dist[neighbor]:
           dist[neighbor] = newDist
-          pred[neighbor] = minNode
+          pred[neighbor] = u
+          pq.push((newDist, neighbor))
 
   if target notin dist:
     raise newException(NimNetNoPath, "No path between source and target")
@@ -231,33 +227,30 @@ proc dijkstraPath*[N](g: DiGraph[N], source, target: N): seq[N] =
   if source == target:
     return @[source]
 
+  type Entry = tuple[dist: float, node: N]
+  var pq = initHeapQueue[Entry]()
   var dist = initTable[N, float]()
   var pred = initTable[N, N]()
   var visited = initHashSet[N]()
+
   dist[source] = 0.0
+  pq.push((0.0, source))
 
-  while true:
-    var minDist = Inf
-    var minNode: N
-    var found = false
-    for node, d in dist:
-      if node notin visited and d < minDist:
-        minDist = d
-        minNode = node
-        found = true
-    if not found:
+  while pq.len > 0:
+    let (d, u) = pq.pop()
+    if u in visited:
+      continue
+    if u == target:
       break
-    if minNode == target:
-      break
-
-    visited.incl(minNode)
-    for neighbor in g.neighbors(minNode):
+    visited.incl(u)
+    for neighbor in g.neighbors(u):
       if neighbor notin visited:
-        let w = g.weight(minNode, neighbor)
-        let newDist = dist[minNode] + w
+        let w = g.weight(u, neighbor)
+        let newDist = d + w
         if neighbor notin dist or newDist < dist[neighbor]:
           dist[neighbor] = newDist
-          pred[neighbor] = minNode
+          pred[neighbor] = u
+          pq.push((newDist, neighbor))
 
   if target notin dist:
     raise newException(NimNetNoPath, "No path between source and target")
@@ -280,31 +273,28 @@ proc dijkstraPathLength*[N](g: Graph[N], source, target: N): float =
   if source == target:
     return 0.0
 
+  type Entry = tuple[dist: float, node: N]
+  var pq = initHeapQueue[Entry]()
   var dist = initTable[N, float]()
   var visited = initHashSet[N]()
+
   dist[source] = 0.0
+  pq.push((0.0, source))
 
-  while true:
-    var minDist = Inf
-    var minNode: N
-    var found = false
-    for node, d in dist:
-      if node notin visited and d < minDist:
-        minDist = d
-        minNode = node
-        found = true
-    if not found:
-      break
-    if minNode == target:
-      return dist[target]
-
-    visited.incl(minNode)
-    for neighbor in g.neighbors(minNode):
+  while pq.len > 0:
+    let (d, u) = pq.pop()
+    if u in visited:
+      continue
+    if u == target:
+      return d
+    visited.incl(u)
+    for neighbor in g.neighbors(u):
       if neighbor notin visited:
-        let w = g.weight(minNode, neighbor)
-        let newDist = dist[minNode] + w
+        let w = g.weight(u, neighbor)
+        let newDist = d + w
         if neighbor notin dist or newDist < dist[neighbor]:
           dist[neighbor] = newDist
+          pq.push((newDist, neighbor))
 
   if target notin dist:
     raise newException(NimNetNoPath, "No path between source and target")
@@ -319,31 +309,28 @@ proc dijkstraPathLength*[N](g: DiGraph[N], source, target: N): float =
   if source == target:
     return 0.0
 
+  type Entry = tuple[dist: float, node: N]
+  var pq = initHeapQueue[Entry]()
   var dist = initTable[N, float]()
   var visited = initHashSet[N]()
+
   dist[source] = 0.0
+  pq.push((0.0, source))
 
-  while true:
-    var minDist = Inf
-    var minNode: N
-    var found = false
-    for node, d in dist:
-      if node notin visited and d < minDist:
-        minDist = d
-        minNode = node
-        found = true
-    if not found:
-      break
-    if minNode == target:
-      return dist[target]
-
-    visited.incl(minNode)
-    for neighbor in g.neighbors(minNode):
+  while pq.len > 0:
+    let (d, u) = pq.pop()
+    if u in visited:
+      continue
+    if u == target:
+      return d
+    visited.incl(u)
+    for neighbor in g.neighbors(u):
       if neighbor notin visited:
-        let w = g.weight(minNode, neighbor)
-        let newDist = dist[minNode] + w
+        let w = g.weight(u, neighbor)
+        let newDist = d + w
         if neighbor notin dist or newDist < dist[neighbor]:
           dist[neighbor] = newDist
+          pq.push((newDist, neighbor))
 
   if target notin dist:
     raise newException(NimNetNoPath, "No path between source and target")
@@ -354,32 +341,29 @@ proc singleSourceDijkstra*[N](g: Graph[N], source: N): (Table[N, float], Table[N
   if not g.hasNode(source):
     raise newException(NodeNotFound, "Source node not found")
 
+  type Entry = tuple[dist: float, node: N]
+  var pq = initHeapQueue[Entry]()
   var dist = initTable[N, float]()
   var paths = initTable[N, seq[N]]()
   var visited = initHashSet[N]()
+
   dist[source] = 0.0
   paths[source] = @[source]
+  pq.push((0.0, source))
 
-  while true:
-    var minDist = Inf
-    var minNode: N
-    var found = false
-    for node, d in dist:
-      if node notin visited and d < minDist:
-        minDist = d
-        minNode = node
-        found = true
-    if not found:
-      break
-
-    visited.incl(minNode)
-    for neighbor in g.neighbors(minNode):
+  while pq.len > 0:
+    let (d, u) = pq.pop()
+    if u in visited:
+      continue
+    visited.incl(u)
+    for neighbor in g.neighbors(u):
       if neighbor notin visited:
-        let w = g.weight(minNode, neighbor)
-        let newDist = dist[minNode] + w
+        let w = g.weight(u, neighbor)
+        let newDist = d + w
         if neighbor notin dist or newDist < dist[neighbor]:
           dist[neighbor] = newDist
-          paths[neighbor] = paths[minNode] & @[neighbor]
+          paths[neighbor] = paths[u] & @[neighbor]
+          pq.push((newDist, neighbor))
 
   result = (dist, paths)
 
@@ -491,24 +475,17 @@ proc astarPath*[N](g: Graph[N], source, target: N,
   if source == target:
     return @[source]
 
-  # Open set with (f_score, g_score, node) - use seq as priority queue
-  var openSet: seq[(float, float, N)] = @[(heuristic(source), 0.0, source)]
+  type Entry = tuple[fScore: float, gScore: float, node: N]
+  var openSet = initHeapQueue[Entry]()
+  openSet.push((heuristic(source), 0.0, source))
   var cameFrom = initTable[N, N]()
   var gScore = initTable[N, float]()
   gScore[source] = 0.0
   var closedSet = initHashSet[N]()
 
   while openSet.len > 0:
-    # Pop node with smallest f_score
-    var minIdx = 0
-    for i in 1 ..< openSet.len:
-      if openSet[i][0] < openSet[minIdx][0]:
-        minIdx = i
-    let (_, currentG, current) = openSet[minIdx]
-    openSet.del(minIdx)
-
+    let (_, currentG, current) = openSet.pop()
     if current == target:
-      # Reconstruct path
       var path: seq[N] = @[target]
       var node = target
       while node in cameFrom:
@@ -516,25 +493,19 @@ proc astarPath*[N](g: Graph[N], source, target: N,
         path.add(node)
       path.reverse()
       return path
-
     if current in closedSet:
       continue
     closedSet.incl(current)
-
     for neighbor in g.neighbors(current):
       let edgeWeight = g[current, neighbor].getWeight()
-      let tentativeG = gScore[current] + edgeWeight
-
-      # If neighbor is closed and we don't have a better path, skip it.
+      let tentativeG = currentG + edgeWeight
       if neighbor in closedSet and tentativeG >= gScore.getOrDefault(neighbor, Inf):
         continue
-
       if neighbor notin gScore or tentativeG < gScore[neighbor]:
         cameFrom[neighbor] = current
         gScore[neighbor] = tentativeG
         let fScore = tentativeG + heuristic(neighbor)
-        openSet.add((fScore, tentativeG, neighbor))
-        # Re-open neighbor if we found a better path.
+        openSet.push((fScore, tentativeG, neighbor))
         if neighbor in closedSet:
           closedSet.excl(neighbor)
 
