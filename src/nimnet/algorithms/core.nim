@@ -97,3 +97,87 @@ proc kCorona*[N](g: Graph[N], k: int): Graph[N] =
   for (u, v) in g.edges:
     if u in result and v in result:
       result.addEdge(u, v)
+
+# =============================================================================
+# k-Truss (#109)
+# =============================================================================
+
+proc kTruss*[N](g: Graph[N], k: int): Graph[N] =
+  ## Return the k-truss of g: the maximal subgraph where every edge
+  ## participates in at least (k-2) triangles.
+  result = newGraph[N]()
+  if k < 2:
+    # Return entire graph for k < 2
+    for n in g.nodes:
+      result.addNode(n)
+    for (u, v) in g.edges:
+      result.addEdge(u, v)
+    return
+  # Build mutable edge set
+  var adj = initTable[N, HashSet[N]]()
+  for n in g.nodes:
+    adj[n] = initHashSet[N]()
+  for (u, v) in g.edges:
+    adj[u].incl(v)
+    adj[v].incl(u)
+  # Iteratively remove edges with less than k-2 triangle support
+  var changed = true
+  while changed:
+    changed = false
+    var toRemove = newSeq[(N, N)]()
+    for u in adj.keys:
+      for v in adj[u]:
+        if u < v:
+          # Count triangles for edge (u, v)
+          var triangles = 0
+          for w in adj[u]:
+            if w != v and w in adj[v]:
+              triangles.inc
+          if triangles < k - 2:
+            toRemove.add((u, v))
+    for (u, v) in toRemove:
+      if v in adj.getOrDefault(u, initHashSet[N]()):
+        adj[u].excl(v)
+        adj[v].excl(u)
+        changed = true
+  for u in adj.keys:
+    if adj[u].len > 0:
+      result.addNode(u)
+  for u in adj.keys:
+    for v in adj[u]:
+      if u < v:
+        result.addEdge(u, v)
+
+# =============================================================================
+# Onion Decomposition (#109)
+# =============================================================================
+
+proc onionLayers*[N](g: Graph[N]): Table[N, int] =
+  ## Compute the onion decomposition of the graph.
+  ## Each node is assigned a layer number. Layer 1 is the outermost.
+  result = initTable[N, int]()
+  let n = g.numberOfNodes()
+  if n == 0: return
+  var deg = initTable[N, int]()
+  var remaining = initHashSet[N]()
+  for node in g.nodes:
+    deg[node] = g.degree(node)
+    remaining.incl(node)
+  var layer = 0
+  while remaining.len > 0:
+    layer.inc
+    # Find nodes with minimum degree in remaining subgraph
+    var minDeg = int.high
+    for node in remaining:
+      if deg[node] < minDeg:
+        minDeg = deg[node]
+    var toRemove = newSeq[N]()
+    for node in remaining:
+      if deg[node] == minDeg:
+        toRemove.add(node)
+        result[node] = layer
+    for node in toRemove:
+      remaining.excl(node)
+      for nbr in g.neighbors(node):
+        if nbr in remaining:
+          deg[nbr].dec

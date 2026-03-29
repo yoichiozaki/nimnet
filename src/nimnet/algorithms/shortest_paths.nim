@@ -647,3 +647,163 @@ proc bellmanFordDistances*[N](g: DiGraph[N], source: N): Table[N, float] =
     let w = attr.getWeight()
     if result[u] != Inf and result[u] + w < result[v]:
       raise newException(NimNetUnfeasible, "Negative cycle detected")
+
+# =============================================================================
+# Yen's K-Shortest Simple Paths (#133)
+# =============================================================================
+
+proc shortestSimplePaths*[N](g: Graph[N], source, target: N, k: int = 10): seq[seq[N]] =
+  ## Find the k shortest simple paths from source to target using Yen's algorithm.
+  ## Returns up to k paths in order of length.
+  if source == target:
+    return @[@[source]]
+  # Find first shortest path using Dijkstra
+  var firstPath: seq[N]
+  try:
+    firstPath = dijkstraPath(g, source, target)
+  except:
+    return @[]
+  if firstPath.len == 0:
+    return @[]
+  result = @[firstPath]
+  var candidates: seq[(float, seq[N])] = @[]
+  for ki in 1 ..< k:
+    let lastPath = result[^1]
+    for i in 0 ..< lastPath.len - 1:
+      let spurNode = lastPath[i]
+      let rootPath = lastPath[0 .. i]
+      # Build modified graph excluding edges used by existing paths
+      var excludeEdges = initHashSet[(N, N)]()
+      for p in result:
+        if p.len > i and p[0 .. i] == rootPath:
+          excludeEdges.incl((p[i], p[i + 1]))
+      var excludeNodes = initHashSet[N]()
+      for j in 0 ..< i:
+        excludeNodes.incl(rootPath[j])
+      # Dijkstra on modified graph
+      var dist = initTable[N, float]()
+      var prev = initTable[N, N]()
+      dist[spurNode] = 0.0
+      var pq = initHeapQueue[DijkEntry[N]]()
+      pq.push(DijkEntry[N](node: spurNode, dist: 0.0))
+      while pq.len > 0:
+        let entry = pq.pop()
+        if entry.dist > dist.getOrDefault(entry.node, Inf): continue
+        if entry.node == target: break
+        for nbr in g.neighbors(entry.node):
+          if nbr in excludeNodes: continue
+          if (entry.node, nbr) in excludeEdges: continue
+          let w = g[entry.node, nbr].getWeight()
+          let nd = entry.dist + w
+          if nd < dist.getOrDefault(nbr, Inf):
+            dist[nbr] = nd
+            prev[nbr] = entry.node
+            pq.push(DijkEntry[N](node: nbr, dist: nd))
+      if target in dist:
+        var spurPath = @[target]
+        var curr = target
+        while curr != spurNode:
+          curr = prev[curr]
+          spurPath.add(curr)
+        algorithm.reverse(spurPath)
+        let totalPath = rootPath[0 ..< rootPath.len - 1] & spurPath
+        let totalDist = block:
+          var d = 0.0
+          for idx in 0 ..< totalPath.len - 1:
+            d += g[totalPath[idx], totalPath[idx + 1]].getWeight()
+          d
+        candidates.add((totalDist, totalPath))
+    if candidates.len == 0: break
+    candidates.sort(proc(a, b: (float, seq[N])): int =
+      if a[0] < b[0]: -1
+      elif a[0] > b[0]: 1
+      else: 0)
+    # Find best candidate not already in result
+    var added = false
+    var newCandidates: seq[(float, seq[N])]
+    for c in candidates:
+      if c[1] notin result:
+        if not added:
+          result.add(c[1])
+          added = true
+        else:
+          newCandidates.add(c)
+      else:
+        newCandidates.add(c)
+    candidates = newCandidates
+    if not added: break
+
+proc shortestSimplePaths*[N](g: DiGraph[N], source, target: N, k: int = 10): seq[seq[N]] =
+  ## Find the k shortest simple paths in a directed graph.
+  if source == target:
+    return @[@[source]]
+  var firstPath: seq[N]
+  try:
+    firstPath = dijkstraPath(g, source, target)
+  except:
+    return @[]
+  if firstPath.len == 0: return @[]
+  result = @[firstPath]
+  var candidates: seq[(float, seq[N])] = @[]
+  for ki in 1 ..< k:
+    let lastPath = result[^1]
+    for i in 0 ..< lastPath.len - 1:
+      let spurNode = lastPath[i]
+      let rootPath = lastPath[0 .. i]
+      var excludeEdges = initHashSet[(N, N)]()
+      for p in result:
+        if p.len > i and p[0 .. i] == rootPath:
+          excludeEdges.incl((p[i], p[i + 1]))
+      var excludeNodes = initHashSet[N]()
+      for j in 0 ..< i:
+        excludeNodes.incl(rootPath[j])
+      var dist = initTable[N, float]()
+      var prev = initTable[N, N]()
+      dist[spurNode] = 0.0
+      var pq = initHeapQueue[DijkEntry[N]]()
+      pq.push(DijkEntry[N](node: spurNode, dist: 0.0))
+      while pq.len > 0:
+        let entry = pq.pop()
+        if entry.dist > dist.getOrDefault(entry.node, Inf): continue
+        if entry.node == target: break
+        for nbr in g.neighbors(entry.node):
+          if nbr in excludeNodes: continue
+          if (entry.node, nbr) in excludeEdges: continue
+          let w = g[entry.node, nbr].getWeight()
+          let nd = entry.dist + w
+          if nd < dist.getOrDefault(nbr, Inf):
+            dist[nbr] = nd
+            prev[nbr] = entry.node
+            pq.push(DijkEntry[N](node: nbr, dist: nd))
+      if target in dist:
+        var spurPath = @[target]
+        var curr = target
+        while curr != spurNode:
+          curr = prev[curr]
+          spurPath.add(curr)
+        algorithm.reverse(spurPath)
+        let totalPath = rootPath[0 ..< rootPath.len - 1] & spurPath
+        let totalDist = block:
+          var d = 0.0
+          for idx in 0 ..< totalPath.len - 1:
+            d += g[totalPath[idx], totalPath[idx + 1]].getWeight()
+          d
+        candidates.add((totalDist, totalPath))
+    if candidates.len == 0: break
+    candidates.sort(proc(a, b: (float, seq[N])): int =
+      if a[0] < b[0]: -1
+      elif a[0] > b[0]: 1
+      else: 0)
+    var added = false
+    var newCandidates: seq[(float, seq[N])]
+    for c in candidates:
+      if c[1] notin result:
+        if not added:
+          result.add(c[1])
+          added = true
+        else:
+          newCandidates.add(c)
+      else:
+        newCandidates.add(c)
+    candidates = newCandidates
+    if not added: break

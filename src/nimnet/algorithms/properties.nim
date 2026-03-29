@@ -3,7 +3,7 @@
 ## Provides functions to test structural properties of graphs:
 ## isTree, isForest, isRegular, isComplete, etc.
 
-import std/[sets, deques, tables]
+import std/[sets, deques, tables, algorithm]
 import ../types
 import ../graph
 import ../digraph
@@ -287,3 +287,195 @@ proc treeCentroid*[N](g: Graph[N]): seq[N] =
     leaves = newLeaves
   while leaves.len > 0:
     result.add(leaves.popFirst())
+
+# =============================================================================
+# Extended Graph Properties (#131)
+# =============================================================================
+
+func isKRegular*[N](g: Graph[N], k: int): bool =
+  ## Check if every node has degree exactly k.
+  for node in g.nodes:
+    if g.degree(node) != k:
+      return false
+  result = true
+
+proc isStronglyRegular*[N](g: Graph[N]): bool =
+  ## Check if the graph is strongly regular.
+  ## A graph is strongly regular with parameters (n, k, λ, μ) if it is
+  ## k-regular and every pair of adjacent vertices has λ common neighbors
+  ## and every pair of non-adjacent vertices has μ common neighbors.
+  let n = g.numberOfNodes()
+  if n == 0: return true
+  # Check regularity
+  var k = -1
+  for node in g.nodes:
+    if k < 0:
+      k = g.degree(node)
+    elif g.degree(node) != k:
+      return false
+  if k < 0: return true
+  # Check λ and μ
+  var lambda = -1
+  var mu = -1
+  let nodes = g.nodeSeq()
+  for i in 0 ..< nodes.len:
+    for j in i + 1 ..< nodes.len:
+      var commonNeighbors = 0
+      for nbr in g.neighbors(nodes[i]):
+        if g.hasEdge(nbr, nodes[j]):
+          commonNeighbors.inc
+      if g.hasEdge(nodes[i], nodes[j]):
+        if lambda < 0:
+          lambda = commonNeighbors
+        elif commonNeighbors != lambda:
+          return false
+      else:
+        if mu < 0:
+          mu = commonNeighbors
+        elif commonNeighbors != mu:
+          return false
+  result = true
+
+proc isDistanceRegular*[N](g: Graph[N]): bool =
+  ## Check if the graph is distance-regular.
+  ## A graph is distance-regular if for any vertices u, v at distance i,
+  ## the number of neighbors of v at distance i-1, i, i+1 from u
+  ## depends only on i and not on the specific choice of u and v.
+  let n = g.numberOfNodes()
+  if n == 0: return true
+  # Compute all pairs shortest paths
+  var dist = initTable[(N, N), int]()
+  for source in g.nodes:
+    var d = initTable[N, int]()
+    d[source] = 0
+    var queue = initDeque[N]()
+    queue.addLast(source)
+    while queue.len > 0:
+      let u = queue.popFirst()
+      for v in g.neighbors(u):
+        if v notin d:
+          d[v] = d[u] + 1
+          queue.addLast(v)
+    for target, td in d:
+      dist[(source, target)] = td
+  # Find max distance
+  var maxDist = 0
+  for _, d in dist:
+    if d > maxDist: maxDist = d
+  # For each distance i, check that intersection numbers are consistent
+  for i in 0 .. maxDist:
+    var ci = -1  # neighbors at distance i-1
+    var ai = -1  # neighbors at distance i
+    var bi = -1  # neighbors at distance i+1
+    for u in g.nodes:
+      for v in g.nodes:
+        if dist.getOrDefault((u, v), -1) != i: continue
+        var cCount, aCount, bCount: int
+        for w in g.neighbors(v):
+          let duw = dist.getOrDefault((u, w), -1)
+          if duw == i - 1: cCount.inc
+          elif duw == i: aCount.inc
+          elif duw == i + 1: bCount.inc
+        if ci < 0: ci = cCount
+        elif ci != cCount: return false
+        if ai < 0: ai = aCount
+        elif ai != aCount: return false
+        if bi < 0: bi = bCount
+        elif bi != bCount: return false
+  result = true
+
+proc isThresholdGraph*[N](g: Graph[N]): bool =
+  ## Check if the graph is a threshold graph.
+  ## A threshold graph can be constructed by repeated addition of
+  ## isolated nodes or nodes connected to all existing nodes.
+  let n = g.numberOfNodes()
+  if n <= 2: return true
+  # Degree sequence characterization: sort degrees descending,
+  # check the "creation sequence" property
+  var degrees = newSeq[int]()
+  for node in g.nodes:
+    degrees.add(g.degree(node))
+  degrees.sort(order = Descending)
+  # Build by checking: if deg = n-1, it's a dominating node
+  # Otherwise it's an isolated addition
+  var remaining = n
+  var degCopy = degrees
+  for i in 0 ..< n:
+    if degCopy[0] == remaining - 1:
+      # Dominating node: reduce all others by 1
+      degCopy.delete(0)
+      for j in 0 ..< degCopy.len:
+        degCopy[j].dec
+    elif degCopy[^1] == 0:
+      # Isolated node
+      degCopy.setLen(degCopy.len - 1)
+    else:
+      return false
+    remaining.dec
+    if remaining <= 0: break
+    degCopy.sort(order = SortOrder.Descending)
+  result = true
+
+proc moralGraph*[N](g: DiGraph[N]): Graph[N] =
+  ## Compute the moral graph of a DAG (marry parents + drop orientation).
+  result = newGraph[N]()
+  for n in g.nodes:
+    result.addNode(n)
+  for (u, v) in g.edges:
+    if not result.hasEdge(u, v):
+      result.addEdge(u, v)
+  # Marry parents: for each node, add edges between all pairs of parents
+  for node in g.nodes:
+    var parents = newSeq[N]()
+    for p in g.predecessors(node):
+      parents.add(p)
+    for i in 0 ..< parents.len:
+      for j in i + 1 ..< parents.len:
+        if not result.hasEdge(parents[i], parents[j]):
+          result.addEdge(parents[i], parents[j])
+
+proc flowHierarchy*[N](g: DiGraph[N]): float =
+  ## Compute the flow hierarchy of a directed graph.
+  ## The fraction of edges not in a cycle.
+  let m = g.numberOfEdges()
+  if m == 0: return 1.0
+  # Find edges in cycles using SCC
+  var inCycle = 0
+  let sccs = block:
+    # Inline SCC (Tarjan's)
+    var index = 0
+    var stack = newSeq[N]()
+    var onStack = initHashSet[N]()
+    var indices = initTable[N, int]()
+    var lowlink = initTable[N, int]()
+    var components = newSeq[HashSet[N]]()
+    proc strongconnect(v: N) =
+      indices[v] = index
+      lowlink[v] = index
+      index.inc
+      stack.add(v)
+      onStack.incl(v)
+      for w in g.neighbors(v):
+        if w notin indices:
+          strongconnect(w)
+          lowlink[v] = min(lowlink[v], lowlink[w])
+        elif w in onStack:
+          lowlink[v] = min(lowlink[v], indices[w])
+      if lowlink[v] == indices[v]:
+        var comp = initHashSet[N]()
+        while true:
+          let w = stack.pop()
+          onStack.excl(w)
+          comp.incl(w)
+          if w == v: break
+        components.add(comp)
+    for n in g.nodes:
+      if n notin indices:
+        strongconnect(n)
+    components
+  for (u, v) in g.edges:
+    for scc in sccs:
+      if u in scc and v in scc and scc.len > 1:
+        inCycle.inc
+        break
+  result = 1.0 - float(inCycle) / float(m)

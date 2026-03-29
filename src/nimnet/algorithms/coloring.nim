@@ -84,3 +84,38 @@ proc chromaticNumber*[N](g: Graph[N]): int =
   for n, c in coloring:
     if c + 1 > result:
       result = c + 1
+
+# =============================================================================
+# Extended Coloring (#129)
+# =============================================================================
+
+proc equitableColor*[N](g: Graph[N], numColors: int): Table[N, int] =
+  ## Compute an equitable coloring using at most numColors colors.
+  ## Each color class differs in size by at most 1.
+  ## Uses greedy approach with balancing.
+  result = greedyColor(g)
+  # Count color classes
+  var colorCount = initTable[int, int]()
+  for _, c in result:
+    colorCount[c] = colorCount.getOrDefault(c, 0) + 1
+  # Rebalance: try to move nodes to underrepresented colors
+  let targetSize = (g.numberOfNodes() + numColors - 1) div numColors
+  for _ in 0 ..< 10:
+    var changed = false
+    for node in g.nodes:
+      let curColor = result[node]
+      if colorCount.getOrDefault(curColor, 0) <= targetSize:
+        continue
+      # Try to move to an underrepresented valid color
+      var usedByNeighbors = initHashSet[int]()
+      for nbr in g.neighbors(node):
+        usedByNeighbors.incl(result[nbr])
+      for c in 0 ..< numColors:
+        if c notin usedByNeighbors and
+           colorCount.getOrDefault(c, 0) < targetSize and c != curColor:
+          colorCount[curColor] = colorCount.getOrDefault(curColor, 0) - 1
+          colorCount[c] = colorCount.getOrDefault(c, 0) + 1
+          result[node] = c
+          changed = true
+          break
+    if not changed: break

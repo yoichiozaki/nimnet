@@ -140,3 +140,86 @@ proc minimumVertexCover*[N](g: Graph[N]): HashSet[N] =
   for v in setB:
     if v in visited:
       result.incl(v)
+
+# =============================================================================
+# Extended Bipartite (#132)
+# =============================================================================
+
+proc bipartiteProjection*[N](g: Graph[N], nodes: HashSet[N]): Graph[N] =
+  ## Project a bipartite graph onto one set of nodes.
+  ## Two nodes in the projection are connected if they share a neighbor
+  ## in the other partition.
+  result = newGraph[N]()
+  for n in nodes:
+    result.addNode(n)
+  let nodeSeq = nodes.toSeq()
+  for i in 0 ..< nodeSeq.len:
+    for j in i + 1 ..< nodeSeq.len:
+      # Check if they share a neighbor
+      for nbr in g.neighbors(nodeSeq[i]):
+        if nbr notin nodes and g.hasEdge(nbr, nodeSeq[j]):
+          if not result.hasEdge(nodeSeq[i], nodeSeq[j]):
+            result.addEdge(nodeSeq[i], nodeSeq[j])
+          break
+
+proc bipartiteWeightedProjection*[N](g: Graph[N], nodes: HashSet[N]): Graph[N] =
+  ## Project with weights equal to number of shared neighbors.
+  result = newGraph[N]()
+  for n in nodes:
+    result.addNode(n)
+  let nodeSeq = nodes.toSeq()
+  for i in 0 ..< nodeSeq.len:
+    for j in i + 1 ..< nodeSeq.len:
+      var shared = 0
+      for nbr in g.neighbors(nodeSeq[i]):
+        if nbr notin nodes and g.hasEdge(nbr, nodeSeq[j]):
+          shared.inc
+      if shared > 0:
+        result.addWeightedEdge(nodeSeq[i], nodeSeq[j], float(shared))
+
+proc bipartiteClustering*[N](g: Graph[N]): Table[N, float] =
+  ## Compute the bipartite clustering coefficient for each node.
+  ## CC(v) = number of 4-cycles through v / (deg(v) * (deg(v)-1) / 2)
+  result = initTable[N, float]()
+  for v in g.nodes:
+    let d = g.degree(v)
+    if d < 2:
+      result[v] = 0.0
+      continue
+    var fourCycles = 0
+    let nbrs = block:
+      var s: seq[N]
+      for n in g.neighbors(v): s.add(n)
+      s
+    for i in 0 ..< nbrs.len:
+      for j in i + 1 ..< nbrs.len:
+        # Count common neighbors of nbrs[i] and nbrs[j] (excluding v)
+        for n2 in g.neighbors(nbrs[i]):
+          if n2 != v and g.hasEdge(n2, nbrs[j]):
+            fourCycles.inc
+    let pairs = d * (d - 1) div 2
+    result[v] = if pairs > 0: float(fourCycles) / float(pairs) else: 0.0
+
+proc bipartiteRedundancy*[N](g: Graph[N]): Table[N, float] =
+  ## Compute the redundancy coefficient for each node.
+  ## RC(v) = fraction of neighbor pairs that share more than one neighbor.
+  result = initTable[N, float]()
+  for v in g.nodes:
+    let nbrs = block:
+      var s: seq[N]
+      for n in g.neighbors(v): s.add(n)
+      s
+    if nbrs.len < 2:
+      result[v] = 0.0
+      continue
+    var redundant = 0
+    for i in 0 ..< nbrs.len:
+      for j in i + 1 ..< nbrs.len:
+        var sharedCount = 0
+        for n2 in g.neighbors(nbrs[i]):
+          if n2 != v and g.hasEdge(n2, nbrs[j]):
+            sharedCount.inc
+        if sharedCount > 0:
+          redundant.inc
+    let pairs = nbrs.len * (nbrs.len - 1) div 2
+    result[v] = if pairs > 0: float(redundant) / float(pairs) else: 0.0

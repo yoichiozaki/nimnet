@@ -9,7 +9,8 @@
 ## - ``allTriads(dg)`` — enumerate all triads
 ## - ``isTriad(dg)`` — check if graph is a 3-node directed graph
 
-import std/[tables, sets]
+import std/[tables, sets, random]
+import ../types
 import ../digraph
 
 const
@@ -284,3 +285,40 @@ iterator allTriads*[N](dg: DiGraph[N]): (N, N, N) =
 func isTriad*[N](dg: DiGraph[N]): bool =
   ## Return true if the digraph has exactly 3 nodes.
   dg.numberOfNodes() == 3
+
+proc allTriplets*[N](dg: DiGraph[N]): seq[(N, N, N)] =
+  ## Return all triples of nodes.
+  var nodeList: seq[N]
+  for nd in dg.nodes:
+    nodeList.add(nd)
+  let n = nodeList.len
+  for i in 0 ..< n:
+    for j in (i + 1) ..< n:
+      for k in (j + 1) ..< n:
+        result.add((nodeList[i], nodeList[j], nodeList[k]))
+
+proc randomTriad*[N](dg: DiGraph[N], seed: int = 0): (N, N, N) =
+  ## Return a random triad (3 nodes chosen uniformly at random).
+  var rng = if seed != 0: initRand(seed) else: initRand()
+  var nodeList: seq[N]
+  for nd in dg.nodes:
+    nodeList.add(nd)
+  let n = nodeList.len
+  if n < 3:
+    raise newException(NimNetError, "Need at least 3 nodes for a triad")
+  let i = rng.rand(n - 1)
+  var j = rng.rand(n - 2)
+  if j >= i: j.inc
+  var k = rng.rand(n - 3)
+  if k >= min(i, j): k.inc
+  if k >= max(i, j): k.inc
+  var triple = [nodeList[i], nodeList[j], nodeList[k]]
+  result = (triple[0], triple[1], triple[2])
+
+proc triadsByType*[N](dg: DiGraph[N]): Table[string, seq[(N, N, N)]] =
+  ## Group all triads by their M-A-N type.
+  for name in TRIAD_NAMES:
+    result[name] = newSeq[(N, N, N)]()
+  for (u, v, w) in allTriads(dg):
+    let tp = triadType(dg, u, v, w)
+    result[tp].add((u, v, w))

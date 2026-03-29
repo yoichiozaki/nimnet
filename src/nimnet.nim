@@ -64,6 +64,18 @@ import nimnet/algorithms/spectral;           export spectral
 import nimnet/algorithms/layout;             export layout
 import nimnet/algorithms/parallel;           export parallel
 import nimnet/algorithms/isolates;           export isolates
+import nimnet/algorithms/structural_holes;   export structural_holes
+import nimnet/algorithms/chordal;            export chordal
+import nimnet/algorithms/tournament;         export tournament
+import nimnet/algorithms/communicability;    export communicability
+import nimnet/algorithms/d_separation;       export d_separation
+import nimnet/algorithms/swaps;              export swaps
+import nimnet/algorithms/polynomials;        export polynomials
+import nimnet/algorithms/network_flow;       export network_flow
+import nimnet/algorithms/node_classification; export node_classification
+import nimnet/algorithms/leiden;             export leiden
+import nimnet/algorithms/approximation;      export approximation
+import nimnet/algorithms/misc;               export misc
 
 # --- Generators ---
 import nimnet/generators/classic;          export classic

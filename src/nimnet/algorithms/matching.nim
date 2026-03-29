@@ -105,3 +105,55 @@ proc minWeightMatching*[N](g: Graph[N]): seq[(N, N)] =
       result.add((e.u, e.v))
       matched.incl(e.u)
       matched.incl(e.v)
+
+# =============================================================================
+# Edge Cover (#109)
+# =============================================================================
+
+proc minEdgeCover*[N](g: Graph[N]): seq[(N, N)] =
+  ## Return a minimum edge cover of the graph.
+  ## Uses maximum matching + adds edges for unmatched nodes.
+  ## Requires that every node has at least one edge.
+  let matching = maximalMatching(g)
+  var matched = initHashSet[N]()
+  for (u, v) in matching:
+    result.add((u, v))
+    matched.incl(u)
+    matched.incl(v)
+  # Cover unmatched nodes with any incident edge
+  for node in g.nodes:
+    if node notin matched:
+      for nbr in g.neighbors(node):
+        result.add((node, nbr))
+        matched.incl(node)
+        break
+
+proc isEdgeCover*[N](g: Graph[N], cover: seq[(N, N)]): bool =
+  ## Check if the given set of edges forms a valid edge cover.
+  var covered = initHashSet[N]()
+  for (u, v) in cover:
+    if not g.hasEdge(u, v):
+      return false
+    covered.incl(u)
+    covered.incl(v)
+  for node in g.nodes:
+    if node notin covered:
+      return false
+  result = true
+
+# =============================================================================
+# Additional Matching (#135)
+# =============================================================================
+
+proc isMaximalMatching*[N](g: Graph[N], matching: seq[(N, N)]): bool =
+  ## Check if matching is maximal (no edge can be added).
+  if not isMatching(g, matching):
+    return false
+  var matched = initHashSet[N]()
+  for (u, v) in matching:
+    matched.incl(u)
+    matched.incl(v)
+  for (u, v) in g.edges:
+    if u notin matched and v notin matched:
+      return false  # Can add this edge
+  result = true

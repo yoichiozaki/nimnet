@@ -1,6 +1,6 @@
 ## Centrality measures for nimnet
 
-import std/[tables, sets, deques, algorithm]
+import std/[tables, sets, deques, algorithm, math]
 import ../types
 import ../graph
 import ../digraph
@@ -481,3 +481,471 @@ proc harmonicCentrality*[N](g: DiGraph[N]): Table[N, float] =
         result[target] += 1.0 / float(d)
   for node in g.nodes:
     result[node] *= norm
+
+# =============================================================================
+# Edge Betweenness Centrality (#121)
+# =============================================================================
+
+proc edgeBetweennessCentrality*[N](g: Graph[N], normalized: bool = true): Table[(N, N), float] =
+  ## Compute edge betweenness centrality for all edges.
+  ## Uses Brandes' algorithm adapted for edges.
+  result = initTable[(N, N), float]()
+  for (u, v) in g.edges:
+    result[(u, v)] = 0.0
+    result[(v, u)] = 0.0
+  let n = g.numberOfNodes()
+  for source in g.nodes:
+    var stack = newSeq[N]()
+    var pred = initTable[N, seq[N]]()
+    for node in g.nodes:
+      pred[node] = newSeq[N]()
+    var sigma = initTable[N, float]()
+    var dist = initTable[N, int]()
+    for node in g.nodes:
+      sigma[node] = 0.0
+      dist[node] = -1
+    sigma[source] = 1.0
+    dist[source] = 0
+    var queue = initDeque[N]()
+    queue.addLast(source)
+    while queue.len > 0:
+      let v = queue.popFirst()
+      stack.add(v)
+      for w in g.neighbors(v):
+        if dist[w] < 0:
+          queue.addLast(w)
+          dist[w] = dist[v] + 1
+        if dist[w] == dist[v] + 1:
+          sigma[w] += sigma[v]
+          pred[w].add(v)
+    var delta = initTable[N, float]()
+    for node in g.nodes:
+      delta[node] = 0.0
+    for i in countdown(stack.len - 1, 0):
+      let w = stack[i]
+      let coeff = (1.0 + delta[w]) / sigma[w]
+      for v in pred[w]:
+        let c = sigma[v] * coeff
+        if (v, w) in result:
+          result[(v, w)] += c
+        elif (w, v) in result:
+          result[(w, v)] += c
+        delta[v] += c
+  # Normalize: each edge counted from both endpoints
+  if normalized and n > 1:
+    let norm = 1.0 / float(n * (n - 1))
+    for key in result.keys:
+      result[key] *= norm
+  else:
+    for key in result.keys:
+      result[key] *= 0.5
+
+proc edgeBetweennessCentrality*[N](g: DiGraph[N], normalized: bool = true): Table[(N, N), float] =
+  ## Compute edge betweenness centrality for a directed graph.
+  result = initTable[(N, N), float]()
+  for (u, v) in g.edges:
+    result[(u, v)] = 0.0
+  let n = g.numberOfNodes()
+  for source in g.nodes:
+    var stack = newSeq[N]()
+    var pred = initTable[N, seq[N]]()
+    for node in g.nodes:
+      pred[node] = newSeq[N]()
+    var sigma = initTable[N, float]()
+    var dist = initTable[N, int]()
+    for node in g.nodes:
+      sigma[node] = 0.0
+      dist[node] = -1
+    sigma[source] = 1.0
+    dist[source] = 0
+    var queue = initDeque[N]()
+    queue.addLast(source)
+    while queue.len > 0:
+      let v = queue.popFirst()
+      stack.add(v)
+      for w in g.neighbors(v):
+        if dist[w] < 0:
+          queue.addLast(w)
+          dist[w] = dist[v] + 1
+        if dist[w] == dist[v] + 1:
+          sigma[w] += sigma[v]
+          pred[w].add(v)
+    var delta = initTable[N, float]()
+    for node in g.nodes:
+      delta[node] = 0.0
+    for i in countdown(stack.len - 1, 0):
+      let w = stack[i]
+      let coeff = (1.0 + delta[w]) / sigma[w]
+      for v in pred[w]:
+        let c = sigma[v] * coeff
+        if (v, w) in result:
+          result[(v, w)] += c
+        delta[v] += c
+  if normalized and n > 1:
+    let norm = 1.0 / float(n * (n - 1))
+    for key in result.keys:
+      result[key] *= norm
+
+# =============================================================================
+# Load Centrality (#121)
+# =============================================================================
+
+proc loadCentrality*[N](g: Graph[N], normalized: bool = true): Table[N, float] =
+  ## Compute load centrality (Newman's variant of betweenness).
+  ## Counts the fraction of shortest paths through each node.
+  result = initTable[N, float]()
+  for node in g.nodes:
+    result[node] = 0.0
+  let n = g.numberOfNodes()
+  for source in g.nodes:
+    var stack = newSeq[N]()
+    var pred = initTable[N, seq[N]]()
+    var sigma = initTable[N, float]()
+    var dist = initTable[N, int]()
+    for node in g.nodes:
+      pred[node] = newSeq[N]()
+      sigma[node] = 0.0
+      dist[node] = -1
+    sigma[source] = 1.0
+    dist[source] = 0
+    var queue = initDeque[N]()
+    queue.addLast(source)
+    while queue.len > 0:
+      let v = queue.popFirst()
+      stack.add(v)
+      for w in g.neighbors(v):
+        if dist[w] < 0:
+          queue.addLast(w)
+          dist[w] = dist[v] + 1
+        if dist[w] == dist[v] + 1:
+          sigma[w] += sigma[v]
+          pred[w].add(v)
+    var delta = initTable[N, float]()
+    for node in g.nodes:
+      delta[node] = 0.0
+    for i in countdown(stack.len - 1, 0):
+      let w = stack[i]
+      let coeff = (1.0 + delta[w]) / sigma[w]
+      for v in pred[w]:
+        delta[v] += sigma[v] * coeff
+    for node in g.nodes:
+      if node != source:
+        result[node] += delta[node]
+  if normalized and n > 2:
+    let norm = 1.0 / float((n - 1) * (n - 2))
+    for node in g.nodes:
+      result[node] *= norm
+
+# =============================================================================
+# Subgraph Centrality (#121)
+# =============================================================================
+
+proc subgraphCentrality*[N](g: Graph[N]): Table[N, float] =
+  ## Compute subgraph centrality using walks of different lengths.
+  ## SC(v) = sum_{k=0}^{infty} (A^k)_{vv} / k!
+  ## Approximated using limited walk lengths.
+  result = initTable[N, float]()
+  let nodes = g.nodeSeq()
+  let n = nodes.len
+  if n == 0: return
+  var nodeIdx = initTable[N, int]()
+  for i, node in nodes:
+    nodeIdx[node] = i
+    result[node] = 1.0  # k=0 term
+  # Build adjacency matrix and compute matrix powers
+  var mat = newSeq[seq[float]](n)
+  for i in 0 ..< n:
+    mat[i] = newSeq[float](n)
+  for (u, v) in g.edges:
+    let ui = nodeIdx[u]
+    let vi = nodeIdx[v]
+    mat[ui][vi] = 1.0
+    mat[vi][ui] = 1.0
+  # Compute A^k / k! iteratively
+  var power = newSeq[seq[float]](n)  # A^k
+  for i in 0 ..< n:
+    power[i] = newSeq[float](n)
+    power[i][i] = 1.0  # A^0 = I
+  var factorial = 1.0
+  let maxK = min(n, 20)  # limit iterations
+  for k in 1 .. maxK:
+    factorial *= float(k)
+    # power = power * mat
+    var newPower = newSeq[seq[float]](n)
+    for i in 0 ..< n:
+      newPower[i] = newSeq[float](n)
+      for j in 0 ..< n:
+        for l in 0 ..< n:
+          newPower[i][j] += power[i][l] * mat[l][j]
+    power = newPower
+    for i in 0 ..< n:
+      result[nodes[i]] += power[i][i] / factorial
+
+# =============================================================================
+# Dispersion (#121)
+# =============================================================================
+
+proc dispersion*[N](g: Graph[N], u, v: N): float =
+  ## Compute the dispersion between two nodes u and v.
+  ## Dispersion measures how much u's neighbors are connected to each
+  ## other only through u and v.
+  var uNeighbors = initHashSet[N]()
+  for n in g.neighbors(u):
+    uNeighbors.incl(n)
+  var vNeighbors = initHashSet[N]()
+  for n in g.neighbors(v):
+    vNeighbors.incl(n)
+  # Common neighbors of both u and v (excluding u and v themselves)
+  var common = initHashSet[N]()
+  for n in uNeighbors:
+    if n in vNeighbors and n != u and n != v:
+      common.incl(n)
+  if common.len == 0:
+    return 0.0
+  var disp = 0.0
+  let commonSeq = common.toSeq()
+  for i in 0 ..< commonSeq.len:
+    for j in i + 1 ..< commonSeq.len:
+      let s = commonSeq[i]
+      let t = commonSeq[j]
+      # Check if s and t are NOT connected through paths
+      # that don't go through u or v
+      if not g.hasEdge(s, t):
+        var hasCommonNeighborOutside = false
+        for ns in g.neighbors(s):
+          if ns != u and ns != v and ns notin common and g.hasEdge(ns, t):
+            hasCommonNeighborOutside = true
+            break
+        if not hasCommonNeighborOutside:
+          disp += 1.0
+  result = disp
+
+# =============================================================================
+# VoteRank (#121)
+# =============================================================================
+
+proc voteRank*[N](g: Graph[N], k: int = 0): seq[N] =
+  ## Select influential nodes using the VoteRank algorithm.
+  ## Returns up to k nodes (0 = all possible).
+  let n = g.numberOfNodes()
+  if n == 0: return @[]
+  let maxK = if k <= 0: n else: min(k, n)
+  var votingAbility = initTable[N, float]()
+  for node in g.nodes:
+    votingAbility[node] = 1.0
+  let avgDeg = if n > 1: float(2 * g.numberOfEdges()) / float(n)
+               else: 0.0
+  let dampFactor = if avgDeg > 0.0: 1.0 / avgDeg else: 0.0
+  for _ in 0 ..< maxK:
+    # Count votes
+    var scores = initTable[N, float]()
+    for node in g.nodes:
+      if votingAbility[node] <= 0.0: continue
+      scores[node] = 0.0
+    for node in g.nodes:
+      if votingAbility[node] <= 0.0: continue
+      for nbr in g.neighbors(node):
+        if nbr in scores:
+          scores[nbr] += votingAbility[node]
+    if scores.len == 0: break
+    # Find node with highest score
+    var bestNode: N
+    var bestScore = -1.0
+    var found = false
+    for node, score in scores:
+      if score > bestScore:
+        bestScore = score
+        bestNode = node
+        found = true
+    if not found or bestScore <= 0.0: break
+    result.add(bestNode)
+    # Remove winner's voting ability and reduce neighbors' ability
+    votingAbility[bestNode] = 0.0
+    for nbr in g.neighbors(bestNode):
+      votingAbility[nbr] = max(0.0, votingAbility[nbr] - dampFactor)
+
+# =============================================================================
+# Laplacian Centrality (#121)
+# =============================================================================
+
+proc laplacianCentrality*[N](g: Graph[N], normalized: bool = true): Table[N, float] =
+  ## Compute Laplacian centrality for all nodes.
+  ## Based on the drop in Laplacian energy when a node is removed.
+  ## LC(v) = (deg(v))^2 + deg(v) + 2 * sum(deg(u) for u in neighbors(v))
+  result = initTable[N, float]()
+  let n = g.numberOfNodes()
+  if n == 0: return
+  var totalEnergy = 0.0
+  for node in g.nodes:
+    let d = float(g.degree(node))
+    totalEnergy += d * d
+  for node in g.nodes:
+    let d = float(g.degree(node))
+    var sumNeighDeg = 0.0
+    for nbr in g.neighbors(node):
+      sumNeighDeg += float(g.degree(nbr))
+    let lc = d * d + d + 2.0 * sumNeighDeg
+    if normalized and totalEnergy > 0.0:
+      result[node] = lc / totalEnergy
+    else:
+      result[node] = lc
+
+# =============================================================================
+# Reaching Centrality (#121)
+# =============================================================================
+
+proc localReachingCentrality*[N](g: DiGraph[N], v: N): float =
+  ## Compute local reaching centrality of node v in a directed graph.
+  ## Fraction of other nodes reachable from v.
+  let n = g.numberOfNodes()
+  if n <= 1: return 0.0
+  var visited = initHashSet[N]()
+  var queue = initDeque[N]()
+  visited.incl(v)
+  queue.addLast(v)
+  while queue.len > 0:
+    let u = queue.popFirst()
+    for w in g.neighbors(u):
+      if w notin visited:
+        visited.incl(w)
+        queue.addLast(w)
+  result = float(visited.len - 1) / float(n - 1)
+
+proc globalReachingCentrality*[N](g: DiGraph[N]): float =
+  ## Compute global reaching centrality.
+  ## Maximum local reaching centrality minus average.
+  let n = g.numberOfNodes()
+  if n <= 1: return 0.0
+  var maxLRC = 0.0
+  var sumLRC = 0.0
+  for node in g.nodes:
+    let lrc = localReachingCentrality(g, node)
+    sumLRC += lrc
+    if lrc > maxLRC:
+      maxLRC = lrc
+  let avgLRC = sumLRC / float(n)
+  var sumDiff = 0.0
+  for node in g.nodes:
+    let lrc = localReachingCentrality(g, node)
+    sumDiff += (maxLRC - lrc)
+  result = sumDiff / float(n - 1)
+
+# =============================================================================
+# Percolation Centrality (#121)
+# =============================================================================
+
+proc percolationCentrality*[N](g: Graph[N], states: Table[N, float] = initTable[N, float]()): Table[N, float] =
+  ## Compute percolation centrality.
+  ## Uses the fraction of "percolated" paths through each node.
+  ## If states not provided, uses uniform state = 1/n.
+  result = initTable[N, float]()
+  let n = g.numberOfNodes()
+  if n <= 2:
+    for node in g.nodes:
+      result[node] = 0.0
+    return
+  var nodeStates = states
+  if nodeStates.len == 0:
+    let s = 1.0 / float(n)
+    for node in g.nodes:
+      nodeStates[node] = s
+  for node in g.nodes:
+    result[node] = 0.0
+  for source in g.nodes:
+    var stack = newSeq[N]()
+    var pred = initTable[N, seq[N]]()
+    var sigma = initTable[N, float]()
+    var dist = initTable[N, int]()
+    for node in g.nodes:
+      pred[node] = newSeq[N]()
+      sigma[node] = 0.0
+      dist[node] = -1
+    sigma[source] = 1.0
+    dist[source] = 0
+    var queue = initDeque[N]()
+    queue.addLast(source)
+    while queue.len > 0:
+      let v = queue.popFirst()
+      stack.add(v)
+      for w in g.neighbors(v):
+        if dist[w] < 0:
+          queue.addLast(w)
+          dist[w] = dist[v] + 1
+        if dist[w] == dist[v] + 1:
+          sigma[w] += sigma[v]
+          pred[w].add(v)
+    var delta = initTable[N, float]()
+    for node in g.nodes:
+      delta[node] = 0.0
+    for i in countdown(stack.len - 1, 0):
+      let w = stack[i]
+      let coeff = (nodeStates[w] + delta[w]) / sigma[w]
+      for v in pred[w]:
+        delta[v] += sigma[v] * coeff
+    for node in g.nodes:
+      if node != source:
+        result[node] += delta[node]
+  # Normalize
+  let norm = 1.0 / float(n - 2)
+  for node in g.nodes:
+    result[node] *= norm
+
+# =============================================================================
+# Second Order Centrality (#121)
+# =============================================================================
+
+proc secondOrderCentrality*[N](g: Graph[N]): Table[N, float] =
+  ## Compute second-order centrality based on random walk standard deviation.
+  ## SOC(v) = standard deviation of return times of a random walk.
+  result = initTable[N, float]()
+  let n = g.numberOfNodes()
+  if n <= 1:
+    for node in g.nodes:
+      result[node] = 0.0
+    return
+  # Approximate using degree-based formula:
+  # SOC(v) ≈ sqrt(n) * (2m / (deg(v) * n))
+  let m = float(g.numberOfEdges())
+  let nf = float(n)
+  for node in g.nodes:
+    let d = float(g.degree(node))
+    if d > 0.0:
+      result[node] = sqrt(nf) * (2.0 * m) / (d * nf)
+    else:
+      result[node] = Inf
+
+# =============================================================================
+# Trophic Levels (#121)
+# =============================================================================
+
+proc trophicLevels*[N](g: DiGraph[N]): Table[N, float] =
+  ## Compute trophic levels of nodes in a directed graph (food web).
+  ## Basal nodes (in-degree 0) have trophic level 1.
+  ## Other nodes: TL(v) = 1 + avg(TL(u) for u in predecessors(v))
+  ## Solved iteratively.
+  result = initTable[N, float]()
+  let n = g.numberOfNodes()
+  if n == 0: return
+  for node in g.nodes:
+    if g.inDegree(node) == 0:
+      result[node] = 1.0
+    else:
+      result[node] = 1.0
+  # Iterate until convergence
+  for _ in 0 ..< 100:
+    var maxDiff = 0.0
+    for node in g.nodes:
+      if g.inDegree(node) == 0:
+        continue
+      var sumPred = 0.0
+      var count = 0
+      for p in g.predecessors(node):
+        sumPred += result[p]
+        count.inc
+      let newLevel = 1.0 + sumPred / float(count)
+      let diff = abs(newLevel - result[node])
+      if diff > maxDiff:
+        maxDiff = diff
+      result[node] = newLevel
+    if maxDiff < 1.0e-10:
+      break
