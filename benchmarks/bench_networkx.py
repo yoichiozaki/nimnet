@@ -11,17 +11,25 @@ Usage:
 
 import time
 import random
+import statistics
 import networkx as nx
 
 random.seed(42)
 
+BENCH_RUNS = 5  # Number of timed runs per benchmark
+
 
 def bench(func, *args, **kwargs):
-    """Run function and return elapsed CPU time in seconds."""
-    t0 = time.perf_counter()
+    """Run function multiple times and return median elapsed time."""
+    # Warmup run (not timed)
     result = func(*args, **kwargs)
-    elapsed = time.perf_counter() - t0
-    return elapsed, result
+    times = []
+    for _ in range(BENCH_RUNS):
+        t0 = time.perf_counter()
+        result = func(*args, **kwargs)
+        elapsed = time.perf_counter() - t0
+        times.append(elapsed)
+    return statistics.median(times), result
 
 
 def build_erdos_renyi(n, m):

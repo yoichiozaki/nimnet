@@ -18,9 +18,6 @@ proc writeEdgelist*[N](g: Graph[N], filename: string, delimiter: string = " ",
     if writeData and attr.len > 0:
       for k, val in attr:
         line &= delimiter & k & "=" & val
-    f.writeLine(line)
-
-proc readEdgelist*(filename: string, delimiter: string = " ",
                    createUsing: string = "graph"): Graph[string] =
   ## Read an undirected graph from an edge list file.
   ## Lines starting with ``#`` are treated as comments.

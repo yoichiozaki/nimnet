@@ -52,14 +52,29 @@ import nimnet/algorithms/wiener;             export wiener
 import nimnet/algorithms/cycles;             export cycles
 import nimnet/algorithms/matching;           export matching
 import nimnet/algorithms/graph_products;     export graph_products
+import nimnet/algorithms/triads;             export triads
+import nimnet/algorithms/minors;             export minors
+import nimnet/algorithms/cuts;               export cuts
+import nimnet/algorithms/smallworld;         export smallworld
+import nimnet/algorithms/lca;                export lca
+import nimnet/algorithms/graph_hashing;      export graph_hashing
+import nimnet/algorithms/voronoi;            export voronoi
+import nimnet/algorithms/similarity;         export similarity
+import nimnet/algorithms/spectral;           export spectral
+import nimnet/algorithms/layout;             export layout
+import nimnet/algorithms/parallel;           export parallel
 
 # --- Generators ---
-import nimnet/generators/classic;    export classic
-import nimnet/generators/random;     export random
-import nimnet/generators/small;      export small
-import nimnet/generators/trees;      export trees
-import nimnet/generators/line_graph; export line_graph
-import nimnet/generators/lattice;    export lattice
+import nimnet/generators/classic;          export classic
+import nimnet/generators/random;           export random
+import nimnet/generators/small;            export small
+import nimnet/generators/trees;            export trees
+import nimnet/generators/line_graph;       export line_graph
+import nimnet/generators/lattice;          export lattice
+import nimnet/generators/geometric;        export geometric
+import nimnet/generators/community;        export community
+import nimnet/generators/degree_sequence;  export degree_sequence
+import nimnet/generators/directed;         export directed
 
 # --- I/O ---
 import nimnet/io/edgelist;   export edgelist
@@ -69,9 +84,16 @@ import nimnet/io/dot;        export dot
 import nimnet/io/gml;        export gml
 import nimnet/io/graphml;    export graphml
 import nimnet/io/gexf;       export gexf
+import nimnet/io/pajek;      export pajek
+import nimnet/io/graph6;     export graph6
+import nimnet/io/svg;        export svg
 
 # --- Operators & Conversions ---
 import nimnet/operators; export operators
 import nimnet/convert;   export convert
 import nimnet/builder;   export builder
 import nimnet/datasets;  export datasets
+import nimnet/views;     export views
+import nimnet/multigraph; export multigraph
+import nimnet/compact;   export compact
+import nimnet/static_graph; export static_graph

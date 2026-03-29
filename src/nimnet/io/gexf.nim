@@ -3,7 +3,7 @@
 ## Read and write graphs in GEXF format, commonly used by Gephi.
 ## Supports node/edge attributes.
 
-import std/[tables, strutils, xmltree, xmlparser, streams, strtabs]
+import std/[tables, strutils, xmltree, xmlparser, streams, strtabs, json]
 import ../types
 import ../graph
 import ../digraph
@@ -20,7 +20,7 @@ proc writeGexf*[N](g: Graph[N], filename: string) =
     let attr = g.getNodeAttr(n)
     var label = $n
     if "label" in attr:
-      label = attr["label"]
+      label = attr["label"].getStr()
     f.writeLine("      <node id=\"" & $n & "\" label=\"" & label & "\" />")
   f.writeLine("""    </nodes>""")
   f.writeLine("""    <edges>""")
@@ -34,7 +34,7 @@ proc writeGexf*[N](g: Graph[N], filename: string) =
         let attr = g.getEdgeAttr(u, v)
         var weightStr = ""
         if "weight" in attr:
-          weightStr = " weight=\"" & attr["weight"] & "\""
+          weightStr = " weight=\"" & $attr.weight & "\""
         f.writeLine("      <edge id=\"" & $edgeId & "\" source=\"" & $u &
                     "\" target=\"" & $v & "\"" & weightStr & " />")
         edgeId += 1
@@ -54,7 +54,7 @@ proc writeGexf*[N](g: DiGraph[N], filename: string) =
     let attr = g.getNodeAttr(n)
     var label = $n
     if "label" in attr:
-      label = attr["label"]
+      label = attr["label"].getStr()
     f.writeLine("      <node id=\"" & $n & "\" label=\"" & label & "\" />")
   f.writeLine("""    </nodes>""")
   f.writeLine("""    <edges>""")
@@ -64,7 +64,7 @@ proc writeGexf*[N](g: DiGraph[N], filename: string) =
       let attr = g.getEdgeAttr(u, v)
       var weightStr = ""
       if "weight" in attr:
-        weightStr = " weight=\"" & attr["weight"] & "\""
+        weightStr = " weight=\"" & $attr.weight & "\""
       f.writeLine("      <edge id=\"" & $edgeId & "\" source=\"" & $u &
                   "\" target=\"" & $v & "\"" & weightStr & " />")
       edgeId += 1
@@ -90,8 +90,8 @@ proc readGexf*(filename: string): Graph[string] =
                 let id = attrs["id"]
                 result.addNode(id)
                 if attrs.hasKey("label"):
-                  var nodeAttr: NodeAttr
-                  nodeAttr["label"] = attrs["label"]
+                  var nodeAttr: NodeAttr = newNodeAttr()
+                  nodeAttr["label"] = newJString(attrs["label"])
                   result.addNode(id, nodeAttr)
         elif section.tag == "edges":
           for edge in section:
@@ -101,7 +101,7 @@ proc readGexf*(filename: string): Graph[string] =
                 let src = attrs["source"]
                 let tgt = attrs["target"]
                 if attrs.hasKey("weight"):
-                  var edgeAttr: EdgeAttr
+                  var edgeAttr: EdgeAttr = newEdgeAttr()
                   edgeAttr["weight"] = attrs["weight"]
                   result.addEdge(src, tgt)
                   # Set edge attribute

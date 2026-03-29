@@ -26,7 +26,7 @@ proc minimumCostFlow*[N](g: DiGraph[N], demand: Table[N, float]): (float, Table[
   for (u, v) in g.edges:
     let attrs = g.getEdgeAttr(u, v)
     let cap = attrs.getWeight(default = Inf)
-    let c = if "cost" in attrs: parseFloat(attrs["cost"]) else: 1.0
+    let c = if "cost" in attrs: attrs.getAttrFloat("cost", 1.0) else: 1.0
     capacity[u][v] = cap
     cost[u][v] = c
     flow[u][v] = 0.0

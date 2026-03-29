@@ -19,7 +19,7 @@ proc toJsonNode*[N](g: Graph[N]): JsonNode =
     nodeObj["id"] = newJString($n)
     let attr = g.getNodeAttr(n)
     for k, v in attr:
-      nodeObj[k] = newJString(v)
+      nodeObj[k] = v
     nodes.add(nodeObj)
   result["nodes"] = nodes
 
@@ -82,7 +82,7 @@ proc readJsonGraph*(filename: string): Graph[string] =
     var attr = newNodeAttr()
     for k, v in nodeObj:
       if k != "id":
-        attr[k] = v.getStr()
+        attr[k] = v
     if attr.len > 0:
       result.setNodeAttr(id, attr)
 
@@ -92,5 +92,11 @@ proc readJsonGraph*(filename: string): Graph[string] =
     var attr = newEdgeAttr()
     for k, v in linkObj:
       if k != "source" and k != "target":
-        attr[k] = v.getStr()
+        # Convert JsonNode to string for EdgeAttr compatibility
+        case v.kind
+        of JFloat: attr[k] = $v.getFloat()
+        of JInt: attr[k] = $v.getInt()
+        of JBool: attr[k] = $v.getBool()
+        of JString: attr[k] = v.getStr()
+        else: attr[k] = $v
     result.addEdge(source, target, attr)

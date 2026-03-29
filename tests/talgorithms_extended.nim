@@ -7,7 +7,7 @@
 ## generators (small graphs, trees), I/O (edgelist, adjlist),
 ## operators extras, convert extras, datasets extras
 
-import std/[unittest, tables, sets, math, os, algorithm]
+import std/[unittest, tables, sets, math, os, algorithm, json]
 import nimnet
 import nimnet/algorithms/components as comp
 import nimnet/algorithms/properties as props

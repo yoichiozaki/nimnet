@@ -6,17 +6,25 @@
 ## - Exception hierarchy for graph operation errors
 ## - Weight accessor utilities
 
-import std/[tables, hashes, strutils]
+import std/[tables, hashes, strutils, json]
 
 type
+  # --- Node type concept --------------------------------------------------
+  Nodeable* = concept n
+    ## Compile-time concept documenting the requirements for graph node types.
+    ## Any type used as N in Graph[N] must support hash, ==, and $.
+    hash(n) is Hash
+    `==`(n, n) is bool
+    `$`(n) is string
+
   # --- Attribute types ---------------------------------------------------
   EdgeAttr* = object
     ## Edge attributes with a fast-path weight field and optional string extras.
     weight*: float                    ## Direct O(1) weight access, default 1.0
     extra*: Table[string, string]     ## Optional string key-value attributes
 
-  NodeAttr* = Table[string, string]
-    ## Node attributes stored as string key-value pairs.
+  NodeAttr* = JsonNode
+    ## Node attributes stored as a JSON object.
 
   # --- Edge tuple aliases ------------------------------------------------
   Edge*[N] = tuple[u, v: N]
@@ -72,12 +80,14 @@ func newEdgeAttr*(pairs: openArray[(string, string)]): EdgeAttr =
       result.extra[k] = v
 
 func newNodeAttr*(): NodeAttr {.inline.} =
-  ## Create an empty node attribute table.
-  initTable[string, string]()
+  ## Create an empty node attribute object.
+  newJObject()
 
 func newNodeAttr*(pairs: openArray[(string, string)]): NodeAttr =
   ## Create node attributes from key-value pairs.
-  pairs.toTable
+  result = newJObject()
+  for (k, v) in pairs:
+    result[k] = newJString(v)
 
 # --- Weight utilities ------------------------------------------------------
 
@@ -129,3 +139,24 @@ iterator pairs*(attr: EdgeAttr): (string, string) =
 func `==`*(a, b: EdgeAttr): bool {.inline.} =
   ## Compare two EdgeAttr objects for equality.
   a.weight == b.weight and a.extra == b.extra
+
+func getStr*(attr: EdgeAttr, key: string, default: string = ""): string =
+  ## Get a string value from an EdgeAttr by key.
+  ## For ``"weight"``, converts the float to string.
+  if key == "weight":
+    $attr.weight
+  elif key in attr.extra:
+    attr.extra[key]
+  else:
+    default
+
+func getAttrFloat*(attr: EdgeAttr, key: string, default: float = 0.0): float =
+  ## Get a float value from an EdgeAttr by key.
+  ## For ``"weight"``, returns the weight field directly.
+  if key == "weight":
+    attr.weight
+  elif key in attr.extra:
+    try: parseFloat(attr.extra[key])
+    except ValueError: default
+  else:
+    default

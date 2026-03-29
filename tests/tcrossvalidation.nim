@@ -5,7 +5,7 @@
 ## and verified against NetworkX. This ensures algorithmic correctness,
 ## not just structural properties.
 
-import std/[unittest, tables, sets, math, sequtils]
+import std/[unittest, tables, sets, math, sequtils, json]
 import nimnet
 import nimnet/algorithms/components as comp
 
@@ -31,35 +31,35 @@ proc buildFlowGraph(): DiGraph[int] =
   ## FG from generate_reference.py
   result = newDiGraph[int]()
   result.addEdge(0, 1)
-  var a01: EdgeAttr
+  var a01 = newEdgeAttr()
   a01["weight"] = "10"
   result.setEdgeAttr(0, 1, a01)
   result.addEdge(0, 2)
-  var a02: EdgeAttr
+  var a02 = newEdgeAttr()
   a02["weight"] = "8"
   result.setEdgeAttr(0, 2, a02)
   result.addEdge(1, 3)
-  var a13: EdgeAttr
+  var a13 = newEdgeAttr()
   a13["weight"] = "5"
   result.setEdgeAttr(1, 3, a13)
   result.addEdge(1, 2)
-  var a12: EdgeAttr
+  var a12 = newEdgeAttr()
   a12["weight"] = "2"
   result.setEdgeAttr(1, 2, a12)
   result.addEdge(2, 4)
-  var a24: EdgeAttr
+  var a24 = newEdgeAttr()
   a24["weight"] = "10"
   result.setEdgeAttr(2, 4, a24)
   result.addEdge(3, 5)
-  var a35: EdgeAttr
+  var a35 = newEdgeAttr()
   a35["weight"] = "7"
   result.setEdgeAttr(3, 5, a35)
   result.addEdge(4, 3)
-  var a43: EdgeAttr
+  var a43 = newEdgeAttr()
   a43["weight"] = "8"
   result.setEdgeAttr(4, 3, a43)
   result.addEdge(4, 5)
-  var a45: EdgeAttr
+  var a45 = newEdgeAttr()
   a45["weight"] = "10"
   result.setEdgeAttr(4, 5, a45)
 

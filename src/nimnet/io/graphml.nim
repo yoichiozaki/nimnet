@@ -31,8 +31,9 @@ proc writeGraphml*[N](g: Graph[N], filename: string) =
   for (u, v) in g.edges:
     let attrs = g.getEdgeAttr(u, v)
     if "weight" in attrs:
+      let w = attrs["weight"]
       f.writeLine(fmt"""    <edge id="e{edgeId}" source="{u}" target="{v}">""")
-      f.writeLine(fmt"""      <data key="weight">{attrs["weight"]}</data>""")
+      f.writeLine(fmt"""      <data key="weight">{w}</data>""")
       f.writeLine("""    </edge>""")
     else:
       f.writeLine(fmt"""    <edge id="e{edgeId}" source="{u}" target="{v}"/>""")
@@ -62,8 +63,9 @@ proc writeGraphml*[N](g: DiGraph[N], filename: string) =
   for (u, v) in g.edges:
     let attrs = g.getEdgeAttr(u, v)
     if "weight" in attrs:
+      let w = attrs["weight"]
       f.writeLine(fmt"""    <edge id="e{edgeId}" source="{u}" target="{v}">""")
-      f.writeLine(fmt"""      <data key="weight">{attrs["weight"]}</data>""")
+      f.writeLine(fmt"""      <data key="weight">{w}</data>""")
       f.writeLine("""    </edge>""")
     else:
       f.writeLine(fmt"""    <edge id="e{edgeId}" source="{u}" target="{v}"/>""")

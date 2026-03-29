@@ -1,6 +1,6 @@
 ## DOT format export for Graphviz
 
-import std/[strutils, tables]
+import std/[strutils, tables, json]
 import ../types
 import ../graph
 import ../digraph
@@ -15,7 +15,7 @@ proc writeDot*[N](g: Graph[N], filename: string) =
     var attrs: seq[string]
     let nodeAttr = g.getNodeAttr(n)
     for k, v in nodeAttr:
-      attrs.add(k & "=\"" & v & "\"")
+      attrs.add(k & "=\"" & (if v.kind == JString: v.getStr() else: $v) & "\"")
     if attrs.len > 0:
       f.writeLine("  " & $n & " [" & attrs.join(", ") & "];")
     else:

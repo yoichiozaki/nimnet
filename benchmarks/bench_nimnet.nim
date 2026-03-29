@@ -4,7 +4,7 @@
 ## small (100), medium (10,000), and large (1,000,000) graphs.
 ## Outputs results in CSV format for comparison.
 
-import std/[times, strformat, strutils, random, tables, sets, os]
+import std/[times, strformat, strutils, random, tables, sets, os, algorithm]
 
 # Use relative path for nimble or direct compilation
 when defined(benchDirect):
@@ -16,16 +16,24 @@ else:
 # Helpers
 # ---------------------------------------------------------------------------
 
+const benchRuns = 5  # Number of timed runs per benchmark
+
 template bench(name: string, body: untyped): float =
-  ## Run body and return elapsed time in seconds.
-  let t0 = cpuTime()
+  ## Run body multiple times and return the median elapsed time.
+  # Warmup run (not timed)
   body
-  let elapsed = cpuTime() - t0
-  elapsed
+  var times: seq[float]
+  for run in 0 ..< benchRuns:
+    let t0 = cpuTime()
+    body
+    let elapsed = cpuTime() - t0
+    times.add(elapsed)
+  times.sort()
+  times[times.len div 2]  # median
 
 proc buildErdosRenyi(n: int, m: int): Graph[int] =
   ## Build a random graph with n nodes and m edges (fast, no duplicate check).
-  result = newGraph[int]()
+  result = newGraph[int](capacity = n)
   for i in 0 ..< n:
     result.addNode(i)
   var rng = initRand(42)
@@ -39,7 +47,7 @@ proc buildErdosRenyi(n: int, m: int): Graph[int] =
 
 proc buildWeightedErdosRenyi(n: int, m: int): Graph[int] =
   ## Build a random weighted graph.
-  result = newGraph[int]()
+  result = newGraph[int](capacity = n)
   for i in 0 ..< n:
     result.addNode(i)
   var rng = initRand(42)

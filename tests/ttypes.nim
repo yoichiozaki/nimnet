@@ -1,4 +1,4 @@
-import std/[unittest, tables]
+import std/[unittest, tables, json]
 import nimnet/types
 
 suite "EdgeAttr":
@@ -33,7 +33,7 @@ suite "NodeAttr":
 
   test "openArray constructor":
     let a = newNodeAttr({"label": "hub", "color": "blue"})
-    check a["label"] == "hub"
+    check a["label"].getStr() == "hub"
 
 suite "Edge type aliases":
   test "Edge tuple":

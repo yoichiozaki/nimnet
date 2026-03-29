@@ -1,4 +1,4 @@
-import std/[unittest, sets, tables, algorithm]
+import std/[unittest, sets, tables, algorithm, json]
 import nimnet/digraph
 import nimnet/types
 
@@ -292,7 +292,7 @@ suite "DiGraph - Attributes":
     var g = newDiGraph[int]()
     g.addNode(1)
     g.setNodeAttr(1, "color", "blue")
-    check g.getNodeAttr(1)["color"] == "blue"
+    check g.getNodeAttr(1)["color"].getStr() == "blue"
 
 suite "DiGraph - String representation":
   test "$ operator":
