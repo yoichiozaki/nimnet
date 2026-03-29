@@ -75,7 +75,15 @@ jobs:
       - name: Commit coverage badge
         if: github.ref == 'refs/heads/main' && github.event_name == 'push'
         run: |
+          # Save badge JSON before switching branches
+          cp docs/badges/coverage.json /tmp/coverage.json
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
+          # Push to a separate 'badges' branch to avoid main branch protection
+          git checkout --orphan badges
+          git rm -rf . > /dev/null 2>&1 || true
+          mkdir -p docs/badges
+          cp /tmp/coverage.json docs/badges/coverage.json
           git add docs/badges/coverage.json
-          git diff --cached --quiet || (git commit -m "ci: update coverage badge [skip ci]" && git push)
+          git commit -m "ci: update coverage badge [skip ci]"
+          git push origin badges --force

@@ -5,7 +5,7 @@
 # nimnet
 
 [![CI](https://github.com/yoichiozaki/nimnet/actions/workflows/ci.yml/badge.svg)](https://github.com/yoichiozaki/nimnet/actions/workflows/ci.yml)
-[![coverage](https://img.shields.io/endpoint?url=https://yoichiozaki.github.io/nimnet/badges/coverage.json)](https://github.com/yoichiozaki/nimnet/actions/workflows/coverage.yml)
+[![coverage](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/yoichiozaki/nimnet/badges/docs/badges/coverage.json)](https://github.com/yoichiozaki/nimnet/actions/workflows/coverage.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 A comprehensive network science library for [Nim](https://nim-lang.org/), inspired by Python's [NetworkX](https://networkx.org/).
