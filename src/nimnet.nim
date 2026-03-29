@@ -60,6 +60,9 @@ import nimnet/algorithms/lca;                export lca
 import nimnet/algorithms/graph_hashing;      export graph_hashing
 import nimnet/algorithms/voronoi;            export voronoi
 import nimnet/algorithms/similarity;         export similarity
+import nimnet/algorithms/spectral;           export spectral
+import nimnet/algorithms/layout;             export layout
+import nimnet/algorithms/parallel;           export parallel
 
 # --- Generators ---
 import nimnet/generators/classic;          export classic
@@ -83,9 +86,14 @@ import nimnet/io/graphml;    export graphml
 import nimnet/io/gexf;       export gexf
 import nimnet/io/pajek;      export pajek
 import nimnet/io/graph6;     export graph6
+import nimnet/io/svg;        export svg
 
 # --- Operators & Conversions ---
 import nimnet/operators; export operators
 import nimnet/convert;   export convert
 import nimnet/builder;   export builder
 import nimnet/datasets;  export datasets
+import nimnet/views;     export views
+import nimnet/multigraph; export multigraph
+import nimnet/compact;   export compact
+import nimnet/static_graph; export static_graph

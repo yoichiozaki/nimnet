@@ -9,6 +9,14 @@
 import std/[tables, hashes, strutils]
 
 type
+  # --- Node type concept --------------------------------------------------
+  Nodeable* = concept n
+    ## Compile-time concept documenting the requirements for graph node types.
+    ## Any type used as N in Graph[N] must support hash, ==, and $.
+    hash(n) is Hash
+    `==`(n, n) is bool
+    `$`(n) is string
+
   # --- Attribute types ---------------------------------------------------
   EdgeAttr* = Table[string, string]
     ## Edge attributes stored as string key-value pairs.
