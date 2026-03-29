@@ -78,3 +78,33 @@ library,benchmark,size,nodes,edges,time_seconds
 - NetworkX PageRank uses scipy (C/Fortran backend), making direct comparison less meaningful for that benchmark.
 - All graphs use the same random seed (42) for reproducibility.
 - Timings are single-run wall-clock measurements; variance is expected.
+
+## Micro-Benchmarks
+
+Low-level benchmarks measuring fundamental graph data structure operations independently, so we can identify which data structure operations are bottlenecks (adjacency-map lookups, iterator overhead, edge attribute string parsing, etc.).
+
+| Benchmark | Description |
+|-----------|-------------|
+| `neighbor_iteration` | Iterate all neighbors of all nodes |
+| `weight_access` | Access edge weight for all edges |
+| `has_edge` | Check edge existence for 100K random pairs |
+| `node_iteration` | Iterate all nodes |
+| `edge_iteration` | Iterate all edges |
+| `degree_access` | Access degree of all nodes |
+| `add_edge_bulk` | Add edges one by one to a fresh graph |
+| `get_edge_attr` | Access EdgeAttr object for all edges |
+
+### Running Micro-Benchmarks
+
+**NimNet:**
+
+```bash
+nim c -d:release -d:danger --opt:speed -p:src -o:build/bench_micro benchmarks/bench_micro.nim
+./build/bench_micro > results_micro_nimnet.csv
+```
+
+**NetworkX:**
+
+```bash
+python benchmarks/bench_micro_networkx.py > results_micro_networkx.csv
+```
