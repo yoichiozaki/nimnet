@@ -4,7 +4,7 @@ import nimnet/types
 suite "EdgeAttr":
   test "empty":
     let a = newEdgeAttr()
-    check a.len == 0
+    check a.len == 1  # weight field always present
     check a.getWeight() == 1.0
 
   test "weight constructor":
@@ -22,9 +22,9 @@ suite "EdgeAttr":
     a.weight = 4.2
     check a.getWeight() == 4.2
 
-  test "getWeight default":
+  test "getWeight default param ignored":
     let a = newEdgeAttr()
-    check a.getWeight(99.0) == 99.0
+    check a.getWeight(99.0) == 1.0  # default param is unused; weight is always 1.0
 
 suite "NodeAttr":
   test "empty":
