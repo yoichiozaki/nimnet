@@ -92,7 +92,9 @@ func newNodeAttr*(pairs: openArray[(string, string)]): NodeAttr =
 
 func getWeight*(attr: EdgeAttr, default: float = 1.0): float {.inline.} =
   ## Get the numeric weight from edge attributes.
-  ## The ``default`` parameter is ignored; weight always returns ``attr.weight``.
+  ## The ``default`` parameter is kept for API compatibility but is not used;
+  ## this always returns ``attr.weight`` (default 1.0 when created via ``newEdgeAttr()``).
+  {.used.}: default
   attr.weight
 
 # --- Compatibility operators (preserve Table-like API) ---------------------
@@ -108,7 +110,7 @@ func `[]=`*(attr: var EdgeAttr, key: string, val: string) {.inline.} =
 
 func contains*(attr: EdgeAttr, key: string): bool {.inline.} =
   ## Return true if the attribute exists. ``"weight"`` is always present.
-  if key == "weight": true else: key in attr.extra
+  key == "weight" or key in attr.extra
 
 func hasKey*(attr: EdgeAttr, key: string): bool {.inline.} =
   ## Alias for ``contains``.
