@@ -47,3 +47,4 @@ task test, "Compile and run all tests":
   exec "nim c -r -p:src --nimcache:build/nimcache/talgorithms_extended tests/talgorithms_extended.nim"
   exec "nim c -r -p:src --nimcache:build/nimcache/talgorithms_networkx tests/talgorithms_networkx.nim"
   exec "nim c -r -p:src --nimcache:build/nimcache/tcrossvalidation tests/tcrossvalidation.nim"
+  exec "nim c -r -p:src --nimcache:build/nimcache/talgorithms_features tests/talgorithms_features.nim"

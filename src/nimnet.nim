@@ -52,6 +52,13 @@ import nimnet/algorithms/wiener;             export wiener
 import nimnet/algorithms/cycles;             export cycles
 import nimnet/algorithms/matching;           export matching
 import nimnet/algorithms/graph_products;     export graph_products
+import nimnet/algorithms/triads;             export triads
+import nimnet/algorithms/minors;             export minors
+import nimnet/algorithms/cuts;               export cuts
+import nimnet/algorithms/smallworld;         export smallworld
+import nimnet/algorithms/lca;                export lca
+import nimnet/algorithms/graph_hashing;      export graph_hashing
+import nimnet/algorithms/voronoi;            export voronoi
 
 # --- Generators ---
 import nimnet/generators/classic;    export classic
@@ -60,6 +67,8 @@ import nimnet/generators/small;      export small
 import nimnet/generators/trees;      export trees
 import nimnet/generators/line_graph; export line_graph
 import nimnet/generators/lattice;    export lattice
+import nimnet/generators/geometric;  export geometric
+import nimnet/generators/community;  export community
 
 # --- I/O ---
 import nimnet/io/edgelist;   export edgelist
