@@ -52,8 +52,8 @@ proc degreeAssortativity*[N](g: Graph[N]): float =
   result = num / den
 
 proc averageShortestPathLength*[N](g: Graph[N]): float =
-  ## Return the average shortest path length.
-  ## Only considers reachable pairs. Raises NimNetError if graph is disconnected.
+  ## Return the average shortest path length over all reachable node pairs.
+  ## Unreachable pairs are ignored; this does not raise on disconnected graphs.
   let n = g.numberOfNodes()
   if n <= 1:
     return 0.0

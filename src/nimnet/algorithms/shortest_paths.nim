@@ -516,15 +516,21 @@ proc astarPath*[N](g: Graph[N], source, target: N,
     closedSet.incl(current)
 
     for neighbor in g.neighbors(current):
-      if neighbor in closedSet:
-        continue
       let edgeWeight = g[current, neighbor].getWeight()
       let tentativeG = gScore[current] + edgeWeight
+
+      # If neighbor is closed and we don't have a better path, skip it.
+      if neighbor in closedSet and tentativeG >= gScore.getOrDefault(neighbor, Inf):
+        continue
+
       if neighbor notin gScore or tentativeG < gScore[neighbor]:
         cameFrom[neighbor] = current
         gScore[neighbor] = tentativeG
         let fScore = tentativeG + heuristic(neighbor)
         openSet.add((fScore, tentativeG, neighbor))
+        # Re-open neighbor if we found a better path.
+        if neighbor in closedSet:
+          closedSet.excl(neighbor)
 
   raise newException(NimNetNoPath, "No path between source and target")
 

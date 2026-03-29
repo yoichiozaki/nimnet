@@ -34,37 +34,33 @@ func isTree*[N](g: Graph[N]): bool =
   ## A tree is a connected graph with exactly n-1 edges.
   if g.numberOfNodes() == 0:
     return true
-  g.isConnected() and g.numberOfEdges() == g.numberOfNodes() - 1
+  result = g.isConnected() and g.numberOfEdges() == g.numberOfNodes() - 1
 
 func isForest*[N](g: Graph[N]): bool =
   ## Return true if the undirected graph is a forest (acyclic).
-  ## A forest has at most n-1 edges and no cycles.
+  ## A forest has no cycles; equivalently each connected component is a tree.
   if g.numberOfNodes() == 0:
     return true
-  # A forest has c components, n nodes, and n-c edges
-  # Equivalently, a graph is a forest iff it is acyclic
-  # which means edges <= nodes - 1 AND each component is a tree
-  if g.numberOfEdges() > g.numberOfNodes() - 1:
-    return false
-  # Check each component: BFS and verify edges = nodes - 1 within component
+  # BFS cycle detection: a back-edge to any node other than the BFS parent
+  # means a cycle exists.
   var visited = initHashSet[N]()
+  var parent = initTable[N, N]()
   for startNode in g.nodes:
     if startNode notin visited:
-      var compNodes = 0
-      var compEdges = 0
       var queue = initDeque[N]()
       queue.addLast(startNode)
       visited.incl(startNode)
+      parent[startNode] = startNode
       while queue.len > 0:
         let current = queue.popFirst()
-        compNodes += 1
         for neighbor in g.neighbors(current):
           if neighbor notin visited:
             visited.incl(neighbor)
+            parent[neighbor] = current
             queue.addLast(neighbor)
-            compEdges += 1
-      if compEdges != compNodes - 1:
-        return false
+          elif parent[current] != neighbor:
+            # Back-edge to a non-parent: cycle found
+            return false
   return true
 
 func isRegular*[N](g: Graph[N]): bool =
@@ -85,7 +81,7 @@ func isComplete*[N](g: Graph[N]): bool =
   let n = g.numberOfNodes()
   if n <= 1:
     return true
-  g.numberOfEdges() == n * (n - 1) div 2
+  result = g.numberOfEdges() == n * (n - 1) div 2
 
 func isWeaklyConnected*[N](g: DiGraph[N]): bool =
   ## Return true if the directed graph is weakly connected.
