@@ -10,6 +10,7 @@ A comprehensive network science library for [Nim](https://nim-lang.org/), inspir
 {: .fs-6 .fw-300 }
 
 [Get started]({{ site.baseurl }}/getting-started){: .btn .btn-primary .fs-5 .mb-4 .mb-md-0 .mr-2 }
+[API Reference]({{ site.baseurl }}/api/nimnet.html){: .btn .fs-5 .mb-4 .mb-md-0 .mr-2 }
 [View on GitHub](https://github.com/yoichiozaki/nimnet){: .btn .fs-5 .mb-4 .mb-md-0 }
 
 ---
@@ -43,7 +44,8 @@ for node in g:
 | Category | Modules |
 |:---------|:--------|
 | **Core** | `Graph[N]`, `DiGraph[N]`, generic node types, cached metrics |
-| **Algorithms** | BFS, DFS, Dijkstra, Bellman-Ford, PageRank, betweenness, Tarjan SCC, Kruskal/Prim MST, Edmonds-Karp max flow, topological sort |
-| **Generators** | Complete, cycle, path, star, grid, Erdős-Rényi, Barabási-Albert, Watts-Strogatz, Petersen, Zachary karate club |
-| **I/O** | Edge list, adjacency list, JSON node-link, DOT (Graphviz) |
-| **Operators** | Union, complement, compose, intersection, node relabeling |
+| **Algorithms (27)** | BFS/DFS traversal, Dijkstra, Bellman-Ford, A*, Floyd-Warshall, Johnson's, PageRank, eigenvector/Katz/HITS/betweenness centrality, Tarjan SCC, Kruskal/Prim MST, Edmonds-Karp max flow, min-cost flow, topological sort, Louvain/greedy modularity communities, VF2 isomorphism, planarity testing, TSP heuristics, k-core decomposition, Bron-Kerbosch cliques, graph coloring, bipartite matching, Euler/Hamiltonian paths, link prediction, connectivity, tree decomposition |
+| **Generators (4)** | Complete, cycle, path, star, wheel, grid, Erdős-Rényi, Barabási-Albert, Watts-Strogatz, random regular, SBM, Petersen, karate club, balanced/random trees |
+| **I/O (6)** | Edge list, adjacency list, JSON node-link, DOT/Graphviz, GML, GraphML |
+| **Operators** | Union, complement, compose, intersection, difference, disjoint union, node relabeling, directed ↔ undirected conversion |
+| **Other** | Builder DSL, built-in datasets (dolphins, Florentine families, les misérables), adjacency matrix/edge list conversion |

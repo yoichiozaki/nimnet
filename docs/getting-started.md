@@ -147,12 +147,43 @@ writeDot(g, "my_graph.dot")
 # Edge list
 writeEdgeList(g, "my_graph.edgelist")
 
+# Adjacency list
+writeAdjList(g, "my_graph.adjlist")
+
 # JSON node-link format
 writeJsonGraph(g, "my_graph.json")
+
+# GML format
+writeGml(g, "my_graph.gml")
+
+# GraphML format
+writeGraphml(g, "my_graph.graphml")
+```
+
+## Builder DSL
+
+```nim
+import nimnet
+
+let g = buildGraph[int]:
+  nodes [1, 2, 3, 4, 5]
+  edges [(1,2), (2,3), (3,4), (4,5), (5,1)]
+
+echo g  # Graph(nodes=5, edges=5)
+```
+
+## Built-in datasets
+
+```nim
+import nimnet
+
+let karate = karateClubGraph()
+let dolphins = dolphinsGraph()
+let florentine = florentineFamiliesGraph()
+let lesmis = lesMiserablesGraph()
 ```
 
 ## Next steps
 
-- [API Reference]({{ site.baseurl }}/api/) — Full module documentation
-- [Algorithms]({{ site.baseurl }}/algorithms/) — Algorithm guide with examples
-- [Architecture]({{ site.baseurl }}/architecture/) — Design decisions and internals
+- [API Reference]({{ site.baseurl }}/api/nimnet.html) — Full module documentation (auto-generated from source)
+- [ADR Documents](https://github.com/yoichiozaki/nimnet/tree/main/docs/adr) — Architecture Decision Records

@@ -12,3 +12,9 @@ aux_links:
     - "https://github.com/yoichiozaki/nimnet"
 
 footer_content: "nimnet is distributed under the <a href=\"https://github.com/yoichiozaki/nimnet/blob/main/LICENSE\">MIT License</a>."
+
+# Include auto-generated API docs (nim doc output)
+exclude:
+  - Gemfile
+  - Gemfile.lock
+  - .gitignore
