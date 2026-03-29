@@ -49,3 +49,39 @@ for node in g:
 | **I/O (6)** | Edge list, adjacency list, JSON node-link, DOT/Graphviz, GML, GraphML |
 | **Operators** | Union, complement, compose, intersection, difference, disjoint union, node relabeling, directed ↔ undirected conversion |
 | **Other** | Builder DSL, built-in datasets (dolphins, Florentine families, les misérables), adjacency matrix/edge list conversion |
+
+## Performance
+
+NimNet is compiled Nim with zero C/Fortran dependencies — yet it outperforms NetworkX (Python + scipy/numpy C backend) on most benchmarks.
+
+**Large graph (10,000 nodes, 50,000 edges) — Erdős-Rényi random graph:**
+
+| Benchmark | NimNet | NetworkX | Result |
+|-----------|--------|----------|--------|
+| Graph creation | 0.014s | 0.051s | **NimNet 3.6× faster** |
+| BFS traversal | 0.008s | 0.015s | **NimNet 1.9× faster** |
+| DFS traversal | 0.006s | 0.010s | **NimNet 1.7× faster** |
+| Dijkstra | 0.040s | 0.012s | NetworkX 3.3× faster |
+| PageRank | 0.079s | 0.035s | NetworkX 2.3× faster\* |
+| Connected components | 0.006s | 0.005s | ~1× (tied) |
+| MST (Kruskal) | 0.077s | 0.088s | **NimNet 1.1× faster** |
+
+\*NetworkX PageRank uses scipy sparse matrix operations (C/Fortran BLAS); NimNet is pure Nim.
+{: .fs-3 }
+
+**Medium graph (1,000 nodes, 5,000 edges):**
+
+| Benchmark | NimNet | NetworkX | Result |
+|-----------|--------|----------|--------|
+| Graph creation | 0.001s | 0.005s | **NimNet 5× faster** |
+| BFS traversal | 0.001s | 0.002s | **NimNet 2× faster** |
+| DFS traversal | 0.001s | 0.001s | ~1× (tied) |
+| Dijkstra | 0.002s | 0.001s | NetworkX 2× faster |
+| PageRank | 0.007s | 0.004s | NetworkX 1.8× faster\* |
+| Connected components | 0.001s | 0.000s | — |
+| MST (Kruskal) | 0.005s | 0.005s | ~1× (tied) |
+| Clustering | 0.013s | 0.015s | **NimNet 1.2× faster** |
+| Triangles | 0.004s | 0.004s | ~1× (tied) |
+
+Compiled with `nim c -d:release -d:danger --opt:speed`. See [`benchmarks/`](https://github.com/yoichiozaki/nimnet/tree/main/benchmarks) for reproduction scripts.
+{: .fs-3 }
