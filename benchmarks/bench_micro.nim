@@ -4,7 +4,7 @@
 ## medium (1,000), and large (10,000) node graphs.
 ## Outputs results in CSV format for comparison with bench_micro_networkx.py.
 
-import std/[times, strformat, random, tables, algorithm]
+import std/[times, strformat, random, tables, algorithm, sequtils]
 import nimnet
 
 # ---------------------------------------------------------------------------
@@ -62,11 +62,13 @@ proc benchWeightAccess(g: Graph[int]): float =
 
 proc benchHasEdge(g: Graph[int], n: int): float =
   var rng = initRand(42)
+  var pairs: seq[(int, int)]
+  pairs.setLen(n * 5)
+  for i in 0 ..< n * 5:
+    pairs[i] = (rng.rand(n - 1), rng.rand(n - 1))
   bench:
     var count = 0
-    for _ in 0 ..< n * 5:
-      let u = rng.rand(n - 1)
-      let v = rng.rand(n - 1)
+    for (u, v) in pairs:
       if g.hasEdge(u, v):
         count += 1
     doAssert count >= 0
@@ -93,16 +95,19 @@ proc benchDegreeAccess(g: Graph[int]): float =
     doAssert total > 0
 
 proc benchAddEdgeBulk(n: int): float =
+  var rng = initRand(42)
+  var edgePairs: seq[(int, int)]
+  while edgePairs.len < n * 5:
+    let u = rng.rand(n - 1)
+    let v = rng.rand(n - 1)
+    if u != v:
+      edgePairs.add((u, v))
   bench:
     var g = newGraph[int](capacity = n)
     for i in 0 ..< n:
       g.addNode(i)
-    var rng = initRand(42)
-    for _ in 0 ..< n * 5:
-      let u = rng.rand(n - 1)
-      let v = rng.rand(n - 1)
-      if u != v:
-        g.addEdge(u, v)
+    for (u, v) in edgePairs:
+      g.addEdge(u, v)
     doAssert g.numberOfNodes() == n
 
 proc benchGetEdgeAttr(g: Graph[int]): float =
