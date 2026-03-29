@@ -1,4 +1,4 @@
-import std/[unittest, tables]
+import std/[unittest, tables, json]
 import nimnet/types
 
 suite "EdgeAttr":
@@ -10,12 +10,12 @@ suite "EdgeAttr":
   test "weight constructor":
     let a = newEdgeAttr(2.5)
     check a.getWeight() == 2.5
-    check a["weight"] == "2.5"
+    check a["weight"].getFloat() == 2.5
 
   test "openArray constructor":
     let a = newEdgeAttr({"weight": "3.0", "color": "red"})
     check a.getWeight() == 3.0
-    check a["color"] == "red"
+    check a["color"].getStr() == "red"
 
   test "weight= setter sugar":
     var a = newEdgeAttr()
@@ -33,7 +33,7 @@ suite "NodeAttr":
 
   test "openArray constructor":
     let a = newNodeAttr({"label": "hub", "color": "blue"})
-    check a["label"] == "hub"
+    check a["label"].getStr() == "hub"
 
 suite "Edge type aliases":
   test "Edge tuple":

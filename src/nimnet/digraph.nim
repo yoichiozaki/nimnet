@@ -10,7 +10,7 @@
 ##   assert 1 in g
 ##   assert g.outDegree(1) == 1
 
-import std/[tables, sets, strformat]
+import std/[tables, sets, strformat, json]
 import types
 
 type
@@ -186,7 +186,7 @@ proc setNodeAttr*[N](g: var DiGraph[N], n: N, key, value: string) =
     raise newException(NodeNotFound, fmt"Node {n} not found")
   if n notin g.nodeAttr:
     g.nodeAttr[n] = newNodeAttr()
-  g.nodeAttr[n][key] = value
+  g.nodeAttr[n][key] = newJString(value)
 
 func getEdgeAttr*[N](g: DiGraph[N], u, v: N): EdgeAttr =
   ## Return the attribute table for edge ``(u, v)``.
@@ -205,8 +205,8 @@ proc setEdgeAttr*[N](g: var DiGraph[N], u, v: N, key, value: string) =
   ## Set a single attribute ``key`` to ``value`` on edge ``(u, v)``.
   if not g.hasEdge(u, v):
     raise newException(EdgeNotFound, fmt"Edge ({u}, {v}) not found")
-  g.adj[u][v][key] = value
-  g.pred[v][u][key] = value
+  g.adj[u][v][key] = newJString(value)
+  g.pred[v][u][key] = newJString(value)
 
 func weight*[N](g: DiGraph[N], u, v: N, default: float = 1.0): float {.inline.} =
   ## Return the weight of edge ``(u, v)``, or ``default`` if unset.

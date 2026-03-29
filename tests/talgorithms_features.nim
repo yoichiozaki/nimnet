@@ -2,7 +2,7 @@
 ## triads, minors, cuts, smallworld, lca, graph_hashing, voronoi,
 ## geometric generators, community generators, new small graphs
 
-import std/[unittest, tables, sets, math, sequtils, algorithm]
+import std/[unittest, tables, sets, math, sequtils, algorithm, json]
 import nimnet
 import nimnet/algorithms/triads as tri
 import nimnet/algorithms/minors as mn

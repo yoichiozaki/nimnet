@@ -7,7 +7,7 @@
 ## - ``waxmanGraph(n, beta, alpha)`` — Waxman random geographic model
 ## - ``softRandomGeometricGraph(n, radius)`` — soft radius threshold
 
-import std/[tables, math, random]
+import std/[tables, math, random, json]
 import ../types
 import ../graph
 
@@ -28,8 +28,8 @@ proc randomGeometricGraph*(n: int, radius: float, seed = 0): Graph[int] =
     result.addNode(i)
     # Store position as node attributes
     var attr = newNodeAttr()
-    attr["x"] = $positions[i][0]
-    attr["y"] = $positions[i][1]
+    attr["x"] = newJString($positions[i][0])
+    attr["y"] = newJString($positions[i][1])
     result.setNodeAttr(i, attr)
 
   let r2 = radius * radius
@@ -58,8 +58,8 @@ proc waxmanGraph*(n: int, beta = 0.4, alpha = 0.1,
     positions[i] = (rand(1.0), rand(1.0))
     result.addNode(i)
     var attr = newNodeAttr()
-    attr["x"] = $positions[i][0]
-    attr["y"] = $positions[i][1]
+    attr["x"] = newJString($positions[i][0])
+    attr["y"] = newJString($positions[i][1])
     result.setNodeAttr(i, attr)
 
   # Find L = max distance
@@ -100,8 +100,8 @@ proc softRandomGeometricGraph*(n: int, radius: float, seed = 0): Graph[int] =
     positions[i] = (rand(1.0), rand(1.0))
     result.addNode(i)
     var attr = newNodeAttr()
-    attr["x"] = $positions[i][0]
-    attr["y"] = $positions[i][1]
+    attr["x"] = newJString($positions[i][0])
+    attr["y"] = newJString($positions[i][1])
     result.setNodeAttr(i, attr)
 
   for i in 0 ..< n:

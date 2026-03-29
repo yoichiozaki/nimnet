@@ -4,7 +4,7 @@
 ## ``MultiDiGraph[N]`` — directed graph with multiple edges per node pair.
 ## Each edge is identified by (u, v, key) where key is an auto-assigned int.
 
-import std/[tables, sets, hashes, strformat]
+import std/[tables, sets, hashes, strformat, json]
 import ./types
 
 type
@@ -59,7 +59,7 @@ proc addNode*[N](g: var MultiGraph[N], n: N) =
     g.adj[n] = initTable[N, Table[int, EdgeAttr]]()
 
 proc addEdge*[N](g: var MultiGraph[N], u, v: N,
-                  attr: EdgeAttr = newEdgeAttr()): int =
+                  attr: EdgeAttr = newJObject()): int =
   ## Add an edge between u and v, return the edge key.
   g.addNode(u)
   g.addNode(v)
@@ -161,7 +161,7 @@ proc addNode*[N](g: var MultiDiGraph[N], n: N) =
     g.pred[n] = initTable[N, Table[int, EdgeAttr]]()
 
 proc addEdge*[N](g: var MultiDiGraph[N], u, v: N,
-                  attr: EdgeAttr = newEdgeAttr()): int =
+                  attr: EdgeAttr = newJObject()): int =
   g.addNode(u)
   g.addNode(v)
   let key = g.nextKey

@@ -5,7 +5,7 @@
 ## - ``contractedNodes(g, u, v)`` — merge two nodes
 ## - ``quotientGraph(g, partition)`` — collapse each partition block into a node
 
-import std/[tables, sets]
+import std/[tables, sets, json]
 import ../types
 import ../graph
 import ../digraph
@@ -30,7 +30,7 @@ proc contractedNodes*[N](g: Graph[N], u, v: N, selfLoops = false): Graph[N] =
     if n != v:
       result.addNode(n)
       let attr = g.getNodeAttr(n)
-      if attr.len > 0:
+      if not attr.isNil and attr.len > 0:
         result.setNodeAttr(n, attr)
 
   # Add all edges, remapping v to u
@@ -93,7 +93,7 @@ proc contractedNodes*[N](dg: DiGraph[N], u, v: N, selfLoops = false): DiGraph[N]
     if n != v:
       result.addNode(n)
       let attr = dg.getNodeAttr(n)
-      if attr.len > 0:
+      if not attr.isNil and attr.len > 0:
         result.setNodeAttr(n, attr)
 
   for (a, b) in dg.edges:

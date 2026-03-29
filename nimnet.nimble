@@ -50,3 +50,4 @@ task test, "Compile and run all tests":
   exec "nim c -r -p:src --nimcache:build/nimcache/talgorithms_features tests/talgorithms_features.nim"
   exec "nim c -r -p:src --nimcache:build/nimcache/talgorithms_batch2 tests/talgorithms_batch2.nim"
   exec "nim c -r -p:src --nimcache:build/nimcache/talgorithms_batch3 tests/talgorithms_batch3.nim"
+  exec "nim c -r -p:src --nimcache:build/nimcache/tcoverage tests/tcoverage.nim"
