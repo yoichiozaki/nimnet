@@ -64,6 +64,7 @@ proc writeJsonGraph*[N](g: Graph[N], filename: string) =
   writeFile(filename, $js)
 
 proc writeJsonGraph*[N](g: DiGraph[N], filename: string) =
+  ## Write directed graph to JSON file.
   let js = toJsonNode(g)
   writeFile(filename, $js)
 

@@ -1,6 +1,6 @@
 ## Type conversion utilities
 
-import std/[tables, sequtils, sets]
+import std/[tables, sequtils, sets, algorithm]
 import types
 import graph
 import digraph
@@ -21,6 +21,8 @@ proc toAdjacencyMatrix*[N](g: Graph[N]): (seq[N], seq[seq[float]]) =
   result = (nodes, matrix)
 
 proc toAdjacencyMatrix*[N](g: DiGraph[N]): (seq[N], seq[seq[float]]) =
+  ## Convert a directed graph to an adjacency matrix.
+  ## Returns (nodeList, matrix) where matrix[i][j] is the edge weight from i to j.
   let nodes = g.nodeSeq()
   var nodeIdx = initTable[N, int]()
   for i, n in nodes:

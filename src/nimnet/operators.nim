@@ -19,6 +19,7 @@ proc union*[N](g1, g2: Graph[N]): Graph[N] =
     result.addEdge(u, v, attr)
 
 proc union*[N](g1, g2: DiGraph[N]): DiGraph[N] =
+  ## Return the union of two directed graphs.
   result = g1.copy()
   for n in g2.nodes:
     result.addNode(n)
@@ -35,6 +36,7 @@ proc disjointUnion*(g1, g2: Graph[int]): Graph[int] =
     result.addEdge(u + offset, v + offset, attr)
 
 proc disjointUnion*(g1, g2: DiGraph[int]): DiGraph[int] =
+  ## Return disjoint union of directed graphs — g2's nodes are relabeled.
   result = g1.copy()
   let offset = g1.numberOfNodes()
   for n in g2.nodes:
@@ -67,6 +69,7 @@ proc complement*[N](g: Graph[N]): Graph[N] =
         result.addEdge(nodes[i], nodes[j])
 
 proc complement*[N](g: DiGraph[N]): DiGraph[N] =
+  ## Return the complement of a directed graph.
   result = newDiGraph[N]()
   let nodes = g.nodeSeq()
   for n in nodes:
@@ -91,6 +94,7 @@ proc intersection*[N](g1, g2: Graph[N]): Graph[N] =
       result.addEdge(u, v)
 
 proc intersection*[N](g1, g2: DiGraph[N]): DiGraph[N] =
+  ## Return a directed graph with nodes and edges common to both.
   result = newDiGraph[N]()
   for n in g1.nodes:
     if g2.hasNode(n):
@@ -126,6 +130,7 @@ proc relabelNodes*[N, M](g: Graph[N], mapping: Table[N, M]): Graph[M] =
     result.addEdge(mapping[u], mapping[v], attr)
 
 proc relabelNodes*[N, M](g: DiGraph[N], mapping: Table[N, M]): DiGraph[M] =
+  ## Return a new directed graph with nodes relabeled according to mapping.
   result = newDiGraph[M]()
   for n in g.nodes:
     let newLabel = if n in mapping: mapping[n] else: raise newException(NimNetError, "Missing mapping for node")

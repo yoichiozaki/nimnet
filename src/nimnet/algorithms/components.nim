@@ -66,6 +66,7 @@ proc stronglyConnectedComponents*[N](g: DiGraph[N]): seq[HashSet[N]] =
   var lowlink = initTable[N, int]()
   var onStack = initHashSet[N]()
   var stack: seq[N]
+  var sccs: seq[HashSet[N]] = @[]
 
   proc strongConnect(v: N) =
     indices[v] = index
@@ -90,11 +91,12 @@ proc stronglyConnectedComponents*[N](g: DiGraph[N]): seq[HashSet[N]] =
         component.incl(w)
         if w == v:
           break
-      result.add(component)
+      sccs.add(component)
 
   for v in g.nodes:
     if v notin indices:
       strongConnect(v)
+  result = sccs
 
 proc isStronglyConnected*[N](g: DiGraph[N]): bool =
   ## Return true if the directed graph is strongly connected.
@@ -104,6 +106,7 @@ proc isStronglyConnected*[N](g: DiGraph[N]): bool =
   components.len == 1
 
 proc numberOfStronglyConnectedComponents*[N](g: DiGraph[N]): int =
+  ## Return the number of strongly connected components.
   stronglyConnectedComponents(g).len
 
 proc condensation*[N](g: DiGraph[N]): DiGraph[int] =
@@ -157,6 +160,7 @@ proc weaklyConnectedComponents*[N](g: DiGraph[N]): seq[HashSet[N]] =
       result.add(component)
 
 proc isWeaklyConnected*[N](g: DiGraph[N]): bool =
+  ## Return true if the directed graph is weakly connected.
   if g.numberOfNodes() == 0:
     return true
   weaklyConnectedComponents(g).len == 1
