@@ -8,7 +8,22 @@ srcDir        = "src"
 # Dependencies
 requires "nim >= 2.0.0"
 
-task test, "Run all tests":
-  exec "nim c -r -p:src tests/ttypes.nim"
-  exec "nim c -r -p:src tests/tgraph.nim"
-  exec "nim c -r -p:src tests/tdigraph.nim"
+task build_tests, "Compile all tests":
+  exec "nim c -p:src --nimcache:build/nimcache/ttypes tests/ttypes.nim"
+  exec "nim c -p:src --nimcache:build/nimcache/tgraph tests/tgraph.nim"
+  exec "nim c -p:src --nimcache:build/nimcache/tdigraph tests/tdigraph.nim"
+
+task run_tests, "Run compiled tests":
+  when defined(windows):
+    exec "tests\\ttypes.exe"
+    exec "tests\\tgraph.exe"
+    exec "tests\\tdigraph.exe"
+  else:
+    exec "./tests/ttypes"
+    exec "./tests/tgraph"
+    exec "./tests/tdigraph"
+
+task test, "Compile and run all tests":
+  exec "nim c -r -p:src --nimcache:build/nimcache/ttypes tests/ttypes.nim"
+  exec "nim c -r -p:src --nimcache:build/nimcache/tgraph tests/tgraph.nim"
+  exec "nim c -r -p:src --nimcache:build/nimcache/tdigraph tests/tdigraph.nim"

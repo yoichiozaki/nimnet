@@ -17,13 +17,20 @@ jobs:
       - uses: actions/checkout@v5
 
       - name: Cache nimble
-        id: cache-nimble
         uses: actions/cache@v5
         with:
           path: ~/.nimble
           key: ${{ runner.os }}-nimble-${{ hashFiles('*.nimble') }}
           restore-keys: |
             ${{ runner.os }}-nimble-
+
+      - name: Cache nimcache
+        uses: actions/cache@v5
+        with:
+          path: build/nimcache
+          key: ${{ runner.os }}-nimcache-${{ hashFiles('src/**/*.nim', 'tests/**/*.nim') }}
+          restore-keys: |
+            ${{ runner.os }}-nimcache-
 
       - uses: nim-lang/setup-nimble-action@v1
         with:
@@ -32,5 +39,8 @@ jobs:
       - name: Install dependencies
         run: nimble install -y
 
+      - name: Compile tests
+        run: nimble build_tests
+
       - name: Run tests
-        run: nimble test
+        run: nimble run_tests
