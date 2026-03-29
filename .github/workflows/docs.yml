@@ -30,6 +30,9 @@ jobs:
           nim-version: 'stable'
           repo-token: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Install dependencies
+        run: nimble install -y
+
       - name: Generate API docs from source
         run: nim doc --project --index:on -p:src --outdir:docs/api src/nimnet.nim
 
