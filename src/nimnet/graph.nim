@@ -28,14 +28,23 @@ type
 
 # --- Constructors ---
 
-func newGraph*[N](name: string = ""): Graph[N] =
+func newGraph*[N](name: string = "", capacity: int = 0): Graph[N] =
   ## Create a new empty undirected graph.
-  Graph[N](
-    adj: initTable[N, Table[N, EdgeAttr]](),
-    nodeAttr: initTable[N, NodeAttr](),
-    edgeCount: 0,
-    name: name
-  )
+  ## Pass ``capacity`` to pre-allocate adjacency and node attribute tables.
+  if capacity > 0:
+    Graph[N](
+      adj: initTable[N, Table[N, EdgeAttr]](capacity),
+      nodeAttr: initTable[N, NodeAttr](capacity),
+      edgeCount: 0,
+      name: name
+    )
+  else:
+    Graph[N](
+      adj: initTable[N, Table[N, EdgeAttr]](),
+      nodeAttr: initTable[N, NodeAttr](),
+      edgeCount: 0,
+      name: name
+    )
 
 # --- Metrics (O(1)) ---
 
