@@ -9,6 +9,8 @@ on:
 jobs:
   coverage:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@v5
 
@@ -32,16 +34,47 @@ jobs:
       - name: Collect coverage data
         run: |
           lcov --capture --directory build/nimcache --output-file coverage_raw.info --ignore-errors inconsistent,gcov
-          # Keep only project source files, exclude stdlib and test files
           lcov --extract coverage_raw.info "$(pwd)/src/*" --output-file coverage.info --ignore-errors unused || true
           if [ ! -s coverage.info ]; then
             cp coverage_raw.info coverage.info
           fi
           lcov --list coverage.info || true
 
-      - name: Upload to Codecov
-        uses: codecov/codecov-action@v4
-        with:
-          files: coverage.info
-          token: ${{ secrets.CODECOV_TOKEN }}
-          fail_ci_if_error: false
+      - name: Extract coverage percentage
+        id: cov
+        run: |
+          PERCENT=$(lcov --summary coverage.info 2>&1 | grep 'lines\.\.\.\.\.\.' | sed 's/.*:\s*//' | sed 's/%.*//')
+          if [ -z "$PERCENT" ]; then PERCENT="0"; fi
+          echo "percent=$PERCENT" >> $GITHUB_OUTPUT
+          echo "Coverage: ${PERCENT}%"
+
+      - name: Generate coverage badge JSON
+        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+        run: |
+          PERCENT="${{ steps.cov.outputs.percent }}"
+          # Determine color based on percentage
+          PCT_INT=${PERCENT%.*}
+          if [ "$PCT_INT" -ge 80 ]; then COLOR="brightgreen"
+          elif [ "$PCT_INT" -ge 60 ]; then COLOR="green"
+          elif [ "$PCT_INT" -ge 40 ]; then COLOR="yellowgreen"
+          elif [ "$PCT_INT" -ge 20 ]; then COLOR="orange"
+          else COLOR="red"; fi
+          mkdir -p docs/badges
+          cat > docs/badges/coverage.json <<EOF
+          {
+            "schemaVersion": 1,
+            "label": "coverage",
+            "message": "${PERCENT}%",
+            "color": "${COLOR}"
+          }
+          EOF
+          cat docs/badges/coverage.json
+
+      - name: Commit coverage badge
+        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add docs/badges/coverage.json
+          git diff --cached --quiet || git commit -m "ci: update coverage badge [skip ci]"
+          git push
