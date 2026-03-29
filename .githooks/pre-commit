@@ -1,0 +1,13 @@
+#!/bin/sh
+# Pre-commit hook: remove compiled exe files so they don't clutter the repo.
+# .gitignore already excludes *.exe, but this keeps the working tree tidy.
+
+# Use nim script if available, fall back to find/rm
+if command -v nim >/dev/null 2>&1 && [ -f tools/clean.nims ]; then
+  nim e tools/clean.nims 2>/dev/null
+else
+  find tests examples build src -name '*.exe' -delete 2>/dev/null
+  rm -f *.exe 2>/dev/null
+fi
+
+exit 0

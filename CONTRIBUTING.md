@@ -6,7 +6,9 @@ Thank you for your interest in contributing to NimNet!
 
 1. Fork and clone the repository
 2. Install Nim >= 2.0.0: https://nim-lang.org/install.html
-3. Run `nimble test` to verify your setup (350+ tests should pass)
+3. Set up git hooks: `git config core.hooksPath .githooks`
+4. Run `nimble test` to verify your setup
+5. After testing, clean up compiled files: `nimble cleanup`
 
 ## Development Workflow
 

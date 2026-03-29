@@ -127,7 +127,7 @@ tests/                       → Test files
   talgorithms_core.nim       → 100 tests — core algorithms (traversal, paths, centrality, etc.)
   talgorithms_io_gen.nim     → 43 tests — advanced algorithms, I/O, generators, builder, datasets
   talgorithms_extended.nim   → 73 tests — extended coverage (DiGraph variants, operators, convert)
-  talgorithms_networkx.nim   → 75 tests — NetworkX parity (distance, paths, efficiency, cycles, etc.)
+  talgorithms_advanced.nim   → 75 tests — advanced algorithms (distance, paths, efficiency, cycles, matching, etc.)
 ```
 
 ## Testing
