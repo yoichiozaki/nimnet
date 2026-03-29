@@ -9,6 +9,7 @@ Usage:
   python bench_networkx.py
 """
 
+import os
 import time
 import random
 import statistics
@@ -16,7 +17,7 @@ import networkx as nx
 
 random.seed(42)
 
-BENCH_RUNS = 5  # Number of timed runs per benchmark
+BENCH_RUNS = int(os.environ.get("BENCH_RUNS", "5"))
 
 
 def bench(func, *args, **kwargs):

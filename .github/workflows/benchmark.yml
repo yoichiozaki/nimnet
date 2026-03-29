@@ -8,6 +8,10 @@ on:
       - 'benchmarks/**'
   workflow_dispatch:
 
+concurrency:
+  group: benchmark-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   benchmark:
     runs-on: ubuntu-latest
@@ -31,21 +35,32 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: '3.12'
+          cache: 'pip'
+          cache-dependency-path: 'benchmarks/requirements.txt'
 
-      - name: Install Python dependencies
-        run: pip install networkx numpy scipy
-
-      - name: Install Nim dependencies
-        run: nimble install -y
+      - name: Install dependencies
+        run: |
+          pip install -r benchmarks/requirements.txt &
+          nimble install -y &
+          wait
 
       - name: Compile NimNet benchmark
-        run: nim c -d:release -d:danger --opt:speed -p:src -o:build/bench_nimnet benchmarks/bench_nimnet.nim
+        run: nim c -d:release -d:danger -d:ciBenchRuns --opt:speed -p:src -o:build/bench_nimnet benchmarks/bench_nimnet.nim
 
-      - name: Run NimNet benchmark
-        run: ./build/bench_nimnet | tee results_nimnet.csv
-
-      - name: Run NetworkX benchmark
-        run: python benchmarks/bench_networkx.py | tee results_networkx.csv
+      - name: Run benchmarks in parallel
+        env:
+          BENCH_RUNS: "3"
+        run: |
+          ./build/bench_nimnet > results_nimnet.csv &
+          PID_NIM=$!
+          python benchmarks/bench_networkx.py > results_networkx.csv &
+          PID_PY=$!
+          wait $PID_NIM $PID_PY
+          echo "=== NimNet Results ==="
+          cat results_nimnet.csv
+          echo ""
+          echo "=== NetworkX Results ==="
+          cat results_networkx.csv
 
       - name: Upload benchmark results
         uses: actions/upload-artifact@v4

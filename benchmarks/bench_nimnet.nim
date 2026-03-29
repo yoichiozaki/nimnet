@@ -16,7 +16,7 @@ else:
 # Helpers
 # ---------------------------------------------------------------------------
 
-const benchRuns = 5  # Number of timed runs per benchmark
+const benchRuns = when defined(ciBenchRuns): 3 else: 5
 
 template bench(name: string, body: untyped): float =
   ## Run body multiple times and return the median elapsed time.
