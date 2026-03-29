@@ -28,3 +28,4 @@ task test, "Compile and run all tests":
   exec "nim c -r -p:src --nimcache:build/nimcache/tgraph tests/tgraph.nim"
   exec "nim c -r -p:src --nimcache:build/nimcache/tdigraph tests/tdigraph.nim"
   exec "nim c -r -p:src --nimcache:build/nimcache/talgorithms tests/talgorithms.nim"
+  exec "nim c -r -p:src --nimcache:build/nimcache/talgorithms2 tests/talgorithms2.nim"

@@ -34,6 +34,14 @@ import nimnet/algorithms/dominating;     export dominating
 import nimnet/algorithms/coloring;       export coloring
 import nimnet/algorithms/bipartite;      export bipartite
 import nimnet/algorithms/euler;          export euler
+import nimnet/algorithms/all_pairs_shortest; export all_pairs_shortest
+import nimnet/algorithms/connectivity;   export connectivity
+import nimnet/algorithms/louvain;        export louvain
+import nimnet/algorithms/isomorphism;    export isomorphism
+import nimnet/algorithms/planarity;      export planarity
+import nimnet/algorithms/tsp;            export tsp
+import nimnet/algorithms/min_cost_flow;  export min_cost_flow
+import nimnet/algorithms/tree_decomposition; export tree_decomposition
 
 # --- Generators ---
 import nimnet/generators/classic; export classic
@@ -46,7 +54,11 @@ import nimnet/io/edgelist;   export edgelist
 import nimnet/io/adjlist;    export adjlist
 import nimnet/io/json_graph; export json_graph
 import nimnet/io/dot;        export dot
+import nimnet/io/gml;        export gml
+import nimnet/io/graphml;    export graphml
 
 # --- Operators & Conversions ---
 import nimnet/operators; export operators
 import nimnet/convert;   export convert
+import nimnet/builder;   export builder
+import nimnet/datasets;  export datasets
