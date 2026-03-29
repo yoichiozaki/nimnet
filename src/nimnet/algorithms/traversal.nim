@@ -181,25 +181,29 @@ proc dfsPostorderNodes*[N](g: Graph[N], source: N): seq[N] =
   if not g.hasNode(source):
     raise newException(NodeNotFound, "Source node not found")
   var visited = initHashSet[N]()
+  var order: seq[N] = @[]
   proc dfsVisit(node: N) =
     visited.incl(node)
     for neighbor in g.neighbors(node):
       if neighbor notin visited:
         dfsVisit(neighbor)
-    result.add(node)
+    order.add(node)
   dfsVisit(source)
+  result = order
 
 proc dfsPostorderNodes*[N](g: DiGraph[N], source: N): seq[N] =
   if not g.hasNode(source):
     raise newException(NodeNotFound, "Source node not found")
   var visited = initHashSet[N]()
+  var order: seq[N] = @[]
   proc dfsVisit(node: N) =
     visited.incl(node)
     for neighbor in g.neighbors(node):
       if neighbor notin visited:
         dfsVisit(neighbor)
-    result.add(node)
+    order.add(node)
   dfsVisit(source)
+  result = order
 
 proc dfsLabeledEdges*[N](g: Graph[N], source: N): seq[(N, N, string)] =
   ## Return edges labeled as "forward" or "nontree" during DFS.

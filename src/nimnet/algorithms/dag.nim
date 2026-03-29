@@ -1,6 +1,6 @@
 ## DAG algorithms: topological sort and cycle detection
 
-import std/[tables, sets, deques, sequtils]
+import std/[tables, sets, deques, algorithm]
 import ../types
 import ../digraph
 
@@ -159,5 +159,5 @@ proc dagLongestPath*[N](g: DiGraph[N]): seq[N] =
   while current in pred:
     current = pred[current]
     path.add(current)
-  path.reverse()
+  algorithm.reverse(path)
   result = path

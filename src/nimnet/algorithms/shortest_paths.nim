@@ -468,3 +468,70 @@ proc bellmanFordPath*[N](g: DiGraph[N], source, target: N): seq[N] =
   path.add(source)
   path.reverse()
   result = path
+
+# =============================================================================
+# A* search
+# =============================================================================
+
+proc astarPath*[N](g: Graph[N], source, target: N,
+                   heuristic: proc(n: N): float): seq[N] =
+  ## A* shortest path from source to target using a heuristic function.
+  ## The heuristic should estimate the distance from node n to the target.
+  ## Uses edge weights if present (default weight = 1.0).
+  if not g.hasNode(source):
+    raise newException(NodeNotFound, "Source node not found")
+  if not g.hasNode(target):
+    raise newException(NodeNotFound, "Target node not found")
+  if source == target:
+    return @[source]
+
+  # Open set with (f_score, g_score, node) - use seq as priority queue
+  var openSet: seq[(float, float, N)] = @[(heuristic(source), 0.0, source)]
+  var cameFrom = initTable[N, N]()
+  var gScore = initTable[N, float]()
+  gScore[source] = 0.0
+  var closedSet = initHashSet[N]()
+
+  while openSet.len > 0:
+    # Pop node with smallest f_score
+    var minIdx = 0
+    for i in 1 ..< openSet.len:
+      if openSet[i][0] < openSet[minIdx][0]:
+        minIdx = i
+    let (_, currentG, current) = openSet[minIdx]
+    openSet.del(minIdx)
+
+    if current == target:
+      # Reconstruct path
+      var path: seq[N] = @[target]
+      var node = target
+      while node in cameFrom:
+        node = cameFrom[node]
+        path.add(node)
+      path.reverse()
+      return path
+
+    if current in closedSet:
+      continue
+    closedSet.incl(current)
+
+    for neighbor in g.neighbors(current):
+      if neighbor in closedSet:
+        continue
+      let edgeWeight = g[current, neighbor].getWeight()
+      let tentativeG = gScore[current] + edgeWeight
+      if neighbor notin gScore or tentativeG < gScore[neighbor]:
+        cameFrom[neighbor] = current
+        gScore[neighbor] = tentativeG
+        let fScore = tentativeG + heuristic(neighbor)
+        openSet.add((fScore, tentativeG, neighbor))
+
+  raise newException(NimNetNoPath, "No path between source and target")
+
+proc astarPathLength*[N](g: Graph[N], source, target: N,
+                          heuristic: proc(n: N): float): float =
+  ## Return the length (total weight) of the A* shortest path.
+  let path = astarPath(g, source, target, heuristic)
+  result = 0.0
+  for i in 0 ..< path.len - 1:
+    result += g[path[i], path[i + 1]].getWeight()

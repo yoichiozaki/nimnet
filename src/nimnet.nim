@@ -24,6 +24,16 @@ import nimnet/algorithms/community;      export community
 import nimnet/algorithms/mst;            export mst
 import nimnet/algorithms/dag;            export dag
 import nimnet/algorithms/flow;           export flow
+import nimnet/algorithms/properties;     export properties
+import nimnet/algorithms/link_prediction; export link_prediction
+import nimnet/algorithms/core;           export core
+import nimnet/algorithms/stats;          export stats
+import nimnet/algorithms/clique;         export clique
+import nimnet/algorithms/independent_set; export independent_set
+import nimnet/algorithms/dominating;     export dominating
+import nimnet/algorithms/coloring;       export coloring
+import nimnet/algorithms/bipartite;      export bipartite
+import nimnet/algorithms/euler;          export euler
 
 # --- Generators ---
 import nimnet/generators/classic; export classic

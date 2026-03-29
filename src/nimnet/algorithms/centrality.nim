@@ -200,3 +200,139 @@ proc pageRank*[N](g: Graph[N], alpha: float = 0.85, maxIter: int = 100,
     result = newRank
     if diff < tol:
       break
+
+# =============================================================================
+# HITS (Hyperlink-Induced Topic Search)
+# =============================================================================
+
+proc hits*[N](g: DiGraph[N], maxIter: int = 100,
+              tol: float = 1.0e-8): (Table[N, float], Table[N, float]) =
+  ## Compute HITS hubs and authorities via power iteration.
+  ## Returns (hubs, authorities).
+  let n = g.numberOfNodes()
+  if n == 0:
+    return (initTable[N, float](), initTable[N, float]())
+
+  var hubs = initTable[N, float]()
+  var auths = initTable[N, float]()
+  for node in g.nodes:
+    hubs[node] = 1.0
+    auths[node] = 1.0
+
+  for _ in 0 ..< maxIter:
+    var newAuths = initTable[N, float]()
+    var newHubs = initTable[N, float]()
+    for node in g.nodes:
+      newAuths[node] = 0.0
+      newHubs[node] = 0.0
+
+    # Authority update: auth(v) = sum(hub(u) for u -> v)
+    for node in g.nodes:
+      for pred in g.predecessors(node):
+        newAuths[node] += hubs[pred]
+
+    # Hub update: hub(u) = sum(auth(v) for u -> v)
+    for node in g.nodes:
+      for succ in g.successors(node):
+        newHubs[node] += newAuths[succ]
+
+    # Normalize
+    var authNorm = 0.0
+    var hubNorm = 0.0
+    for node in g.nodes:
+      authNorm += newAuths[node] * newAuths[node]
+      hubNorm += newHubs[node] * newHubs[node]
+    authNorm = sqrt(authNorm)
+    hubNorm = sqrt(hubNorm)
+    if authNorm > 0:
+      for node in g.nodes:
+        newAuths[node] /= authNorm
+    if hubNorm > 0:
+      for node in g.nodes:
+        newHubs[node] /= hubNorm
+
+    # Check convergence
+    var diff = 0.0
+    for node in g.nodes:
+      diff += abs(newAuths[node] - auths[node])
+      diff += abs(newHubs[node] - hubs[node])
+    auths = newAuths
+    hubs = newHubs
+    if diff < tol:
+      break
+
+  result = (hubs, auths)
+
+# =============================================================================
+# Eigenvector centrality
+# =============================================================================
+
+proc eigenvectorCentrality*[N](g: Graph[N], maxIter: int = 100,
+                                tol: float = 1.0e-6): Table[N, float] =
+  ## Compute eigenvector centrality via power iteration.
+  let n = g.numberOfNodes()
+  if n == 0:
+    return initTable[N, float]()
+
+  result = initTable[N, float]()
+  for node in g.nodes:
+    result[node] = 1.0 / float(n)
+
+  for _ in 0 ..< maxIter:
+    var newVals = initTable[N, float]()
+    for node in g.nodes:
+      newVals[node] = 0.0
+
+    for node in g.nodes:
+      for neighbor in g.neighbors(node):
+        newVals[node] += result[neighbor]
+
+    # Normalize by max value
+    var maxVal = 0.0
+    for node in g.nodes:
+      if abs(newVals[node]) > maxVal:
+        maxVal = abs(newVals[node])
+    if maxVal > 0:
+      for node in g.nodes:
+        newVals[node] /= maxVal
+
+    # Check convergence
+    var diff = 0.0
+    for node in g.nodes:
+      diff += abs(newVals[node] - result[node])
+    result = newVals
+    if diff < tol:
+      break
+
+# =============================================================================
+# Katz centrality
+# =============================================================================
+
+proc katzCentrality*[N](g: Graph[N], alpha: float = 0.1,
+                         beta: float = 1.0,
+                         maxIter: int = 1000,
+                         tol: float = 1.0e-6): Table[N, float] =
+  ## Compute Katz centrality.
+  ## C_katz(i) = alpha * sum(A_ij * C_katz(j)) + beta
+  let n = g.numberOfNodes()
+  if n == 0:
+    return initTable[N, float]()
+
+  result = initTable[N, float]()
+  for node in g.nodes:
+    result[node] = 0.0
+
+  for _ in 0 ..< maxIter:
+    var newVals = initTable[N, float]()
+    for node in g.nodes:
+      var s = beta
+      for neighbor in g.neighbors(node):
+        s += alpha * result[neighbor]
+      newVals[node] = s
+
+    var diff = 0.0
+    for node in g.nodes:
+      diff += abs(newVals[node] - result[node])
+    result = newVals
+    if diff < tol:
+      break
