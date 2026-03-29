@@ -94,7 +94,6 @@ func getWeight*(attr: EdgeAttr, default: float = 1.0): float {.inline.} =
   ## Get the numeric weight from edge attributes.
   ## The ``default`` parameter is kept for API compatibility but is not used;
   ## this always returns ``attr.weight`` (default 1.0 when created via ``newEdgeAttr()``).
-  {.used.}: default
   attr.weight
 
 # --- Compatibility operators (preserve Table-like API) ---------------------
