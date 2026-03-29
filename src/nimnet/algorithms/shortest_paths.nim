@@ -1,6 +1,6 @@
 ## Shortest path algorithms for nimnet
 
-import std/[tables, sets, deques, sequtils, hashes, algorithm]
+import std/[tables, sets, deques]
 import ../types
 import ../graph
 import ../digraph

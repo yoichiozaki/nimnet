@@ -1,6 +1,6 @@
 ## DAG algorithms: topological sort and cycle detection
 
-import std/[tables, sets, deques, sequtils]
+import std/[tables, deques]
 import ../types
 import ../digraph
 

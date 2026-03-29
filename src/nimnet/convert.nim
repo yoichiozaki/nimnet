@@ -1,6 +1,6 @@
 ## Type conversion utilities
 
-import std/[tables, sequtils, sets]
+import std/[tables, sequtils]
 import types
 import graph
 import digraph

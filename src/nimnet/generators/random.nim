@@ -1,6 +1,6 @@
 ## Random graph generators
 
-import std/[random, tables, sets, math]
+import std/[random, sets]
 import ../types
 import ../graph
 

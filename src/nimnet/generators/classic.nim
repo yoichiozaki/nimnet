@@ -1,6 +1,6 @@
 ## Classic graph generators
 
-import std/[tables, sets]
+# no std imports needed
 import ../types
 import ../graph
 import ../digraph

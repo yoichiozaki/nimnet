@@ -6,7 +6,7 @@
 ## - Exception hierarchy for graph operation errors
 ## - Weight accessor utilities
 
-import std/[tables, hashes, strutils]
+import std/[tables, strutils]
 
 type
   # --- Attribute types ---------------------------------------------------

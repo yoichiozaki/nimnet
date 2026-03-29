@@ -1,6 +1,6 @@
 ## Minimum spanning tree algorithms
 
-import std/[tables, sets, algorithm, sequtils]
+import std/[tables, algorithm]
 import ../types
 import ../graph
 

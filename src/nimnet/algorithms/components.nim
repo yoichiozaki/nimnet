@@ -1,6 +1,6 @@
 ## Connected and strongly connected component algorithms
 
-import std/[sets, deques, tables, sequtils, algorithm]
+import std/[sets, deques, tables]
 import ../types
 import ../graph
 import ../digraph

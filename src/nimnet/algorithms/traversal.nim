@@ -1,6 +1,6 @@
 ## BFS and DFS traversal algorithms for nimnet
 
-import std/[deques, sets, tables, sequtils]
+import std/[deques, sets, tables]
 import ../types
 import ../graph
 import ../digraph

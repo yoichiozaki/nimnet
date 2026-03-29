@@ -1,6 +1,6 @@
 ## Graph operators: union, complement, compose, etc.
 
-import std/[tables, sets, hashes, sequtils]
+import std/[tables]
 import types
 import graph
 import digraph

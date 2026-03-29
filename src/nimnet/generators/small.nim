@@ -1,6 +1,6 @@
 ## Small / famous graph generators
 
-import std/tables
+# no std imports needed
 import ../types
 import ../graph
 

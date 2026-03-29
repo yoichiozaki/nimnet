@@ -1,6 +1,6 @@
 ## Tree generators
 
-import std/[random, tables, sets, deques]
+import std/[random]
 import ../types
 import ../graph
 

@@ -1,6 +1,6 @@
 ## Edge list I/O
 
-import std/[strutils, streams, tables]
+import std/[strutils, streams]
 import ../types
 import ../graph
 import ../digraph

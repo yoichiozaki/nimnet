@@ -1,6 +1,6 @@
 ## Clustering coefficient and transitivity
 
-import std/[tables, sets, math]
+import std/[tables, sets]
 import ../types
 import ../graph
 

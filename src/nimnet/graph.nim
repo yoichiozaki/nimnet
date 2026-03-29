@@ -12,7 +12,7 @@
 ##   for node in g:         # items iterator
 ##     echo node
 
-import std/[tables, sets, strformat, algorithm]
+import std/[tables, sets, strformat]
 import types
 
 type
