@@ -12,10 +12,13 @@ A comprehensive network science library for [Nim](https://nim-lang.org/), inspir
 ## Features
 
 - **Graph types**: Undirected (`Graph`) and directed (`DiGraph`) graphs with generic node types
-- **Algorithms**: BFS, DFS, shortest paths (Dijkstra, Bellman-Ford), centrality measures, connected components, clustering, community detection, MST, max flow, topological sort
-- **Generators**: Classic graphs, random graphs (Erdős-Rényi, Barabási-Albert, Watts-Strogatz), famous graphs, trees
-- **I/O**: Edge list, adjacency list, JSON graph format, DOT export
-- **Operators**: Union, complement, reverse, subgraph, node relabeling
+- **27 Algorithm modules**: BFS/DFS traversal, shortest paths (Dijkstra, Bellman-Ford, A*, Floyd-Warshall, Johnson's), centrality (degree, closeness, PageRank, eigenvector, Katz, HITS), connected/strongly connected components, clustering coefficients, community detection (greedy modularity, Louvain), MST (Kruskal, Prim), max flow (Edmonds-Karp), topological sort, graph isomorphism (VF2), planarity testing, TSP heuristics, min-cost flow, tree decomposition, k-core decomposition, clique enumeration, graph coloring, bipartite matching, Eulerian/Hamiltonian paths, link prediction, and more
+- **4 Generator modules**: Classic graphs (complete, cycle, path, star, wheel, grid), random graphs (Erdős-Rényi, Barabási-Albert, Watts-Strogatz, random regular, stochastic block model), small/famous graphs (Petersen, karate club), tree generators
+- **6 I/O formats**: Edge list, adjacency list, JSON graph, DOT/Graphviz, GML, GraphML
+- **Operators**: Union, complement, intersection, difference, node relabeling, directed ↔ undirected conversion
+- **Builder DSL**: Fluent graph construction with method chaining and `buildGraph` template
+- **Built-in datasets**: Dolphins social network, Florentine families, les misérables
+- **247 tests** across 5 test files
 
 ## Installation
 
@@ -62,7 +65,58 @@ echo dg.hasPath("A", "C")  # true
 # Graph generators
 let complete = completeGraph[int](5)
 let er = erdosRenyiGraph[int](100, 0.05)
+
+# Builder DSL
+let h = buildGraph[int]:
+  nodes [1, 2, 3, 4, 5]
+  edges [(1,2), (2,3), (3,4), (4,5)]
+
+# Centrality analysis
+let pr = pageRank(complete)
+let communities = louvainCommunities(er)
+
+# All-pairs shortest paths
+let dist = floydWarshall(g)
+
+# Graph properties
+echo isTree(g)      # false (has a cycle)
+echo isComplete(g)  # true (K3)
+
+# I/O
+writeGml(g, "my_graph.gml")
+let loaded = readGml("my_graph.gml")
 ```
+
+## Algorithm Modules
+
+| Category | Module | Algorithms |
+|----------|--------|-----------|
+| Traversal | `traversal` | BFS, DFS (edges, tree, layers, preorder, postorder) |
+| Shortest Paths | `shortest_paths` | Dijkstra, Bellman-Ford, A*, unweighted BFS |
+| All-Pairs Shortest | `all_pairs_shortest` | Floyd-Warshall, Johnson's algorithm |
+| Components | `components` | Connected, strongly connected (Tarjan), weakly connected, condensation |
+| Centrality | `centrality` | Degree, closeness, PageRank, eigenvector, Katz, HITS |
+| Clustering | `clustering` | Clustering coefficient, transitivity, triangles |
+| Community | `community`, `louvain` | Greedy modularity, Louvain method |
+| MST | `mst` | Kruskal, Prim |
+| DAG | `dag` | Topological sort, cycle detection, ancestors, descendants |
+| Flow | `flow` | Edmonds-Karp max flow, minimum cut |
+| Min-Cost Flow | `min_cost_flow` | Successive shortest path |
+| Connectivity | `connectivity` | Node/edge connectivity, resilience |
+| Isomorphism | `isomorphism` | VF2 graph isomorphism |
+| Planarity | `planarity` | Euler's formula + K5/K3,3 subgraph detection |
+| TSP | `tsp` | Nearest neighbor, greedy, 2-opt |
+| Tree Decomposition | `tree_decomposition` | Treewidth upper bound |
+| Properties | `properties` | isTree, isForest, isRegular, isComplete, girth |
+| Link Prediction | `link_prediction` | Common neighbors, Jaccard, Adamic-Adar |
+| k-Core | `core` | Core decomposition, k-core, k-shell |
+| Statistics | `stats` | Degree histogram, assortativity |
+| Cliques | `clique` | Bron-Kerbosch, clique number |
+| Independent Set | `independent_set` | Maximum independent set, vertex cover |
+| Dominating Set | `dominating` | Minimum dominating set |
+| Coloring | `coloring` | Greedy coloring (largest-first, DSATUR) |
+| Bipartite | `bipartite` | Bipartiteness, maximum matching |
+| Euler | `euler` | Eulerian circuits/paths, Hamiltonian detection |
 
 ## Development
 

@@ -3,14 +3,50 @@
 ## Project Overview
 NimNet is a network science library for Nim, inspired by Python's NetworkX.
 It provides graph data structures (Graph, DiGraph) with adjacency map internals,
-standard graph algorithms, generators, and I/O.
+27 algorithm modules, 4 generator modules, 6 I/O formats, a builder DSL,
+built-in datasets, and graph operators.
 
 ## Architecture
 - **ADRs**: Design decisions are in `docs/adr/`. Read them before making architectural changes.
 - **Data structure**: Adjacency map (`Table[N, Table[N, EdgeAttr]]`). See ADR-0002.
 - **Generic nodes**: `Graph[N]` where `N` must satisfy `hash` + `==`. See ADR-0003.
-- **Edge attributes**: `Table[string, string]`. Weight accessor: `weight(g, u, v)`.
+- **Edge attributes**: `Table[string, string]`. Weight accessor: `getWeight(attr, default=1.0)`.
 - **Module layout**: `src/nimnet.nim` re-exports all; submodules in `src/nimnet/`. See ADR-0005.
+
+## Key API Reference
+
+### Attribute Access (common pitfall)
+```nim
+# Edge attributes — use getEdgeAttr or subscript operator
+let attr = g.getEdgeAttr(u, v)   # returns EdgeAttr (Table[string, string])
+let attr = g[u, v]               # same thing, subscript sugar
+
+# Node attributes
+let attr = g.getNodeAttr(n)      # returns NodeAttr (Table[string, string])
+
+# Weight extraction from EdgeAttr
+let w = attr.getWeight()          # default 1.0
+let w = attr.getWeight(default=0.0)
+
+# Setting weight
+g.addWeightedEdge(u, v, 2.5)     # convenience proc
+var attr: EdgeAttr
+attr.weight = 3.0                 # setter sugar via weight=
+
+# WRONG — these do NOT exist:
+# g.getEdgeData(u, v)   ← does not exist, use getEdgeAttr
+# g.getNodeData(n)      ← does not exist, use getNodeAttr
+```
+
+### Graph Construction
+```nim
+var g = newGraph[int]()           # undirected
+var dg = newDiGraph[int]()        # directed
+g.addNode(1)
+g.addEdge(1, 2)                   # auto-adds nodes
+g.addWeightedEdge(1, 2, 3.5)
+g.addEdgesFrom([(1,2), (2,3)])
+```
 
 ## Nim Coding Conventions (NEP-1)
 - Types: `PascalCase` — `Graph`, `NodeAttr`, `EdgeAttr`
@@ -23,22 +59,66 @@ standard graph algorithms, generators, and I/O.
 
 ## File Organization
 ```
-src/nimnet.nim           → Main re-export module
-src/nimnet/types.nim     → Core types, exceptions
-src/nimnet/graph.nim     → Undirected Graph[N]
-src/nimnet/digraph.nim   → Directed DiGraph[N]
-src/nimnet/algorithms/   → Algorithm submodules
-src/nimnet/generators/   → Graph generator submodules
-src/nimnet/operators.nim → Graph operations
-src/nimnet/io/           → I/O format submodules
-src/nimnet/convert.nim   → Type conversions
-tests/t*.nim             → Test files (one per source module)
+src/nimnet.nim               → Main re-export module
+src/nimnet/types.nim         → Core types (EdgeAttr, NodeAttr), exceptions
+src/nimnet/graph.nim         → Undirected Graph[N]
+src/nimnet/digraph.nim       → Directed DiGraph[N]
+src/nimnet/algorithms/       → 27 algorithm submodules
+  traversal.nim              → BFS, DFS
+  shortest_paths.nim         → Dijkstra, Bellman-Ford, A*
+  components.nim             → Connected/strongly connected components
+  centrality.nim             → Degree, closeness, PageRank, eigenvector, Katz, HITS
+  clustering.nim             → Clustering coefficient, transitivity, triangles
+  community.nim              → Greedy modularity community detection
+  louvain.nim                → Louvain community detection
+  mst.nim                    → Kruskal, Prim MST
+  dag.nim                    → Topological sort, DAG operations
+  flow.nim                   → Edmonds-Karp max flow, min cut
+  all_pairs_shortest.nim     → Floyd-Warshall, Johnson's algorithm
+  connectivity.nim           → Node/edge connectivity, resilience
+  isomorphism.nim            → VF2 graph isomorphism
+  planarity.nim              → Planarity testing (simplified)
+  tsp.nim                    → TSP heuristics (nearest neighbor, greedy, 2-opt)
+  min_cost_flow.nim          → Minimum cost flow
+  tree_decomposition.nim     → Treewidth upper bound
+  properties.nim             → isTree, isForest, isRegular, isComplete, girth
+  link_prediction.nim        → Common neighbors, Jaccard, Adamic-Adar
+  core.nim                   → k-core decomposition
+  stats.nim                  → Degree histogram, assortativity
+  clique.nim                 → Bron-Kerbosch clique enumeration
+  independent_set.nim        → Maximum independent set, vertex cover
+  dominating.nim             → Minimum dominating set
+  coloring.nim               → Greedy graph coloring
+  bipartite.nim              → Bipartiteness, maximum matching
+  euler.nim                  → Eulerian circuits/paths, Hamiltonian detection
+src/nimnet/generators/       → Graph generator submodules
+  classic.nim                → Complete, cycle, path, star, wheel, grid
+  random.nim                 → Erdős-Rényi, Barabási-Albert, Watts-Strogatz, regular, SBM
+  small.nim                  → Petersen, karate club, Florentine families
+  trees.nim                  → Balanced tree, random tree
+src/nimnet/io/               → I/O format submodules
+  edgelist.nim               → Edge list format
+  adjlist.nim                → Adjacency list format
+  json_graph.nim             → JSON node-link format
+  dot.nim                    → DOT/Graphviz export
+  gml.nim                    → GML format read/write
+  graphml.nim                → GraphML XML format read/write
+src/nimnet/operators.nim     → Graph operations (complement, union, relabel)
+src/nimnet/convert.nim       → Type conversions (adjacency matrix, edge list)
+src/nimnet/builder.nim       → Builder DSL (GraphBuilder, buildGraph template)
+src/nimnet/datasets.nim      → Built-in dataset loaders (dolphins, les misérables)
+tests/                       → Test files
+  ttypes.nim                 → 11 tests — types and edge attributes
+  tgraph.nim                 → 53 tests — undirected graph operations
+  tdigraph.nim               → 40 tests — directed graph operations
+  talgorithms.nim            → 100 tests — batch 1 algorithms
+  talgorithms2.nim           → 43 tests — batch 2 algorithms + I/O + generators
 ```
 
 ## Testing
 - Framework: `std/unittest` (see ADR-0004)
 - Test files: `tests/t<module>.nim` with `t` prefix
-- Run: `nimble test`
+- Run: `nimble test` (runs all 5 test files, 247 total tests)
 - Every public proc MUST have corresponding tests
 - Use `suite` and `test` blocks, `check` for assertions, `expect` for exceptions
 
@@ -49,14 +129,57 @@ tests/t*.nim             → Test files (one per source module)
 2. Import `../types`, `../graph`, `../digraph` as needed
 3. Export procs with `*`
 4. Add `import nimnet/algorithms/<name>` and `export <name>` to `src/nimnet.nim`
-5. Create `tests/t<name>.nim` with comprehensive tests
+5. Create tests in `tests/talgorithms.nim` or `tests/talgorithms2.nim`
 6. Update CHANGELOG.md
 
 ### Adding a new graph generator
 1. Create `src/nimnet/generators/<name>.nim`
 2. Return `Graph[int]` or `Graph[N]` from generator procs
 3. Add to `src/nimnet.nim` exports
-4. Create tests in `tests/tgenerators.nim` or dedicated file
+4. Create tests in `tests/talgorithms.nim` or dedicated file
+
+### Adding a top-level module (e.g. builder.nim, datasets.nim)
+1. Create `src/nimnet/<name>.nim`
+2. Import with `./types`, `./graph`, `./digraph` (NOT `../types` — these are peers)
+3. Add to `src/nimnet.nim` exports
+
+## Known Pitfalls and Lessons Learned
+
+### Import paths depend on directory level
+- Files in `src/nimnet/algorithms/` use `../types`, `../graph`, `../digraph`
+- Files in `src/nimnet/` (top-level submodules) use `./types`, `./graph`, `./digraph`
+- Getting this wrong causes "cannot open" errors at compile time
+
+### `result` variable cannot be captured in closures
+Nim forbids capturing `result` in closure iterators or nested procs.
+Use a local variable and assign to `result` afterward:
+```nim
+# WRONG:
+proc foo(): seq[int] =
+  let iter = iterator(): int {.closure.} = yield 1
+  for x in iter(): result.add(x)  # Error: cannot capture result
+
+# CORRECT:
+proc foo(): seq[int] =
+  var res: seq[int]
+  let iter = iterator(): int {.closure.} = yield 1
+  for x in iter(): res.add(x)
+  result = res
+```
+
+### Disambiguating `reverse` in dag algorithms
+`algorithm.reverse()` and `digraph.reverse()` can clash. Qualify:
+```nim
+import std/algorithm
+algorithm.reverse(path)  # for seq reversal, not digraph reversal
+```
+
+### Naming collisions across modules
+When two modules export the same proc name (e.g. `florentineFamiliesGraph` in
+both `generators/small.nim` and `datasets.nim`), prefix with module name:
+```nim
+let g = small.florentineFamiliesGraph()
+```
 
 ## Error Handling
 - Use the exception hierarchy from `types.nim`:
@@ -70,7 +193,8 @@ tests/t*.nim             → Test files (one per source module)
 ## CI
 - GitHub Actions: `.github/workflows/ci.yml`
 - Matrix: ubuntu-latest, macos-latest, windows-latest
-- Uses `nim-lang/setup-nimble-action@v1`
+- Uses `jiro4989/setup-nim-action@v2`
+- Nim version: 2.2.8
 
 ## Commit Message Format
 - `feat: <description>` — new feature
