@@ -28,4 +28,5 @@ Thumbs.db
 
 # Build
 build/
+.nim_runtime/
 dist/

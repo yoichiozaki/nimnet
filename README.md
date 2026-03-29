@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="docs/assets/images/nimnet-logo.png" alt="NimNet Logo" width="300">
+</p>
+
 # nimnet
 
 [![CI](https://github.com/yoichiozaki/nimnet/actions/workflows/ci.yml/badge.svg)](https://github.com/yoichiozaki/nimnet/actions/workflows/ci.yml)
