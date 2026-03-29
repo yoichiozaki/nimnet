@@ -53,62 +53,40 @@ proc bipartiteSets*[N](g: Graph[N]): (HashSet[N], HashSet[N]) =
   result = (setA, setB)
 
 proc maximumMatching*[N](g: Graph[N]): seq[(N, N)] =
-  ## Find a maximum matching using augmenting paths (Hopcroft-Karp style).
+  ## Find a maximum matching using augmenting paths.
   ## Returns a list of matched edge pairs.
   ## Requires the graph to be bipartite.
   let (setA, setB) = bipartiteSets(g)
   var matchA = initTable[N, N]()  # A -> B matching
   var matchB = initTable[N, N]()  # B -> A matching
 
-  proc augment(u: N): bool =
+  proc augment(u: N; visitedA, visitedB: var HashSet[N]): bool =
+    ## DFS for an augmenting path from u (in setA).
+    ## visitedA/visitedB track visited nodes in the current search to prevent cycles.
+    ## Returns true if an augmenting path was found and matching updated.
+    if u in visitedA:
+      return false
+    visitedA.incl(u)
     for v in g.neighbors(u):
-      if v in setB:
-        if v notin matchB:
-          matchA[u] = v
-          matchB[v] = u
-          return true
-  
-    for v in g.neighbors(u):
-      if v in setB:
-        let w = matchB[v]
-        if augment(w):
+      if v in setB and v notin visitedB:
+        visitedB.incl(v)
+        if v notin matchB or augment(matchB[v], visitedA, visitedB):
           matchA[u] = v
           matchB[v] = u
           return true
     return false
 
-  # Augmenting path search with BFS layers (Hopcroft-Karp)
-  var changed = true
-  while changed:
-    changed = false
-    # BFS to find shortest augmenting paths
-    var dist = initTable[N, int]()
-    var queue = initDeque[N]()
+  # Repeatedly search for augmenting paths until none can be found.
+  while true:
+    var changed = false
     for u in setA:
       if u notin matchA:
-        dist[u] = 0
-        queue.addLast(u)
-
-    var found = false
-    while queue.len > 0:
-      let u = queue.popFirst()
-      for v in g.neighbors(u):
-        if v in setB:
-          let w = if v in matchB: matchB[v] else: v  # sentinel
-          if v notin matchB:
-            found = true
-          elif matchB[v] notin dist:
-            dist[matchB[v]] = dist[u] + 1
-            queue.addLast(matchB[v])
-
-    if not found:
-      break
-
-    # DFS to find augmenting paths
-    for u in setA:
-      if u notin matchA:
-        if augment(u):
+        var visitedA = initHashSet[N]()
+        var visitedB = initHashSet[N]()
+        if augment(u, visitedA, visitedB):
           changed = true
+    if not changed:
+      break
 
   result = @[]
   for u, v in matchA:
@@ -143,7 +121,8 @@ proc minimumVertexCover*[N](g: Graph[N]): HashSet[N] =
     let u = queue.popFirst()
     if u in setA:
       for v in g.neighbors(u):
-        if v in setB and v notin visited:
+        # From A to B, follow only unmatched edges (König's theorem)
+        if v in setB and v notin visited and (u notin matchA or matchA[u] != v):
           visited.incl(v)
           queue.addLast(v)
     else:  # u in setB

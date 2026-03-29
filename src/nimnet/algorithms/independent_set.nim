@@ -1,6 +1,6 @@
 ## Independent set and vertex cover algorithms
 
-import std/[sets, tables, algorithm]
+import std/[sets, tables]
 import ../types
 import ../graph
 
@@ -56,7 +56,6 @@ proc minimumVertexCover*[N](g: Graph[N]): HashSet[N] =
   ## 2-approximation minimum vertex cover.
   ## Greedy: pick edges and add both endpoints until all edges covered.
   result = initHashSet[N]()
-  var coveredEdges = initHashSet[(N, N)]()
   for (u, v) in g.edges:
     if u notin result and v notin result:
       result.incl(u)

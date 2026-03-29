@@ -30,7 +30,6 @@ proc coreNumber*[N](g: Graph[N]): Table[N, int] =
   for n in g.nodes:
     buckets[degrees[n]].add(n)
 
-  var nodePos = initTable[N, int]()  # position tracking
   var processed = initHashSet[N]()
 
   # Process nodes in order of degree (ascending)
@@ -88,7 +87,7 @@ proc kCorona*[N](g: Graph[N], k: int): Graph[N] =
   let cores = coreNumber(g)
   result = newGraph[N]()
   for n in g.nodes:
-    if cores.getOrDefault(n, 0) == k:
+    if cores.getOrDefault(n, 0) >= k:
       var coreNeighbors = 0
       for u in g.neighbors(n):
         if cores.getOrDefault(u, 0) >= k:

@@ -54,7 +54,6 @@ proc predictedEdges*[N](g: Graph[N], topK: int = 10,
   ## Return top-k predicted edges by score.
   ## Default scorer is Adamic-Adar index.
   var candidates: seq[(N, N, float)] = @[]
-  var seen = initHashSet[(N, N)]()
   let nodeList = g.nodeSeq()
   for i in 0 ..< nodeList.len:
     for j in i + 1 ..< nodeList.len:

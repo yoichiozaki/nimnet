@@ -404,6 +404,18 @@ suite "Link Prediction":
     let ra = resourceAllocationIndex(g, 1, 2)
     check ra > 0.0
 
+  test "predicted edges":
+    var g = newGraph[int]()
+    g.addEdgesFrom([(1,2), (1,3), (2,3), (2,4)])
+    # Edge (3,4) is missing; nodes 3 and 4 share common neighbor 2
+    let preds = predictedEdges(g, topK = 3)
+    check preds.len <= 3
+    var found = false
+    for (u, v, score) in preds:
+      if (u == 3 and v == 4) or (u == 4 and v == 3):
+        found = true
+    check found
+
 suite "k-Core":
   test "core numbers - triangle with pendant":
     var g = newGraph[int]()
@@ -430,6 +442,28 @@ suite "k-Core":
     let shell1 = kShell(g, 1)
     check shell1.hasNode(4)
     check not shell1.hasNode(1)
+
+  test "kCrust":
+    var g = newGraph[int]()
+    g.addEdgesFrom([(1,2), (2,3), (1,3), (3,4)])
+    let crust1 = kCrust(g, 1)
+    # kCrust(k=1): nodes with core number <= 1
+    check crust1.hasNode(4)
+    check not crust1.hasNode(1)
+
+  test "kCorona":
+    var g = newGraph[int]()
+    g.addEdgesFrom([(1,2), (2,3), (1,3), (3,4)])
+    # cores: 1->2, 2->2, 3->2, 4->1
+    # kCorona(k=2): nodes in 2-core with exactly 2 neighbors in 2-core
+    # node 1: neighbors in 2-core = {2,3} -> count=2, included
+    # node 2: neighbors in 2-core = {1,3} -> count=2, included
+    # node 3: neighbors in 2-core = {1,2} -> count=2, included
+    let corona2 = kCorona(g, 2)
+    check corona2.hasNode(1)
+    check corona2.hasNode(2)
+    check corona2.hasNode(3)
+    check not corona2.hasNode(4)
 
 suite "Network Statistics":
   test "info":
@@ -460,6 +494,25 @@ suite "Network Statistics":
     let g = completeGraph[int](5)
     check abs(stats.density(g) - 1.0) < 1e-10
 
+  test "averageShortestPathLength":
+    let g = pathGraph[int](4)
+    # Pairs and distances: (1,2)=1, (1,3)=2, (1,4)=3, (2,3)=1, (2,4)=2, (3,4)=1
+    # Each undirected pair counted twice in BFS; average = (1+2+3+1+2+1)*2 / (4*3) = 20/12
+    let avg = averageShortestPathLength(g)
+    check abs(avg - 20.0/12.0) < 1e-10
+
+  test "averageShortestPathLength on disconnected graph":
+    var g = newGraph[int]()
+    g.addEdgesFrom([(1,2), (3,4)])
+    # Only reachable pairs counted; disconnected pairs ignored
+    let avg = averageShortestPathLength(g)
+    check avg > 0.0
+
+  test "reciprocity":
+    var g = newGraph[int]()
+    g.addEdgesFrom([(1,2), (2,3)])
+    check abs(reciprocity(g) - 1.0) < 1e-10
+
 suite "Cliques":
   test "find cliques in triangle":
     var g = newGraph[int]()
@@ -482,6 +535,16 @@ suite "Cliques":
   test "cliques in K5":
     let g = completeGraph[int](5)
     check cliqueNumber(g) == 5
+
+  test "number of cliques in triangle":
+    var g = newGraph[int]()
+    g.addEdgesFrom([(1,2), (2,3), (1,3)])
+    check numberOfCliques(g) == 1
+
+  test "number of cliques in path":
+    let g = pathGraph[int](4)
+    # Path has 3 maximal cliques (each edge is a maximal clique)
+    check numberOfCliques(g) == 3
 
 suite "Independent Set":
   test "isIndependentSet":
@@ -579,6 +642,15 @@ suite "Bipartite":
     expect NimNetError:
       discard bipartiteSets(g)
 
+  test "minimum vertex cover":
+    let g = completeBipartiteGraph(3, 3)
+    let cover = bipartite.minimumVertexCover(g)
+    # By König's theorem, |min vertex cover| == |max matching| == 3
+    check cover.len == 3
+    # Every edge must have at least one endpoint in the cover
+    for (u, v) in g.edges:
+      check u in cover or v in cover
+
 suite "Euler":
   test "isEulerian - cycle":
     let g = cycleGraph[int](5)
@@ -614,6 +686,16 @@ suite "Euler":
   test "isHamiltonian - path (no cycle possible)":
     let g = pathGraph[int](4)
     check isHamiltonian(g) == false
+
+  test "isEulerianDirected - directed cycle":
+    var dg = newDiGraph[int]()
+    dg.addEdgesFrom([(1,2), (2,3), (3,1)])
+    check isEulerianDirected(dg) == true
+
+  test "isEulerianDirected - unbalanced degrees":
+    var dg = newDiGraph[int]()
+    dg.addEdgesFrom([(1,2), (2,3)])
+    check isEulerianDirected(dg) == false
 
 suite "Generators":
   test "complete graph":
