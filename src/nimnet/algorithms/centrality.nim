@@ -56,7 +56,7 @@ proc closenessCentrality*[N](g: Graph[N]): Table[N, float] =
   ## Compute closeness centrality for all nodes.
   ## C(u) = (n-1) / sum(d(u, v) for all reachable v)
   result = initTable[N, float]()
-  for source in g.nodes:
+  for source in g.adj.keys:
     # BFS for shortest path lengths
     var dist = initTable[N, int]()
     dist[source] = 0
@@ -64,9 +64,10 @@ proc closenessCentrality*[N](g: Graph[N]): Table[N, float] =
     queue.addLast(source)
     while queue.len > 0:
       let current = queue.popFirst()
-      for neighbor in g.neighbors(current):
+      let cd = dist[current]
+      for neighbor in g.adj[current].keys:
         if neighbor notin dist:
-          dist[neighbor] = dist[current] + 1
+          dist[neighbor] = cd + 1
           queue.addLast(neighbor)
     let reachable = dist.len - 1  # excluding self
     if reachable == 0:
@@ -85,17 +86,17 @@ proc closenessCentrality*[N](g: Graph[N]): Table[N, float] =
 proc betweennessCentrality*[N](g: Graph[N], normalized: bool = true): Table[N, float] =
   ## Compute betweenness centrality for all nodes using Brandes' algorithm.
   result = initTable[N, float]()
-  for n in g.nodes:
+  for n in g.adj.keys:
     result[n] = 0.0
 
-  for s in g.nodes:
+  for s in g.adj.keys:
     # Single-source shortest paths
     var stack: seq[N]
     var pred = initTable[N, seq[N]]()
-    for n in g.nodes:
+    for n in g.adj.keys:
       pred[n] = @[]
     var sigma = initTable[N, float]()
-    for n in g.nodes:
+    for n in g.adj.keys:
       sigma[n] = 0.0
     sigma[s] = 1.0
     var dist = initTable[N, int]()
@@ -106,19 +107,20 @@ proc betweennessCentrality*[N](g: Graph[N], normalized: bool = true): Table[N, f
     while queue.len > 0:
       let v = queue.popFirst()
       stack.add(v)
-      for w in g.neighbors(v):
+      let dv = dist[v]
+      for w in g.adj[v].keys:
         # Path discovery
         if w notin dist:
-          dist[w] = dist[v] + 1
+          dist[w] = dv + 1
           queue.addLast(w)
         # Path counting
-        if dist[w] == dist[v] + 1:
+        if dist[w] == dv + 1:
           sigma[w] += sigma[v]
           pred[w].add(v)
 
     # Accumulation
     var delta = initTable[N, float]()
-    for n in g.nodes:
+    for n in g.adj.keys:
       delta[n] = 0.0
     while stack.len > 0:
       let w = stack.pop()
@@ -150,31 +152,36 @@ proc pageRank*[N](g: DiGraph[N], alpha: float = 0.85, maxIter: int = 100,
   if n == 0:
     return initTable[N, float]()
 
-  # Initialize
+  # Pre-compute node list and out-degrees for fast iteration
+  var nodeList = newSeqOfCap[N](n)
+  var outDeg = initTable[N, int]()
+  for node in g.adj.keys:
+    nodeList.add(node)
+    outDeg[node] = g.adj[node].len
+
   let initVal = 1.0 / float(n)
   result = initTable[N, float]()
-  for node in g.nodes:
+  var newRank = initTable[N, float]()
+  for node in nodeList:
     result[node] = initVal
+    newRank[node] = 0.0
 
   for _ in 0 ..< maxIter:
-    var newRank = initTable[N, float]()
-    # Sum of dangling nodes (nodes with no out-edges)
     var danglingSum = 0.0
-    for node in g.nodes:
-      if g.outDegree(node) == 0:
+    for node in nodeList:
+      if outDeg[node] == 0:
         danglingSum += result[node]
 
-    for node in g.nodes:
+    for node in nodeList:
       var rank = (1.0 - alpha + alpha * danglingSum) / float(n)
-      for pred in g.predecessors(node):
-        rank += alpha * result[pred] / float(g.outDegree(pred))
+      for pred in g.pred[node].keys:
+        rank += alpha * result[pred] / float(outDeg[pred])
       newRank[node] = rank
 
-    # Check convergence
     var diff = 0.0
-    for node in g.nodes:
+    for node in nodeList:
       diff += abs(newRank[node] - result[node])
-    result = newRank
+    swap(result, newRank)
     if diff < tol:
       break
 
@@ -185,23 +192,33 @@ proc pageRank*[N](g: Graph[N], alpha: float = 0.85, maxIter: int = 100,
   if n == 0:
     return initTable[N, float]()
 
+  # Pre-compute node list and degrees for fast iteration
+  var nodeList = newSeqOfCap[N](n)
+  var deg = initTable[N, int]()
+  for node, neighbors in g.adj:
+    nodeList.add(node)
+    var d = neighbors.len
+    if node in neighbors: d.inc  # self-loop
+    deg[node] = d
+
   let initVal = 1.0 / float(n)
   result = initTable[N, float]()
-  for node in g.nodes:
+  var newRank = initTable[N, float]()
+  for node in nodeList:
     result[node] = initVal
+    newRank[node] = 0.0
 
   for _ in 0 ..< maxIter:
-    var newRank = initTable[N, float]()
-    for node in g.nodes:
+    for node in nodeList:
       var rank = (1.0 - alpha) / float(n)
-      for neighbor in g.neighbors(node):
-        rank += alpha * result[neighbor] / float(g.degree(neighbor))
+      for neighbor in g.adj[node].keys:
+        rank += alpha * result[neighbor] / float(deg[neighbor])
       newRank[node] = rank
 
     var diff = 0.0
-    for node in g.nodes:
+    for node in nodeList:
       diff += abs(newRank[node] - result[node])
-    result = newRank
+    swap(result, newRank)
     if diff < tol:
       break
 
@@ -217,49 +234,55 @@ proc hits*[N](g: DiGraph[N], maxIter: int = 100,
   if n == 0:
     return (initTable[N, float](), initTable[N, float]())
 
+  var nodeList = newSeqOfCap[N](n)
+  for node in g.adj.keys:
+    nodeList.add(node)
+
   var hubs = initTable[N, float]()
   var auths = initTable[N, float]()
-  for node in g.nodes:
+  var newAuths = initTable[N, float]()
+  var newHubs = initTable[N, float]()
+  for node in nodeList:
     hubs[node] = 1.0
     auths[node] = 1.0
+    newAuths[node] = 0.0
+    newHubs[node] = 0.0
 
   for _ in 0 ..< maxIter:
-    var newAuths = initTable[N, float]()
-    var newHubs = initTable[N, float]()
-    for node in g.nodes:
+    for node in nodeList:
       newAuths[node] = 0.0
       newHubs[node] = 0.0
 
     # Authority update: auth(v) = sum(hub(u) for u -> v)
-    for node in g.nodes:
-      for pred in g.predecessors(node):
+    for node in nodeList:
+      for pred in g.pred[node].keys:
         newAuths[node] += hubs[pred]
 
     # Hub update: hub(u) = sum(auth(v) for u -> v)
-    for node in g.nodes:
-      for succ in g.successors(node):
+    for node in nodeList:
+      for succ in g.adj[node].keys:
         newHubs[node] += newAuths[succ]
 
     # Normalize by L1 norm (sum = 1) to match NetworkX convention
     var authNorm = 0.0
     var hubNorm = 0.0
-    for node in g.nodes:
+    for node in nodeList:
       authNorm += newAuths[node]
       hubNorm += newHubs[node]
     if authNorm > 0:
-      for node in g.nodes:
+      for node in nodeList:
         newAuths[node] /= authNorm
     if hubNorm > 0:
-      for node in g.nodes:
+      for node in nodeList:
         newHubs[node] /= hubNorm
 
     # Check convergence
     var diff = 0.0
-    for node in g.nodes:
+    for node in nodeList:
       diff += abs(newAuths[node] - auths[node])
       diff += abs(newHubs[node] - hubs[node])
-    auths = newAuths
-    hubs = newHubs
+    swap(auths, newAuths)
+    swap(hubs, newHubs)
     if diff < tol:
       break
 
@@ -276,33 +299,37 @@ proc eigenvectorCentrality*[N](g: Graph[N], maxIter: int = 100,
   if n == 0:
     return initTable[N, float]()
 
+  var nodeList = newSeqOfCap[N](n)
+  for node in g.adj.keys:
+    nodeList.add(node)
+
   result = initTable[N, float]()
-  for node in g.nodes:
+  var newVals = initTable[N, float]()
+  for node in nodeList:
     result[node] = 1.0 / float(n)
+    newVals[node] = 0.0
 
   for _ in 0 ..< maxIter:
-    var newVals = initTable[N, float]()
-    for node in g.nodes:
-      newVals[node] = 0.0
-
-    for node in g.nodes:
-      for neighbor in g.neighbors(node):
-        newVals[node] += result[neighbor]
+    for node in nodeList:
+      var s = 0.0
+      for neighbor in g.adj[node].keys:
+        s += result[neighbor]
+      newVals[node] = s
 
     # Normalize by max value
     var maxVal = 0.0
-    for node in g.nodes:
+    for node in nodeList:
       if abs(newVals[node]) > maxVal:
         maxVal = abs(newVals[node])
     if maxVal > 0:
-      for node in g.nodes:
+      for node in nodeList:
         newVals[node] /= maxVal
 
     # Check convergence
     var diff = 0.0
-    for node in g.nodes:
+    for node in nodeList:
       diff += abs(newVals[node] - result[node])
-    result = newVals
+    swap(result, newVals)
     if diff < tol:
       break
 
@@ -320,21 +347,26 @@ proc katzCentrality*[N](g: Graph[N], alpha: float = 0.1,
   if n == 0:
     return initTable[N, float]()
 
+  var nodeList = newSeqOfCap[N](n)
+  for node in g.adj.keys:
+    nodeList.add(node)
+
   result = initTable[N, float]()
-  for node in g.nodes:
+  var newVals = initTable[N, float]()
+  for node in nodeList:
     result[node] = 0.0
+    newVals[node] = 0.0
 
   for _ in 0 ..< maxIter:
-    var newVals = initTable[N, float]()
-    for node in g.nodes:
+    for node in nodeList:
       var s = beta
-      for neighbor in g.neighbors(node):
+      for neighbor in g.adj[node].keys:
         s += alpha * result[neighbor]
       newVals[node] = s
 
     var diff = 0.0
-    for node in g.nodes:
+    for node in nodeList:
       diff += abs(newVals[node] - result[node])
-    result = newVals
+    swap(result, newVals)
     if diff < tol:
       break

@@ -2,9 +2,10 @@
 ##
 ## Provides access to commonly used graph datasets for research and testing.
 
-import std/[tables, sets, strutils, os]
+import std/[tables, sets, strutils, os, streams]
 import ./types
 import ./graph
+import ./digraph
 
 proc loadFromEdgeListString*[N: SomeInteger](data: string, directed: bool = false): Graph[N] =
   ## Load a graph from an edge list string.
@@ -171,3 +172,134 @@ proc lessMiserablesGraph*(): Graph[string] =
   ]
   for (u, v, w) in edges:
     result.addWeightedEdge(u, v, float(w))
+
+# ============================================================================
+# Additional embedded datasets
+# ============================================================================
+
+proc davisWomenGraph*(): Graph[string] =
+  ## Return the Davis Southern Women social network.
+  ## A bipartite graph of 18 women and 14 events.
+  result = newGraph[string](name = "Davis Southern Women")
+  let edges = [
+    ("Evelyn","E1"),("Evelyn","E2"),("Evelyn","E3"),("Evelyn","E4"),
+    ("Evelyn","E5"),("Evelyn","E6"),("Evelyn","E7"),("Evelyn","E8"),
+    ("Laura","E1"),("Laura","E2"),("Laura","E3"),("Laura","E5"),
+    ("Laura","E6"),("Laura","E7"),
+    ("Theresa","E2"),("Theresa","E3"),("Theresa","E4"),("Theresa","E5"),
+    ("Theresa","E6"),("Theresa","E7"),("Theresa","E8"),
+    ("Brenda","E2"),("Brenda","E3"),("Brenda","E4"),("Brenda","E5"),
+    ("Brenda","E7"),
+    ("Charlotte","E3"),("Charlotte","E4"),("Charlotte","E5"),
+    ("Frances","E3"),("Frances","E4"),("Frances","E5"),("Frances","E6"),
+    ("Eleanor","E5"),("Eleanor","E6"),("Eleanor","E7"),("Eleanor","E8"),
+    ("Eleanor","E9"),
+    ("Pearl","E6"),("Pearl","E7"),("Pearl","E8"),("Pearl","E9"),
+    ("Ruth","E6"),("Ruth","E7"),("Ruth","E8"),("Ruth","E9"),("Ruth","E10"),
+    ("Verne","E7"),("Verne","E8"),("Verne","E9"),("Verne","E10"),("Verne","E11"),
+    ("Myrna","E8"),("Myrna","E9"),("Myrna","E10"),("Myrna","E11"),
+    ("Katherine","E8"),("Katherine","E9"),("Katherine","E10"),("Katherine","E11"),
+    ("Katherine","E12"),
+    ("Sylvia","E8"),("Sylvia","E9"),("Sylvia","E10"),("Sylvia","E11"),
+    ("Sylvia","E12"),("Sylvia","E13"),("Sylvia","E14"),
+    ("Nora","E8"),("Nora","E10"),("Nora","E11"),("Nora","E12"),
+    ("Nora","E13"),("Nora","E14"),
+    ("Helen","E9"),("Helen","E10"),("Helen","E11"),("Helen","E12"),
+    ("Dorothy","E10"),("Dorothy","E11"),
+    ("Olivia","E10"),("Olivia","E11"),
+    ("Flora","E10"),("Flora","E11"),
+  ]
+  for (u, v) in edges:
+    result.addEdge(u, v)
+
+# ============================================================================
+# File format loaders
+# ============================================================================
+
+proc loadSNAP*(filename: string): Graph[int] =
+  ## Load a graph from SNAP edge list format.
+  ## SNAP files have `# comment` header lines followed by `node1\tnode2` edges.
+  if not fileExists(filename):
+    raise newException(IOError, "File not found: " & filename)
+  result = newGraph[int]()
+  let fs = newFileStream(filename, fmRead)
+  if fs.isNil:
+    raise newException(IOError, "Cannot open file: " & filename)
+  defer: fs.close()
+
+  var line: string
+  while fs.readLine(line):
+    let stripped = line.strip()
+    if stripped.len == 0 or stripped[0] == '#':
+      continue
+    let parts = stripped.splitWhitespace()
+    if parts.len >= 2:
+      let u = parseInt(parts[0])
+      let v = parseInt(parts[1])
+      result.addEdge(u, v)
+
+proc loadSNAPDigraph*(filename: string): DiGraph[int] =
+  ## Load a directed graph from SNAP edge list format.
+  if not fileExists(filename):
+    raise newException(IOError, "File not found: " & filename)
+  result = newDiGraph[int]()
+  let fs = newFileStream(filename, fmRead)
+  if fs.isNil:
+    raise newException(IOError, "Cannot open file: " & filename)
+  defer: fs.close()
+
+  var line: string
+  while fs.readLine(line):
+    let stripped = line.strip()
+    if stripped.len == 0 or stripped[0] == '#':
+      continue
+    let parts = stripped.splitWhitespace()
+    if parts.len >= 2:
+      let u = parseInt(parts[0])
+      let v = parseInt(parts[1])
+      result.addEdge(u, v)
+
+proc loadMatrixMarket*(filename: string): Graph[int] =
+  ## Load a graph from Matrix Market (.mtx) format.
+  ## Supports coordinate format with pattern or real value types.
+  if not fileExists(filename):
+    raise newException(IOError, "File not found: " & filename)
+  result = newGraph[int]()
+  let fs = newFileStream(filename, fmRead)
+  if fs.isNil:
+    raise newException(IOError, "Cannot open file: " & filename)
+  defer: fs.close()
+
+  var line: string
+  var headerRead = false
+  var isSymmetric = false
+
+  while fs.readLine(line):
+    let stripped = line.strip()
+    if stripped.len == 0:
+      continue
+    if stripped[0] == '%':
+      if stripped.contains("symmetric"):
+        isSymmetric = true
+      continue
+    let parts = stripped.splitWhitespace()
+    if not headerRead:
+      # First data line is: rows cols nnz
+      headerRead = true
+      if parts.len >= 2:
+        let n = max(parseInt(parts[0]), parseInt(parts[1]))
+        for i in 1 .. n:
+          result.addNode(i)
+      continue
+    if parts.len >= 2:
+      let u = parseInt(parts[0])
+      let v = parseInt(parts[1])
+      if u != v:  # skip self-loops
+        if parts.len >= 3:
+          try:
+            let w = parseFloat(parts[2])
+            result.addWeightedEdge(u, v, w)
+          except ValueError:
+            result.addEdge(u, v)
+        else:
+          result.addEdge(u, v)

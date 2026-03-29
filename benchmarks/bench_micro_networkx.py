@@ -1,164 +1,176 @@
 """
-NetworkX micro-benchmark suite for comparison with nimnet.
+NetworkX micro-benchmark suite for comparison with NimNet.
 
-Measures fundamental graph data structure operations independently,
-enabling identification of bottlenecks in iterator and attribute access overhead.
+Measures fine-grained graph operation performance across small (100),
+medium (1,000), and large (10,000) node graphs.
 
 Outputs CSV matching nimnet format:
   library,benchmark,size,nodes,edges,time_seconds
 
 Usage:
   pip install networkx
-  python benchmarks/bench_micro_networkx.py
+  python bench_micro_networkx.py
 """
 
 import time
 import random
+import statistics
 import networkx as nx
 
+random.seed(42)
 
-def bench(func, *args, **kwargs):
-    """Run function and return elapsed wall-clock time in seconds."""
-    t0 = time.perf_counter()
-    result = func(*args, **kwargs)
-    elapsed = time.perf_counter() - t0
-    return elapsed, result
+BENCH_RUNS = 5  # Number of timed runs per benchmark
 
 
-def build_erdos_renyi(n, m, seed=42):
-    """Build random graph with n nodes, m edges."""
-    return nx.gnm_random_graph(n, m, seed=seed)
+def bench(fn):
+    """Run fn multiple times and return the median elapsed time."""
+    # Warmup run (not timed)
+    fn()
+    times = []
+    for _ in range(BENCH_RUNS):
+        t0 = time.perf_counter()
+        fn()
+        times.append(time.perf_counter() - t0)
+    return statistics.median(times)
 
 
-def build_weighted_erdos_renyi(n, m, seed=42):
-    """Build weighted random graph with n nodes, m edges."""
-    g = nx.gnm_random_graph(n, m, seed=seed)
+def build_graph(n, seed=42):
+    """Build an Erdős-Rényi-like graph: n nodes, ~n*5 edges."""
     rng = random.Random(seed)
-    for u, v in g.edges():
-        g[u][v]["weight"] = rng.random() * 10.0
+    g = nx.Graph()
+    g.add_nodes_from(range(n))
+    added = 0
+    m = n * 5
+    while added < m:
+        u = rng.randint(0, n - 1)
+        v = rng.randint(0, n - 1)
+        if u != v and not g.has_edge(u, v):
+            g.add_edge(u, v, weight=rng.uniform(1.0, 10.0))
+            added += 1
     return g
 
 
 def bench_neighbor_iteration(g):
-    """How fast can we iterate g.neighbors(v) for all v?"""
-    def run():
-        count = 0
+    def fn():
+        total = 0
         for node in g.nodes():
             for _ in g.neighbors(node):
-                count += 1
-        assert count > 0
-    t, _ = bench(run)
-    return t
+                total += 1
+        assert total > 0
+    return bench(fn)
 
 
 def bench_weight_access(g):
-    """How fast can we access edge weight for all edges?"""
-    def run():
+    def fn():
         total = 0.0
-        for u, v, d in g.edges(data=True):
-            total += d.get("weight", 1.0)
+        for u, v, data in g.edges(data=True):
+            total += data.get("weight", 1.0)
         assert total > 0
-    t, _ = bench(run)
-    return t
+    return bench(fn)
 
 
 def bench_has_edge(g, n):
-    """How fast is g.has_edge(u, v) for random (u, v) pairs?"""
     rng = random.Random(42)
-    pairs = [(rng.randint(0, n - 1), rng.randint(0, n - 1)) for _ in range(100_000)]
+    pairs = [(rng.randint(0, n - 1), rng.randint(0, n - 1)) for _ in range(n * 5)]
 
-    def run():
-        count = sum(1 for u, v in pairs if g.has_edge(u, v))
-        return count
-    t, _ = bench(run)
-    return t
+    def fn():
+        count = 0
+        for u, v in pairs:
+            if g.has_edge(u, v):
+                count += 1
+        assert count >= 0
+    return bench(fn)
 
 
 def bench_node_iteration(g):
-    """How fast can we iterate for n in g.nodes()?"""
-    def run():
-        count = sum(1 for _ in g.nodes())
-        assert count > 0
-    t, _ = bench(run)
-    return t
+    def fn():
+        total = 0
+        for _ in g.nodes():
+            total += 1
+        assert total > 0
+    return bench(fn)
 
 
 def bench_edge_iteration(g):
-    """How fast can we iterate for (u, v) in g.edges()?"""
-    def run():
-        count = sum(1 for _ in g.edges())
-        assert count > 0
-    t, _ = bench(run)
-    return t
+    def fn():
+        total = 0
+        for _ in g.edges():
+            total += 1
+        assert total > 0
+    return bench(fn)
 
 
 def bench_degree_access(g):
-    """How fast is g.degree() for all nodes?"""
-    def run():
-        total = sum(d for _, d in g.degree())
+    def fn():
+        total = 0
+        for node in g.nodes():
+            total += g.degree(node)
         assert total > 0
-    t, _ = bench(run)
-    return t
+    return bench(fn)
 
 
-def bench_add_edge_bulk(n, m):
-    """How fast can we build a graph by adding edges?"""
+def bench_add_edge_bulk(n):
     rng = random.Random(42)
-    pairs = [(rng.randint(0, n - 1), rng.randint(0, n - 1)) for _ in range(m)]
+    pairs = [(rng.randint(0, n - 1), rng.randint(0, n - 1)) for _ in range(n * 5)]
 
-    def run():
+    def fn():
         g = nx.Graph()
+        g.add_nodes_from(range(n))
         for u, v in pairs:
-            g.add_edge(u, v)
-        assert g.number_of_nodes() > 0
-    t, _ = bench(run)
-    return t
+            if u != v:
+                g.add_edge(u, v)
+        assert g.number_of_nodes() == n
+    return bench(fn)
 
 
 def bench_get_edge_attr(g):
-    """How fast can we access the edge attribute dict for all edges?"""
-    def run():
-        count = 0
-        for u, v, d in g.edges(data=True):
-            if d.get("weight", 1.0) > 0.0:
-                count += 1
-        assert count > 0
-    t, _ = bench(run)
-    return t
+    edges = list(g.edges())
+
+    def fn():
+        total = 0.0
+        for u, v in edges:
+            total += g[u][v].get("weight", 1.0)
+        assert total > 0
+    return bench(fn)
 
 
-def main():
+def run_benchmarks():
     print("library,benchmark,size,nodes,edges,time_seconds")
-    sizes = [(10_000, 50_000, "large"), (1_000, 5_000, "medium"), (100, 500, "small")]
 
-    for n, m, size_name in sizes:
-        g = build_erdos_renyi(n, m)
-        gw = build_weighted_erdos_renyi(n, m)
+    sizes = [
+        ("small",  100,    500),
+        ("medium", 1_000,  5_000),
+        ("large",  10_000, 50_000),
+    ]
+
+    for size_name, n, _ in sizes:
+        g = build_graph(n)
+        m = g.number_of_edges()
 
         t = bench_neighbor_iteration(g)
-        print(f"networkx_micro,neighbor_iteration,{size_name},{n},{m},{t:.6f}")
+        print(f"networkx,neighbor_iteration,{size_name},{n},{m},{t:.6f}")
 
-        t = bench_weight_access(gw)
-        print(f"networkx_micro,weight_access,{size_name},{n},{m},{t:.6f}")
+        t = bench_weight_access(g)
+        print(f"networkx,weight_access,{size_name},{n},{m},{t:.6f}")
 
         t = bench_has_edge(g, n)
-        print(f"networkx_micro,has_edge,{size_name},{n},{m},{t:.6f}")
+        print(f"networkx,has_edge,{size_name},{n},{m},{t:.6f}")
 
         t = bench_node_iteration(g)
-        print(f"networkx_micro,node_iteration,{size_name},{n},{m},{t:.6f}")
+        print(f"networkx,node_iteration,{size_name},{n},{m},{t:.6f}")
 
         t = bench_edge_iteration(g)
-        print(f"networkx_micro,edge_iteration,{size_name},{n},{m},{t:.6f}")
+        print(f"networkx,edge_iteration,{size_name},{n},{m},{t:.6f}")
 
         t = bench_degree_access(g)
-        print(f"networkx_micro,degree_access,{size_name},{n},{m},{t:.6f}")
+        print(f"networkx,degree_access,{size_name},{n},{m},{t:.6f}")
 
-        t = bench_add_edge_bulk(n, m)
-        print(f"networkx_micro,add_edge_bulk,{size_name},{n},{m},{t:.6f}")
+        t = bench_add_edge_bulk(n)
+        print(f"networkx,add_edge_bulk,{size_name},{n},{m},{t:.6f}")
 
-        t = bench_get_edge_attr(gw)
-        print(f"networkx_micro,get_edge_attr,{size_name},{n},{m},{t:.6f}")
+        t = bench_get_edge_attr(g)
+        print(f"networkx,get_edge_attr,{size_name},{n},{m},{t:.6f}")
 
 
 if __name__ == "__main__":
-    main()
+    run_benchmarks()

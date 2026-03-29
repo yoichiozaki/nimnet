@@ -12,7 +12,7 @@
 ##   for node in g:         # items iterator
 ##     echo node
 
-import std/[tables, sets, strformat, algorithm]
+import std/[tables, sets, strformat, algorithm, json]
 import types
 
 type
@@ -21,21 +21,30 @@ type
     ##
     ## Internally stores an adjacency map ``Table[N, Table[N, EdgeAttr]]``
     ## and a cached edge count for O(1) ``numberOfEdges``.
-    adj: Table[N, Table[N, EdgeAttr]]
+    adj*: Table[N, Table[N, EdgeAttr]]
     nodeAttr: Table[N, NodeAttr]
     edgeCount: int  ## Cached edge count — O(1) access
     name*: string
 
 # --- Constructors ---
 
-func newGraph*[N](name: string = ""): Graph[N] =
+func newGraph*[N](name: string = "", capacity: int = 0): Graph[N] =
   ## Create a new empty undirected graph.
-  Graph[N](
-    adj: initTable[N, Table[N, EdgeAttr]](),
-    nodeAttr: initTable[N, NodeAttr](),
-    edgeCount: 0,
-    name: name
-  )
+  ## Pass ``capacity`` to pre-allocate adjacency and node attribute tables.
+  if capacity > 0:
+    Graph[N](
+      adj: initTable[N, Table[N, EdgeAttr]](capacity),
+      nodeAttr: initTable[N, NodeAttr](capacity),
+      edgeCount: 0,
+      name: name
+    )
+  else:
+    Graph[N](
+      adj: initTable[N, Table[N, EdgeAttr]](),
+      nodeAttr: initTable[N, NodeAttr](),
+      edgeCount: 0,
+      name: name
+    )
 
 # --- Metrics (O(1)) ---
 
@@ -78,7 +87,7 @@ func hasEdge*[N](g: Graph[N], u, v: N): bool {.inline.} =
 proc addNode*[N](g: var Graph[N], n: N) {.inline.} =
   ## Add a node to the graph. No-op if node already exists.
   if n notin g.adj:
-    g.adj[n] = initTable[N, EdgeAttr]()
+    g.adj[n] = initTable[N, EdgeAttr](initialSize = 8)
 
 proc addNode*[N](g: var Graph[N], n: N, attr: NodeAttr) =
   ## Add a node with attributes.
@@ -191,7 +200,7 @@ proc setNodeAttr*[N](g: var Graph[N], n: N, key, value: string) =
     raise newException(NodeNotFound, fmt"Node {n} not found")
   if n notin g.nodeAttr:
     g.nodeAttr[n] = newNodeAttr()
-  g.nodeAttr[n][key] = value
+  g.nodeAttr[n][key] = newJString(value)
 
 func getEdgeAttr*[N](g: Graph[N], u, v: N): EdgeAttr =
   ## Get attributes for edge ``(u, v)``.
@@ -210,8 +219,8 @@ proc setEdgeAttr*[N](g: var Graph[N], u, v: N, key, value: string) =
   ## Set a single attribute on edge ``(u, v)``.
   if not g.hasEdge(u, v):
     raise newException(EdgeNotFound, fmt"Edge ({u}, {v}) not found")
-  g.adj[u][v][key] = value
-  g.adj[v][u][key] = value
+  g.adj[u][v][key] = newJString(value)
+  g.adj[v][u][key] = newJString(value)
 
 func weight*[N](g: Graph[N], u, v: N, default: float = 1.0): float {.inline.} =
   ## Get the weight of edge ``(u, v)``. Returns ``default`` (1.0) if unset.
@@ -327,7 +336,7 @@ func copy*[N](g: Graph[N]): Graph[N] =
   result.name = g.name
   result.edgeCount = g.edgeCount
   for u, neighbors in g.adj:
-    result.adj[u] = initTable[N, EdgeAttr]()
+    result.adj[u] = default(Table[N, EdgeAttr])
     for v, attr in neighbors:
       result.adj[u][v] = attr
   for n, attr in g.nodeAttr:
@@ -365,7 +374,7 @@ func subgraph*[N](g: Graph[N], nbunch: HashSet[N]): Graph[N] =
   result = newGraph[N](g.name)
   for n in nbunch:
     if n in g.adj:
-      result.adj[n] = initTable[N, EdgeAttr]()
+      result.adj[n] = default(Table[N, EdgeAttr])
       if n in g.nodeAttr:
         result.nodeAttr[n] = g.nodeAttr[n]
   for u in result.adj.keys:

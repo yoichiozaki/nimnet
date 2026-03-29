@@ -1,168 +1,163 @@
 ## NimNet Micro-Benchmark Suite
 ##
-## Measures fundamental graph data structure operations independently,
-## enabling identification of bottlenecks in adjacency-map internals,
-## iterator overhead, and edge attribute access.
-##
-## Outputs results in CSV format matching the main benchmark suite.
+## Measures fine-grained graph operation performance across small (100),
+## medium (1,000), and large (10,000) node graphs.
+## Outputs results in CSV format for comparison with bench_micro_networkx.py.
 
-import std/[times, strformat, random]
+import std/[times, strformat, random, tables, algorithm, sequtils]
 import nimnet
 
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
 
-template bench(name: string, body: untyped): float =
-  ## Run body and return elapsed time in seconds.
-  let t0 = cpuTime()
+const benchRuns = 5  # Number of timed runs per benchmark
+
+template bench(body: untyped): float =
+  ## Run body multiple times and return the median elapsed time.
+  # Warmup run (not timed)
   body
-  let elapsed = cpuTime() - t0
-  elapsed
+  var times: seq[float]
+  for _ in 0 ..< benchRuns:
+    let t0 = cpuTime()
+    body
+    let elapsed = cpuTime() - t0
+    times.add(elapsed)
+  times.sort()
+  times[times.len div 2]  # median
 
-proc buildErdosRenyi(n: int, m: int): Graph[int] =
-  ## Build a random graph with n nodes and m edges.
-  result = newGraph[int]()
+proc buildGraph(n: int, seed: int = 42): Graph[int] =
+  ## Build an Erdős-Rényi-like graph: n nodes, ~n*5 edges.
+  result = newGraph[int](capacity = n)
   for i in 0 ..< n:
     result.addNode(i)
-  var rng = initRand(42)
+  var rng = initRand(seed)
+  let m = n * 5
   var added = 0
   while added < m:
     let u = rng.rand(n - 1)
     let v = rng.rand(n - 1)
     if u != v and not result.hasEdge(u, v):
-      result.addEdge(u, v)
-      added += 1
-
-proc buildWeightedErdosRenyi(n: int, m: int): Graph[int] =
-  ## Build a random weighted graph with n nodes and m edges.
-  result = newGraph[int]()
-  for i in 0 ..< n:
-    result.addNode(i)
-  var rng = initRand(42)
-  var added = 0
-  while added < m:
-    let u = rng.rand(n - 1)
-    let v = rng.rand(n - 1)
-    if u != v and not result.hasEdge(u, v):
-      let w = rng.rand(1.0 .. 10.0)
-      result.addWeightedEdge(u, v, w)
+      result.addWeightedEdge(u, v, rng.rand(1.0 .. 10.0))
       added += 1
 
 # ---------------------------------------------------------------------------
-# Micro-benchmark functions
+# Benchmark functions
 # ---------------------------------------------------------------------------
 
 proc benchNeighborIteration(g: Graph[int]): float =
-  ## How fast can we iterate g.neighbors(v) for all v?
-  bench("neighbor_iteration"):
-    var count = 0
+  bench:
+    var total = 0
     for node in g.nodes:
-      for neighbor in g.neighbors(node):
-        count.inc
-    doAssert count > 0
+      for _ in g.neighbors(node):
+        total += 1
+    doAssert total > 0
 
-proc benchWeightAccess(gw: Graph[int]): float =
-  ## How fast can we access gw.weight(u, v) for all edges?
-  bench("weight_access"):
+proc benchWeightAccess(g: Graph[int]): float =
+  bench:
     var total = 0.0
-    for (u, v) in gw.edges:
-      total += gw.weight(u, v)
+    for (u, v, attr) in g.edgesWithAttr:
+      total += attr.getWeight()
     doAssert total > 0.0
 
 proc benchHasEdge(g: Graph[int], n: int): float =
-  ## How fast is g.hasEdge(u, v) for random (u,v) pairs?
   var rng = initRand(42)
   var pairs: seq[(int, int)]
-  for _ in 0 ..< 100_000:
-    pairs.add((rng.rand(n - 1), rng.rand(n - 1)))
-  bench("has_edge"):
+  pairs.setLen(n * 5)
+  for i in 0 ..< n * 5:
+    pairs[i] = (rng.rand(n - 1), rng.rand(n - 1))
+  bench:
     var count = 0
     for (u, v) in pairs:
       if g.hasEdge(u, v):
-        count.inc
-    discard count
+        count += 1
+    doAssert count >= 0
 
 proc benchNodeIteration(g: Graph[int]): float =
-  ## How fast can we iterate for n in g.nodes?
-  bench("node_iteration"):
-    var count = 0
-    for node in g.nodes:
-      count.inc
-    doAssert count > 0
+  bench:
+    var total = 0
+    for _ in g.nodes:
+      total += 1
+    doAssert total > 0
 
 proc benchEdgeIteration(g: Graph[int]): float =
-  ## How fast can we iterate for (u,v) in g.edges?
-  bench("edge_iteration"):
-    var count = 0
-    for (u, v) in g.edges:
-      count.inc
-    doAssert count > 0
+  bench:
+    var total = 0
+    for _ in g.edges:
+      total += 1
+    doAssert total > 0
 
 proc benchDegreeAccess(g: Graph[int]): float =
-  ## How fast is g.degree(v) for all v?
-  bench("degree_access"):
+  bench:
     var total = 0
     for node in g.nodes:
       total += g.degree(node)
     doAssert total > 0
 
-proc benchAddEdgeBulk(n, m: int): float =
-  ## How fast can we build a graph by adding edges?
+proc benchAddEdgeBulk(n: int): float =
   var rng = initRand(42)
   var edgePairs: seq[(int, int)]
-  for _ in 0 ..< m:
-    edgePairs.add((rng.rand(n - 1), rng.rand(n - 1)))
-  bench("add_edge_bulk"):
-    var g = newGraph[int]()
+  while edgePairs.len < n * 5:
+    let u = rng.rand(n - 1)
+    let v = rng.rand(n - 1)
+    if u != v:
+      edgePairs.add((u, v))
+  bench:
+    var g = newGraph[int](capacity = n)
+    for i in 0 ..< n:
+      g.addNode(i)
     for (u, v) in edgePairs:
       g.addEdge(u, v)
-    doAssert g.numberOfNodes() > 0
+    doAssert g.numberOfNodes() == n
 
-proc benchGetEdgeAttr(gw: Graph[int]): float =
-  ## How fast can we access the EdgeAttr for all edges?
-  bench("get_edge_attr"):
-    var count = 0
-    for (u, v, attr) in gw.edgesWithAttr:
-      if attr.getWeight() > 0.0:
-        count.inc
-    doAssert count > 0
+proc benchGetEdgeAttr(g: Graph[int]): float =
+  let edges = g.edges.toSeq()
+  bench:
+    var total = 0.0
+    for (u, v) in edges:
+      total += g.getEdgeAttr(u, v).getWeight()
+    doAssert total > 0.0
 
 # ---------------------------------------------------------------------------
-# Main
+# Runner
 # ---------------------------------------------------------------------------
 
-proc main() =
+proc runMicroBenchmarks() =
   echo "library,benchmark,size,nodes,edges,time_seconds"
 
-  let sizes = [(10_000, 50_000, "large"), (1_000, 5_000, "medium"), (100, 500, "small")]
+  let sizes = [
+    ("small",  100,    500),
+    ("medium", 1_000,  5_000),
+    ("large",  10_000, 50_000),
+  ]
 
-  for (n, m, sizeName) in sizes:
-    let g = buildErdosRenyi(n, m)
-    let gw = buildWeightedErdosRenyi(n, m)
+  for (sizeName, n, _) in sizes:
+    let g = buildGraph(n)
+    let m = g.numberOfEdges()
 
-    let tNeighbor = benchNeighborIteration(g)
-    echo &"nimnet_micro,neighbor_iteration,{sizeName},{n},{m},{tNeighbor:.6f}"
+    let t1 = benchNeighborIteration(g)
+    echo &"nimnet,neighbor_iteration,{sizeName},{n},{m},{t1:.6f}"
 
-    let tWeight = benchWeightAccess(gw)
-    echo &"nimnet_micro,weight_access,{sizeName},{n},{m},{tWeight:.6f}"
+    let t2 = benchWeightAccess(g)
+    echo &"nimnet,weight_access,{sizeName},{n},{m},{t2:.6f}"
 
-    let tHasEdge = benchHasEdge(g, n)
-    echo &"nimnet_micro,has_edge,{sizeName},{n},{m},{tHasEdge:.6f}"
+    let t3 = benchHasEdge(g, n)
+    echo &"nimnet,has_edge,{sizeName},{n},{m},{t3:.6f}"
 
-    let tNodes = benchNodeIteration(g)
-    echo &"nimnet_micro,node_iteration,{sizeName},{n},{m},{tNodes:.6f}"
+    let t4 = benchNodeIteration(g)
+    echo &"nimnet,node_iteration,{sizeName},{n},{m},{t4:.6f}"
 
-    let tEdges = benchEdgeIteration(g)
-    echo &"nimnet_micro,edge_iteration,{sizeName},{n},{m},{tEdges:.6f}"
+    let t5 = benchEdgeIteration(g)
+    echo &"nimnet,edge_iteration,{sizeName},{n},{m},{t5:.6f}"
 
-    let tDegree = benchDegreeAccess(g)
-    echo &"nimnet_micro,degree_access,{sizeName},{n},{m},{tDegree:.6f}"
+    let t6 = benchDegreeAccess(g)
+    echo &"nimnet,degree_access,{sizeName},{n},{m},{t6:.6f}"
 
-    let tAddEdge = benchAddEdgeBulk(n, m)
-    echo &"nimnet_micro,add_edge_bulk,{sizeName},{n},{m},{tAddEdge:.6f}"
+    let t7 = benchAddEdgeBulk(n)
+    echo &"nimnet,add_edge_bulk,{sizeName},{n},{m},{t7:.6f}"
 
-    let tGetAttr = benchGetEdgeAttr(gw)
-    echo &"nimnet_micro,get_edge_attr,{sizeName},{n},{m},{tGetAttr:.6f}"
+    let t8 = benchGetEdgeAttr(g)
+    echo &"nimnet,get_edge_attr,{sizeName},{n},{m},{t8:.6f}"
 
-main()
+when isMainModule:
+  runMicroBenchmarks()
