@@ -1,6 +1,6 @@
 ## Edge list I/O
 
-import std/[strutils, streams, tables]
+import std/[strutils, streams, tables, json]
 import ../types
 import ../graph
 import ../digraph
@@ -17,7 +17,7 @@ proc writeEdgelist*[N](g: Graph[N], filename: string, delimiter: string = " ",
     var line = $u & delimiter & $v
     if writeData and attr.len > 0:
       for k, val in attr:
-        line &= delimiter & k & "=" & val
+        line &= delimiter & k & "=" & (if val.kind == JString: val.getStr() else: $val)
     f.writeLine(line)
 
 proc readEdgelist*(filename: string, delimiter: string = " ",
@@ -42,7 +42,7 @@ proc readEdgelist*(filename: string, delimiter: string = " ",
       for i in 2 ..< parts.len:
         let kv = parts[i].split("=")
         if kv.len == 2:
-          attr[kv[0]] = kv[1]
+          attr[kv[0]] = newJString(kv[1])
       result.addEdge(u, v, attr)
 
 proc writeEdgelistDigraph*[N](g: DiGraph[N], filename: string, delimiter: string = " ") =
@@ -54,5 +54,5 @@ proc writeEdgelistDigraph*[N](g: DiGraph[N], filename: string, delimiter: string
   for (u, v, attr) in g.edgesWithAttr:
     var line = $u & delimiter & $v
     for k, val in attr:
-      line &= delimiter & k & "=" & val
+      line &= delimiter & k & "=" & (if val.kind == JString: val.getStr() else: $val)
     f.writeLine(line)

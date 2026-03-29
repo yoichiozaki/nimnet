@@ -7,7 +7,7 @@
 ## generators (small graphs, trees), I/O (edgelist, adjlist),
 ## operators extras, convert extras, datasets extras
 
-import std/[unittest, tables, sets, math, os, algorithm]
+import std/[unittest, tables, sets, math, os, algorithm, json]
 import nimnet
 import nimnet/algorithms/components as comp
 import nimnet/algorithms/properties as props
@@ -409,13 +409,13 @@ suite "Min Cost Flow":
     var dg = newDiGraph[int]()
     # edge (1,2) with capacity 10, cost 1
     var attr1 = newEdgeAttr()
-    attr1["weight"] = "10.0"
-    attr1["cost"] = "1.0"
+    attr1["weight"] = newJString("10.0")
+    attr1["cost"] = newJString("1.0")
     dg.addEdge(1, 2, attr1)
     # edge (2,3) with capacity 10, cost 2
     var attr2 = newEdgeAttr()
-    attr2["weight"] = "10.0"
-    attr2["cost"] = "2.0"
+    attr2["weight"] = newJString("10.0")
+    attr2["cost"] = newJString("2.0")
     dg.addEdge(2, 3, attr2)
 
     var demand = initTable[int, float]()

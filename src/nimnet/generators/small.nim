@@ -1,6 +1,6 @@
 ## Small / famous graph generators
 
-import std/[tables, math]
+import std/[tables, math, json]
 import ../types
 import ../graph
 
@@ -58,7 +58,7 @@ proc karateClubGraph*(): Graph[int] =
   let club0 = [0, 1, 2, 3, 4, 5, 6, 7, 8, 10, 11, 12, 13, 16, 17, 19, 21]
   for n in 0 ..< 34:
     var attr = newNodeAttr()
-    attr["club"] = if n in club0: "Mr. Hi" else: "Officer"
+    attr["club"] = newJString(if n in club0: "Mr. Hi" else: "Officer")
     result.setNodeAttr(n, attr)
 
 proc florentineFamiliesGraph*(): Graph[string] =

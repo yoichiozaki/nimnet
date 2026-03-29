@@ -6,7 +6,7 @@
 ## - Exception hierarchy for graph operation errors
 ## - Weight accessor utilities
 
-import std/[tables, hashes, strutils]
+import std/[tables, hashes, strutils, json]
 
 type
   # --- Node type concept --------------------------------------------------
@@ -18,12 +18,12 @@ type
     `$`(n) is string
 
   # --- Attribute types ---------------------------------------------------
-  EdgeAttr* = Table[string, string]
-    ## Edge attributes stored as string key-value pairs.
+  EdgeAttr* = JsonNode
+    ## Edge attributes stored as a JSON object.
     ## Convention: use key ``"weight"`` for numeric edge weights.
 
-  NodeAttr* = Table[string, string]
-    ## Node attributes stored as string key-value pairs.
+  NodeAttr* = JsonNode
+    ## Node attributes stored as a JSON object.
 
   # --- Edge tuple aliases ------------------------------------------------
   Edge*[N] = tuple[u, v: N]
@@ -57,40 +57,74 @@ type
 # --- Attribute constructors ------------------------------------------------
 
 func newEdgeAttr*(): EdgeAttr {.inline.} =
-  ## Create an empty edge attribute table.
-  ## Uses zero-initialized Table (valid for reads; auto-initializes on first write).
-  discard
+  ## Create an empty edge attribute object.
+  newJObject()
 
 func newEdgeAttr*(weight: float): EdgeAttr {.inline.} =
   ## Create edge attributes with a weight.
-  result = initTable[string, string](initialSize = 2)
-  result["weight"] = $weight
+  result = newJObject()
+  result["weight"] = newJFloat(weight)
 
 func newEdgeAttr*(pairs: openArray[(string, string)]): EdgeAttr =
   ## Create edge attributes from key-value pairs.
-  ##
-  ## .. code-block:: nim
-  ##   let attr = newEdgeAttr({"weight": "2.5", "color": "red"})
-  pairs.toTable
+  result = newJObject()
+  for (k, v) in pairs:
+    result[k] = newJString(v)
 
 func newNodeAttr*(): NodeAttr {.inline.} =
-  ## Create an empty node attribute table.
-  discard
+  ## Create an empty node attribute object.
+  newJObject()
 
 func newNodeAttr*(pairs: openArray[(string, string)]): NodeAttr =
   ## Create node attributes from key-value pairs.
-  pairs.toTable
+  result = newJObject()
+  for (k, v) in pairs:
+    result[k] = newJString(v)
 
 # --- Weight utilities ------------------------------------------------------
 
 func getWeight*(attr: EdgeAttr, default: float = 1.0): float {.inline.} =
   ## Get numeric weight from edge attributes.
-  ## Returns ``default`` if the ``"weight"`` key is absent.
-  if attr.len == 0: return default
-  let w = attr.getOrDefault("weight", "")
-  if w.len == 0: return default
-  parseFloat(w)
+  ## Returns ``default`` if the ``"weight"`` key is absent or attr is nil.
+  if attr.isNil or attr.kind != JObject: return default
+  if "weight" notin attr: return default
+  let w = attr["weight"]
+  case w.kind
+  of JFloat: return w.getFloat()
+  of JInt: return float(w.getInt())
+  of JString:
+    try: return parseFloat(w.getStr())
+    except ValueError: return default
+  else: return default
 
 func `weight=`*(attr: var EdgeAttr, w: float) {.inline.} =
   ## Sugar for setting the weight: ``attr.weight = 3.0``
-  attr["weight"] = $w
+  if attr.isNil:
+    attr = newJObject()
+  attr["weight"] = newJFloat(w)
+
+# --- Compatibility helpers -------------------------------------------------
+# Provide string-oriented access to ease migration from Table[string,string].
+
+func getStr*(attr: EdgeAttr, key: string, default: string = ""): string =
+  ## Get a string value from an attribute. Converts numbers to string.
+  if attr.isNil or attr.kind != JObject or key notin attr: return default
+  let v = attr[key]
+  case v.kind
+  of JString: v.getStr()
+  of JFloat: $v.getFloat()
+  of JInt: $v.getInt()
+  of JBool: $v.getBool()
+  else: default
+
+func getAttrFloat*(attr: EdgeAttr, key: string, default: float = 0.0): float =
+  ## Get a float value from an attribute by key.
+  if attr.isNil or attr.kind != JObject or key notin attr: return default
+  let v = attr[key]
+  case v.kind
+  of JFloat: v.getFloat()
+  of JInt: float(v.getInt())
+  of JString:
+    try: parseFloat(v.getStr())
+    except ValueError: default
+  else: default

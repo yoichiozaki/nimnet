@@ -1,6 +1,6 @@
 ## DOT format export for Graphviz
 
-import std/[strutils, tables]
+import std/[strutils, tables, json]
 import ../types
 import ../graph
 import ../digraph
@@ -15,7 +15,7 @@ proc writeDot*[N](g: Graph[N], filename: string) =
     var attrs: seq[string]
     let nodeAttr = g.getNodeAttr(n)
     for k, v in nodeAttr:
-      attrs.add(k & "=\"" & v & "\"")
+      attrs.add(k & "=\"" & (if v.kind == JString: v.getStr() else: $v) & "\"")
     if attrs.len > 0:
       f.writeLine("  " & $n & " [" & attrs.join(", ") & "];")
     else:
@@ -23,7 +23,7 @@ proc writeDot*[N](g: Graph[N], filename: string) =
   for (u, v, attr) in g.edgesWithAttr:
     var attrs: seq[string]
     for k, val in attr:
-      attrs.add(k & "=\"" & val & "\"")
+      attrs.add(k & "=\"" & (if val.kind == JString: val.getStr() else: $val) & "\"")
     if attrs.len > 0:
       f.writeLine("  " & $u & " -- " & $v & " [" & attrs.join(", ") & "];")
     else:
@@ -41,7 +41,7 @@ proc writeDot*[N](g: DiGraph[N], filename: string) =
   for (u, v, attr) in g.edgesWithAttr:
     var attrs: seq[string]
     for k, val in attr:
-      attrs.add(k & "=\"" & val & "\"")
+      attrs.add(k & "=\"" & (if val.kind == JString: val.getStr() else: $val) & "\"")
     if attrs.len > 0:
       f.writeLine("  " & $u & " -> " & $v & " [" & attrs.join(", ") & "];")
     else:

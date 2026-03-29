@@ -1,4 +1,4 @@
-import std/[unittest, sets, tables, algorithm]
+import std/[unittest, sets, tables, algorithm, json]
 import nimnet/digraph
 import nimnet/types
 
@@ -102,7 +102,7 @@ suite "DiGraph - Subscript operators":
     var g = newDiGraph[int]()
     g.addWeightedEdge(1, 2, 5.0)
     let attr = g[1, 2]
-    check attr["weight"] == "5.0"
+    check attr["weight"].getFloat() == 5.0
 
   test "g[u, v] raises on missing":
     var g = newDiGraph[int]()
@@ -281,7 +281,7 @@ suite "DiGraph - Attributes":
     var g = newDiGraph[int]()
     g.addEdge(1, 2)
     g.setEdgeAttr(1, 2, "label", "edge1")
-    check g.getEdgeAttr(1, 2)["label"] == "edge1"
+    check g.getEdgeAttr(1, 2)["label"].getStr() == "edge1"
 
   test "weighted edge":
     var g = newDiGraph[int]()
@@ -292,7 +292,7 @@ suite "DiGraph - Attributes":
     var g = newDiGraph[int]()
     g.addNode(1)
     g.setNodeAttr(1, "color", "blue")
-    check g.getNodeAttr(1)["color"] == "blue"
+    check g.getNodeAttr(1)["color"].getStr() == "blue"
 
 suite "DiGraph - String representation":
   test "$ operator":

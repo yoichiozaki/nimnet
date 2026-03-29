@@ -12,7 +12,7 @@
 ##   for node in g:         # items iterator
 ##     echo node
 
-import std/[tables, sets, strformat, algorithm]
+import std/[tables, sets, strformat, algorithm, json]
 import types
 
 type
@@ -191,7 +191,7 @@ proc setNodeAttr*[N](g: var Graph[N], n: N, key, value: string) =
     raise newException(NodeNotFound, fmt"Node {n} not found")
   if n notin g.nodeAttr:
     g.nodeAttr[n] = newNodeAttr()
-  g.nodeAttr[n][key] = value
+  g.nodeAttr[n][key] = newJString(value)
 
 func getEdgeAttr*[N](g: Graph[N], u, v: N): EdgeAttr =
   ## Get attributes for edge ``(u, v)``.
@@ -210,8 +210,8 @@ proc setEdgeAttr*[N](g: var Graph[N], u, v: N, key, value: string) =
   ## Set a single attribute on edge ``(u, v)``.
   if not g.hasEdge(u, v):
     raise newException(EdgeNotFound, fmt"Edge ({u}, {v}) not found")
-  g.adj[u][v][key] = value
-  g.adj[v][u][key] = value
+  g.adj[u][v][key] = newJString(value)
+  g.adj[v][u][key] = newJString(value)
 
 func weight*[N](g: Graph[N], u, v: N, default: float = 1.0): float {.inline.} =
   ## Get the weight of edge ``(u, v)``. Returns ``default`` (1.0) if unset.
