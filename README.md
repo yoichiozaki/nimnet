@@ -5,6 +5,7 @@
 # nimnet
 
 [![CI](https://github.com/yoichiozaki/nimnet/actions/workflows/ci.yml/badge.svg)](https://github.com/yoichiozaki/nimnet/actions/workflows/ci.yml)
+[![codecov](https://codecov.io/gh/yoichiozaki/nimnet/branch/main/graph/badge.svg)](https://codecov.io/gh/yoichiozaki/nimnet)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 A comprehensive network science library for [Nim](https://nim-lang.org/), inspired by Python's [NetworkX](https://networkx.org/).
@@ -18,7 +19,7 @@ A comprehensive network science library for [Nim](https://nim-lang.org/), inspir
 - **Operators**: Union, complement, intersection, difference, node relabeling, directed ↔ undirected conversion
 - **Builder DSL**: Fluent graph construction with method chaining and `buildGraph` template
 - **Built-in datasets**: Dolphins social network, Florentine families, les misérables
-- **247 tests** across 5 test files
+- **347 tests** across 6 test files
 
 ## Installation
 

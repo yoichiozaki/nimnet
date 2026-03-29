@@ -68,4 +68,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Adjacency matrix, edge list, degree sequence conversions
 
 ### Testing
-- 247 tests across 5 test files (ttypes, tgraph, tdigraph, talgorithms, talgorithms2)
+- 347 tests across 6 test files (ttypes, tgraph, tdigraph, talgorithms, talgorithms2, talgorithms3)
+- Coverage measurement via lcov + Codecov integration
+- Coverage badge on README
