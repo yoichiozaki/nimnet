@@ -119,3 +119,115 @@ proc primMST*[N](g: Graph[N]): Graph[N] =
     startNode = n
     break
   primMST(g, startNode)
+
+# =============================================================================
+# Maximum spanning tree (negate weights and use Kruskal)
+# =============================================================================
+
+proc maximumSpanningTree*[N](g: Graph[N]): Graph[N] =
+  ## Compute maximum spanning tree by negating weights and using Kruskal.
+  var negG = newGraph[N]()
+  for n in g.nodes:
+    negG.addNode(n)
+  for (u, v) in g.edges:
+    let attr = g[u, v]
+    negG.addWeightedEdge(u, v, -attr.weight)
+  let negMst = kruskalMST(negG)
+  result = newGraph[N]()
+  for n in negMst.nodes:
+    result.addNode(n)
+  for (u, v) in negMst.edges:
+    let origAttr = g[u, v]
+    result.addEdge(u, v, origAttr)
+
+# =============================================================================
+# Borůvka's MST algorithm
+# =============================================================================
+
+proc boruvkaMST*[N](g: Graph[N]): Graph[N] =
+  ## Compute minimum spanning tree using Borůvka's algorithm.
+  ## O(E log V) time.
+  result = newGraph[N]()
+  let n = g.numberOfNodes()
+  if n == 0: return
+
+  var nodeList = newSeqOfCap[N](n)
+  var nodeIdx = initTable[N, int](n)
+  var idx = 0
+  for node in g.nodes:
+    nodeList.add(node)
+    nodeIdx[node] = idx
+    result.addNode(node)
+    idx.inc
+
+  # Union-Find
+  var parent = newSeq[int](n)
+  var ufRank = newSeq[int](n)
+  for i in 0 ..< n:
+    parent[i] = i
+
+  proc find(x: int): int =
+    var current = x
+    while parent[current] != current:
+      parent[current] = parent[parent[current]]
+      current = parent[current]
+    current
+
+  proc union(a, b: int) =
+    let pa = find(a)
+    let pb = find(b)
+    if pa == pb: return
+    if ufRank[pa] < ufRank[pb]:
+      parent[pa] = pb
+    elif ufRank[pa] > ufRank[pb]:
+      parent[pb] = pa
+    else:
+      parent[pb] = pa
+      ufRank[pa].inc
+
+  var numComponents = n
+  while numComponents > 1:
+    # Find cheapest edge for each component
+    var cheapest = newSeq[int](n)  # index into edges list
+    var cheapWeight = newSeq[float](n)
+    var cheapU = newSeq[int](n)
+    var cheapV = newSeq[int](n)
+    for i in 0 ..< n:
+      cheapWeight[i] = Inf
+
+    for (u, v) in g.edges:
+      let ui = nodeIdx[u]
+      let vi = nodeIdx[v]
+      let pu = find(ui)
+      let pv = find(vi)
+      if pu == pv: continue
+      let w = g[u, v].weight
+      if w < cheapWeight[pu]:
+        cheapWeight[pu] = w
+        cheapU[pu] = ui
+        cheapV[pu] = vi
+      if w < cheapWeight[pv]:
+        cheapWeight[pv] = w
+        cheapU[pv] = ui
+        cheapV[pv] = vi
+
+    var merged = false
+    for i in 0 ..< n:
+      if cheapWeight[i] < Inf and find(i) == i:
+        let ui = cheapU[i]
+        let vi = cheapV[i]
+        if find(ui) != find(vi):
+          union(ui, vi)
+          result.addEdge(nodeList[ui], nodeList[vi],
+                        newEdgeAttr(cheapWeight[i]))
+          numComponents.dec
+          merged = true
+    if not merged:
+      break  # Graph is disconnected
+
+proc maximumSpanningTreeWeight*[N](g: Graph[N]): float =
+  ## Return the total weight of the maximum spanning tree.
+  let mst = maximumSpanningTree(g)
+  result = 0.0
+  for (u, v) in mst.edges:
+    result += mst[u, v].weight

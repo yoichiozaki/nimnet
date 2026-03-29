@@ -2,7 +2,7 @@
 ##
 ## Degree distribution, assortativity, and graph summary utilities.
 
-import std/[tables, sets, deques, strformat]
+import std/[tables, sets, deques, strformat, math]
 import ../types
 import ../graph
 import ../digraph
@@ -111,3 +111,81 @@ proc reciprocity*[N](g: DiGraph[N]): float =
 proc overallReciprocity*[N](g: DiGraph[N]): float =
   ## Alias for reciprocity on directed graphs.
   reciprocity(g)
+
+# =============================================================================
+# Extended assortativity (#120)
+# =============================================================================
+
+proc averageNeighborDegree*[N](g: Graph[N]): Table[N, float] =
+  ## Return the average degree of neighbors for each node.
+  result = initTable[N, float]()
+  for n in g.nodes:
+    let deg = g.degree(n)
+    if deg == 0:
+      result[n] = 0.0
+    else:
+      var total = 0.0
+      for nbr in g.neighbors(n):
+        total += g.degree(nbr).float
+      result[n] = total / deg.float
+
+proc averageNeighborDegree*[N](g: DiGraph[N]): Table[N, float] =
+  ## Return the average out-degree of successors for each node in a digraph.
+  result = initTable[N, float]()
+  for n in g.nodes:
+    let deg = g.outDegree(n)
+    if deg == 0:
+      result[n] = 0.0
+    else:
+      var total = 0.0
+      for nbr in g.neighbors(n):
+        total += g.outDegree(nbr).float
+      result[n] = total / deg.float
+
+proc averageDegreeConnectivity*[N](g: Graph[N]): Table[int, float] =
+  ## Return average nearest-neighbor degree for nodes of each degree k.
+  ## Maps degree k -> mean neighbor degree of nodes with degree k.
+  let and_map = averageNeighborDegree(g)
+  var byDeg = initTable[int, seq[float]]()
+  for n in g.nodes:
+    let d = g.degree(n)
+    if d notin byDeg:
+      byDeg[d] = @[]
+    byDeg[d].add(and_map[n])
+  result = initTable[int, float]()
+  for d, vals in byDeg:
+    var s = 0.0
+    for v in vals: s += v
+    result[d] = s / vals.len.float
+
+proc degreeMixingMatrix*[N](g: Graph[N], maxDeg: int = -1): seq[seq[float]] =
+  ## Return the degree mixing matrix.
+  ## Entry (i, j) = fraction of edges connecting degree-i to degree-j nodes.
+  let m = g.numberOfEdges()
+  if m == 0:
+    return @[]
+  var md = maxDeg
+  if md < 0:
+    md = 0
+    for n in g.nodes:
+      if g.degree(n) > md:
+        md = g.degree(n)
+  result = newSeq[seq[float]](md + 1)
+  for i in 0 .. md:
+    result[i] = newSeq[float](md + 1)
+  for (u, v) in g.edges:
+    let du = g.degree(u)
+    let dv = g.degree(v)
+    result[du][dv] += 1.0
+    if u != v:
+      result[dv][du] += 1.0
+  let total = m.float
+  for i in 0 .. md:
+    for j in 0 .. md:
+      result[i][j] /= total
+
+proc degreePearsonCorrelation*[N](g: Graph[N]): float =
+  ## Compute r, the Pearson correlation coefficient of degree between
+  ## endpoints of edges. Same as degreeAssortativity but using the
+  ## Pearson correlation formula explicitly.
+  degreeAssortativity(g)

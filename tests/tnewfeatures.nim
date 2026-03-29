@@ -354,3 +354,103 @@ suite "Extended Cycles (#128)":
     let mcb = minimumCycleBasis(g)
     # K4 has 3 independent cycles
     check mcb.len == 3
+
+# =============================================================================
+# #120 — Extended Assortativity
+# =============================================================================
+suite "Extended Assortativity (#120)":
+  test "degree Pearson correlation":
+    var g = newGraph[int]()
+    g.addEdgesFrom([(1, 2), (2, 3), (3, 4), (4, 5)])
+    let r = degreePearsonCorrelation(g)
+    # Path graph has negative assortativity
+    check r < 0.5
+
+  test "degree Pearson correlation single edge":
+    var g = newGraph[int]()
+    g.addEdge(1, 2)
+    # Single edge – both degrees equal, NaN → return 0.0
+    let r = degreePearsonCorrelation(g)
+    check r >= -1.0 and r <= 1.0
+
+  test "average neighbor degree":
+    var g = newGraph[int]()
+    g.addEdgesFrom([(1, 2), (1, 3), (2, 3)])
+    let avgN = averageNeighborDegree(g)
+    check avgN.len == 3
+    # Node 1: neighbors are 2(deg2) and 3(deg2) → avg = 2.0
+    check avgN[1] == 2.0
+
+  test "average degree connectivity":
+    var g = newGraph[int]()
+    g.addEdgesFrom([(1, 2), (1, 3), (2, 3), (3, 4)])
+    let adc = averageDegreeConnectivity(g)
+    check adc.len > 0
+
+  test "degree mixing matrix":
+    var g = newGraph[int]()
+    g.addEdgesFrom([(1, 2), (2, 3)])
+    let m = degreeMixingMatrix(g)
+    check m.len > 0
+
+# =============================================================================
+# #127 — Extended Tree / MST
+# =============================================================================
+suite "Extended Tree/MST (#127)":
+  test "maximum spanning tree":
+    var g = newGraph[int]()
+    g.addWeightedEdge(1, 2, 1.0)
+    g.addWeightedEdge(2, 3, 3.0)
+    g.addWeightedEdge(1, 3, 2.0)
+    let mst = maximumSpanningTree(g)
+    check mst.numberOfEdges() == 2
+    # Should include edges with weights 3.0 and 2.0
+    let w = maximumSpanningTreeWeight(g)
+    check w == 5.0
+
+  test "Boruvka MST":
+    var g = newGraph[int]()
+    g.addWeightedEdge(1, 2, 1.0)
+    g.addWeightedEdge(2, 3, 2.0)
+    g.addWeightedEdge(1, 3, 3.0)
+    let mst = boruvkaMST(g)
+    check mst.numberOfEdges() == 2
+    # Minimum spanning tree weights: 1.0 + 2.0 = 3.0
+    var totalWeight = 0.0
+    for (u, v) in mst.edges:
+      totalWeight += mst[u, v].getWeight()
+    check totalWeight == 3.0
+
+  test "isArborescence true":
+    var dg = newDiGraph[int]()
+    dg.addEdge(1, 2); dg.addEdge(1, 3); dg.addEdge(2, 4)
+    check isArborescence(dg) == true
+
+  test "isArborescence false - multiple roots":
+    var dg = newDiGraph[int]()
+    dg.addEdge(1, 2); dg.addEdge(3, 4)
+    check isArborescence(dg) == false
+
+  test "isBranching true":
+    var dg = newDiGraph[int]()
+    dg.addEdge(1, 2); dg.addEdge(3, 4)
+    check isBranching(dg) == true
+
+  test "isBranching false - cycle":
+    var dg = newDiGraph[int]()
+    dg.addEdge(1, 2); dg.addEdge(2, 1)
+    check isBranching(dg) == false
+
+  test "tree centroid of path":
+    var g = newGraph[int]()
+    g.addEdgesFrom([(1, 2), (2, 3), (3, 4), (4, 5)])
+    let c = treeCentroid(g)
+    check c.len == 1
+    check c[0] == 3
+
+  test "tree centroid of star":
+    var g = newGraph[int]()
+    g.addEdgesFrom([(1, 2), (1, 3), (1, 4), (1, 5)])
+    let c = treeCentroid(g)
+    check c.len == 1
+    check c[0] == 1

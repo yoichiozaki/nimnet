@@ -192,3 +192,98 @@ func girth*[N](g: Graph[N]): int =
             result = cycleLen
   if result == int.high:
     result = -1
+
+# =============================================================================
+# Tree properties (#127)
+# =============================================================================
+
+func isArborescence*[N](g: DiGraph[N]): bool =
+  ## Return true if the digraph is an arborescence (rooted directed tree).
+  ## An arborescence is a directed tree where every node (except the root)
+  ## has exactly one predecessor, and the root has zero predecessors.
+  if g.numberOfNodes() == 0:
+    return false
+  if g.numberOfEdges() != g.numberOfNodes() - 1:
+    return false
+  var rootCount = 0
+  for n in g.nodes:
+    if g.inDegree(n) == 0:
+      rootCount.inc
+    elif g.inDegree(n) != 1:
+      return false
+  if rootCount != 1:
+    return false
+  # Check connectivity (all reachable from root)
+  var root: N
+  for n in g.nodes:
+    if g.inDegree(n) == 0:
+      root = n
+      break
+  var visited = initHashSet[N]()
+  var queue = initDeque[N]()
+  visited.incl(root)
+  queue.addLast(root)
+  while queue.len > 0:
+    let u = queue.popFirst()
+    for v in g.neighbors(u):
+      if v notin visited:
+        visited.incl(v)
+        queue.addLast(v)
+  result = visited.len == g.numberOfNodes()
+
+func isBranching*[N](g: DiGraph[N]): bool =
+  ## Return true if the digraph is a branching (forest of arborescences).
+  ## Every node has in-degree 0 or 1, and there are no cycles.
+  if g.numberOfNodes() == 0:
+    return true
+  for n in g.nodes:
+    if g.inDegree(n) > 1:
+      return false
+  # Check no cycles (it's a DAG)
+  var inDeg = initTable[N, int]()
+  for n in g.nodes:
+    inDeg[n] = g.inDegree(n)
+  var queue = initDeque[N]()
+  for n, d in inDeg:
+    if d == 0:
+      queue.addLast(n)
+  var count = 0
+  while queue.len > 0:
+    let n = queue.popFirst()
+    count.inc
+    for s in g.neighbors(n):
+      inDeg[s].dec
+      if inDeg[s] == 0:
+        queue.addLast(s)
+  result = count == g.numberOfNodes()
+
+proc treeCentroid*[N](g: Graph[N]): seq[N] =
+  ## Return the centroid of a tree (1 or 2 nodes).
+  ## The centroid minimizes the maximum distance to any other node.
+  ## Uses leaf-peeling algorithm.
+  let n = g.numberOfNodes()
+  if n == 0:
+    return @[]
+  if n <= 2:
+    return g.nodeSeq()
+  var deg = initTable[N, int]()
+  for node in g.nodes:
+    deg[node] = g.degree(node)
+  var leaves = initDeque[N]()
+  for node, d in deg:
+    if d <= 1:
+      leaves.addLast(node)
+  var remaining = n
+  while remaining > 2:
+    var newLeaves = initDeque[N]()
+    let batchSize = leaves.len
+    for _ in 0 ..< batchSize:
+      let leaf = leaves.popFirst()
+      remaining.dec
+      for nbr in g.neighbors(leaf):
+        deg[nbr].dec
+        if deg[nbr] == 1:
+          newLeaves.addLast(nbr)
+    leaves = newLeaves
+  while leaves.len > 0:
+    result.add(leaves.popFirst())
