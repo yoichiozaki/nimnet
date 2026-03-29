@@ -3,7 +3,7 @@ description: A comprehensive network science library for Nim, inspired by Networ
 url: "https://yoichiozaki.github.io"
 baseurl: "/nimnet"
 
-remote_theme: just-the-docs/just-the-docs
+theme: just-the-docs
 
 color_scheme: dark
 
