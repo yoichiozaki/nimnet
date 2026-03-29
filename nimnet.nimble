@@ -18,6 +18,10 @@ task build_tests, "Compile all tests":
   exec "nim c --threads:on -p:src --nimcache:build/nimcache/talgorithms_extended tests/talgorithms_extended.nim"
   exec "nim c --threads:on -p:src --nimcache:build/nimcache/talgorithms_advanced tests/talgorithms_advanced.nim"
   exec "nim c --threads:on -p:src --nimcache:build/nimcache/tcrossvalidation tests/tcrossvalidation.nim"
+  exec "nim c --threads:on -p:src --nimcache:build/nimcache/talgorithms_features tests/talgorithms_features.nim"
+  exec "nim c --threads:on -p:src --nimcache:build/nimcache/talgorithms_batch2 tests/talgorithms_batch2.nim"
+  exec "nim c --threads:on -p:src --nimcache:build/nimcache/talgorithms_batch3 tests/talgorithms_batch3.nim"
+  exec "nim c --threads:on -p:src --nimcache:build/nimcache/tcoverage tests/tcoverage.nim"
   exec "nim c --threads:on -p:src --nimcache:build/nimcache/tparallel tests/tparallel.nim"
 
 task run_tests, "Run compiled tests":
@@ -30,6 +34,10 @@ task run_tests, "Run compiled tests":
     exec "tests\\talgorithms_extended.exe"
     exec "tests\\talgorithms_advanced.exe"
     exec "tests\\tcrossvalidation.exe"
+    exec "tests\\talgorithms_features.exe"
+    exec "tests\\talgorithms_batch2.exe"
+    exec "tests\\talgorithms_batch3.exe"
+    exec "tests\\tcoverage.exe"
     exec "tests\\tparallel.exe"
   else:
     exec "./tests/ttypes"
@@ -40,6 +48,10 @@ task run_tests, "Run compiled tests":
     exec "./tests/talgorithms_extended"
     exec "./tests/talgorithms_advanced"
     exec "./tests/tcrossvalidation"
+    exec "./tests/talgorithms_features"
+    exec "./tests/talgorithms_batch2"
+    exec "./tests/talgorithms_batch3"
+    exec "./tests/tcoverage"
     exec "./tests/tparallel"
 
 task test, "Compile and run all tests":
