@@ -240,14 +240,12 @@ proc hits*[N](g: DiGraph[N], maxIter: int = 100,
       for succ in g.successors(node):
         newHubs[node] += newAuths[succ]
 
-    # Normalize
+    # Normalize by L1 norm (sum = 1) to match NetworkX convention
     var authNorm = 0.0
     var hubNorm = 0.0
     for node in g.nodes:
-      authNorm += newAuths[node] * newAuths[node]
-      hubNorm += newHubs[node] * newHubs[node]
-    authNorm = sqrt(authNorm)
-    hubNorm = sqrt(hubNorm)
+      authNorm += newAuths[node]
+      hubNorm += newHubs[node]
     if authNorm > 0:
       for node in g.nodes:
         newAuths[node] /= authNorm
