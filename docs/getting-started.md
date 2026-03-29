@@ -145,10 +145,10 @@ g.addEdgesFrom([(1,2), (2,3)])
 writeDot(g, "my_graph.dot")
 
 # Edge list
-writeEdgeList(g, "my_graph.edgelist")
+writeEdgelist(g, "my_graph.edgelist")
 
 # Adjacency list
-writeAdjList(g, "my_graph.adjlist")
+writeAdjlist(g, "my_graph.adjlist")
 
 # JSON node-link format
 writeJsonGraph(g, "my_graph.json")
@@ -158,6 +158,19 @@ writeGml(g, "my_graph.gml")
 
 # GraphML format
 writeGraphml(g, "my_graph.graphml")
+
+# GEXF format (Gephi compatible)
+writeGexf(g, "my_graph.gexf")
+
+# Pajek format
+writePajek(g, "my_graph.net")
+
+# Graph6 format (compact, for simple graphs)
+let g6str = writeGraph6(g)
+
+# SVG visualization (requires a layout)
+let pos = circularLayout(g)
+writeSvg(g, pos, "my_graph.svg")
 ```
 
 ## Builder DSL
@@ -181,6 +194,73 @@ let karate = karateClubGraph()
 let dolphins = dolphinsGraph()
 let florentine = florentineFamiliesGraph()
 let lesmis = lesMiserablesGraph()
+```
+
+## MultiGraph (parallel edges)
+
+```nim
+import nimnet
+
+var mg = newMultiGraph[int]()
+let k1 = mg.addEdge(1, 2)  # returns edge key 0
+let k2 = mg.addEdge(1, 2)  # returns edge key 1 (parallel edge)
+echo mg.numberOfEdges()     # 2
+```
+
+## Graph views (lazy, zero-copy)
+
+```nim
+import nimnet
+
+var g = newGraph[int]()
+g.addEdgesFrom([(1,2), (2,3), (3,4)])
+
+# Create a read-only view (no graph copy)
+let v = view(g)
+echo v.numberOfNodes()  # 3
+for n in v.nodes:
+  echo n
+```
+
+## CompactGraph (CSR, cache-friendly)
+
+```nim
+import nimnet
+
+var g = newGraph[int]()
+g.addEdgesFrom([(0,1), (1,2), (2,0)])
+
+# Convert to compressed sparse row (immutable, fast iteration)
+let cg = toCompact(g)
+echo cg.numberOfNodes()  # 3
+
+# Convert back
+let g2 = toGraph(cg)
+```
+
+## Static graph (compile-time construction)
+
+```nim
+import nimnet
+
+let g = staticGraph[int]([(1,2), (2,3), (3,1)])
+let dg = staticDiGraph[int]([(1,2), (2,3)])
+let wg = staticWeightedGraph[int]([(1,2, 1.5), (2,3, 2.5)])
+```
+
+## Parallel algorithms
+
+NimNet provides parallel versions of heavy algorithms using [malebolgia](https://github.com/Araq/malebolgia) threading:
+
+```nim
+import nimnet
+
+let g = erdosRenyiGraph(1000, 0.01)
+
+# These run on multiple threads automatically
+let pr = parallelPageRank(g)
+let bc = parallelBetweennessCentrality(g)
+let cc = parallelClosenessCentrality(g)
 ```
 
 ## Next steps

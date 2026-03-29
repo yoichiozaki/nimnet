@@ -43,12 +43,12 @@ for node in g:
 
 | Category | Modules |
 |:---------|:--------|
-| **Core** | `Graph[N]`, `DiGraph[N]`, generic node types, cached metrics |
-| **Algorithms (27)** | BFS/DFS traversal, Dijkstra, Bellman-Ford, A*, Floyd-Warshall, Johnson's, PageRank, eigenvector/Katz/HITS/betweenness centrality, Tarjan SCC, Kruskal/Prim MST, Edmonds-Karp max flow, min-cost flow, topological sort, Louvain/greedy modularity communities, VF2 isomorphism, planarity testing, TSP heuristics, k-core decomposition, Bron-Kerbosch cliques, graph coloring, bipartite matching, Euler/Hamiltonian paths, link prediction, connectivity, tree decomposition |
-| **Generators (4)** | Complete, cycle, path, star, wheel, grid, Erdős-Rényi, Barabási-Albert, Watts-Strogatz, random regular, SBM, Petersen, karate club, balanced/random trees |
-| **I/O (6)** | Edge list, adjacency list, JSON node-link, DOT/Graphviz, GML, GraphML |
+| **Core** | `Graph[N]`, `DiGraph[N]`, `MultiGraph[N]`, `MultiDiGraph[N]`, generic node types, cached metrics |
+| **Algorithms (48)** | BFS/DFS traversal, Dijkstra, Bellman-Ford, A*, Floyd-Warshall, Johnson's, PageRank, eigenvector/Katz/HITS/betweenness centrality, Tarjan SCC, Kruskal/Prim MST, Edmonds-Karp max flow, min-cost flow, topological sort, Louvain/greedy modularity communities, VF2 isomorphism, planarity testing, TSP heuristics, k-core decomposition, Bron-Kerbosch cliques, graph coloring, bipartite matching, Euler/Hamiltonian paths, link prediction, connectivity, tree decomposition, bridges/articulation points, ego graphs, distance measures, simple paths, efficiency, rich-club coefficient, Wiener index, cycle basis, matching, graph products, small-world metrics, WL graph hashing, SimRank similarity, spectral analysis, triads, Voronoi partitions, LCA, layout (spring, circular, shell), minors, cuts, parallel algorithms |
+| **Generators (10)** | Classic (complete, cycle, path, star, wheel, grid, barbell, lollipop, ladder), random (Erdős-Rényi, Barabási-Albert, Watts-Strogatz, regular, SBM), small/famous (Petersen, karate club), trees, line graph, lattice (grid2d, triangular, hypercube), geometric (random geometric, Waxman), community (caveman, planted partition), degree sequence (configuration model, Havel-Hakimi), directed (GN, GNR, GNC, random k-out) |
+| **I/O (10)** | Edge list, adjacency list, JSON node-link, DOT/Graphviz, GML, GraphML, GEXF, Graph6/Sparse6, Pajek, SVG export |
 | **Operators** | Union, complement, compose, intersection, difference, disjoint union, node relabeling, directed ↔ undirected conversion |
-| **Other** | Builder DSL, built-in datasets (dolphins, Florentine families, les misérables), adjacency matrix/edge list conversion |
+| **Other** | Builder DSL, graph views (lazy subgraph/filter), CompactGraph (CSR), StaticGraph (compile-time), built-in datasets (dolphins, Florentine families, les misérables), adjacency matrix/edge list conversion, parallel algorithms (malebolgia threading) |
 
 ## Performance
 

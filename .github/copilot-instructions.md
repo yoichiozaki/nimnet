@@ -154,6 +154,7 @@ tests/                       → Test files
   talgorithms_batch2.nim     → Batch 2 algorithm coverage
   talgorithms_batch3.nim     → Batch 3 algorithm coverage
   tcoverage.nim              → Coverage gap tests
+  tcoverage2.nim             → 198 tests — deeper code path coverage
   tcrossvalidation.nim       → Cross-validation tests
   tparallel.nim              → Parallel algorithm tests (malebolgia threading)
 ```
@@ -161,7 +162,7 @@ tests/                       → Test files
 ## Testing
 - Framework: `std/unittest` (see ADR-0004)
 - Test files: `tests/t<module>.nim` with `t` prefix
-- Run: `nimble test` (runs all 13 test files, 842 total tests)
+- Run: `nimble test` (runs all 14 test files, 1040 total tests)
 - Every public proc MUST have corresponding tests
 - Use `suite` and `test` blocks, `check` for assertions, `expect` for exceptions
 
