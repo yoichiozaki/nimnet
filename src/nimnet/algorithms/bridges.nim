@@ -5,7 +5,7 @@
 ## number of connected components.
 ## Uses Tarjan's DFS algorithm — O(V + E).
 
-import std/[tables, sets]
+import std/[tables, sets, deques]
 import ../graph
 
 # =============================================================================
@@ -159,3 +159,105 @@ proc isBiconnected*[N](g: Graph[N]): bool =
   if g.numberOfNodes() < 2:
     return false
   articulationPoints(g).len == 0
+
+# =============================================================================
+# Local bridges
+# =============================================================================
+
+proc localBridges*[N](g: Graph[N]): seq[(N, N, int)] =
+  ## Return local bridges in the graph.
+  ## A local bridge is an edge (u, v) where removing it would increase
+  ## the distance between u and v. Returns (u, v, span) tuples where
+  ## span is the length of the shortest path between u and v if the edge
+  ## were removed (infinity represented as -1 means a true bridge).
+  var seen = initHashSet[(N, N)]()
+  for (u, v) in g.edges:
+    if (u, v) in seen or (v, u) in seen:
+      continue
+    seen.incl((u, v))
+    # Check if u and v have any common neighbor
+    var hasCommon = false
+    for w in g.neighbors(u):
+      if w != v and g.hasEdge(w, v):
+        hasCommon = true
+        break
+    if not hasCommon:
+      # It's a local bridge — find shortest alternate path via BFS
+      # excluding the direct edge
+      var dist = initTable[N, int]()
+      dist[u] = 0
+      var queue = initDeque[N]()
+      queue.addLast(u)
+      var found = false
+      while queue.len > 0:
+        let cur = queue.popFirst()
+        for w in g.neighbors(cur):
+          if w notin dist:
+            if cur == u and w == v:
+              continue  # skip direct edge
+            dist[w] = dist[cur] + 1
+            if w == v:
+              result.add((u, v, dist[w]))
+              found = true
+              break
+            queue.addLast(w)
+        if found:
+          break
+      if not found:
+        result.add((u, v, -1))  # true bridge, infinite span
+
+# =============================================================================
+# Chain decomposition
+# =============================================================================
+
+proc chainDecomposition*[N](g: Graph[N]): seq[seq[(N, N)]] =
+  ## Return the chain decomposition of the graph.
+  ## Decomposes the graph into chains (paths and cycles) based on a DFS tree.
+  ## Each chain starts with a back edge and follows tree edges back toward
+  ## the root. Used for bridge-finding verification.
+  if g.numberOfNodes() == 0:
+    return @[]
+
+  var disc = initTable[N, int]()
+  var parent = initTable[N, N]()
+  var timer = 0
+  var visited = initHashSet[(N, N)]()
+
+  # Build DFS tree
+  proc dfs(u: N) =
+    disc[u] = timer
+    timer.inc
+    for v in g.neighbors(u):
+      if v notin disc:
+        parent[v] = u
+        dfs(v)
+
+  for n in g.nodes:
+    if n notin disc:
+      parent[n] = n  # root
+      dfs(n)
+
+  # For each back edge, follow parent pointers to create a chain
+  for (u, v) in g.edges:
+    # Skip tree edges
+    if parent.getOrDefault(v, v) == u or parent.getOrDefault(u, u) == v:
+      continue
+    # This is a back edge — orient so desc is the deeper node
+    var desc, anc: N
+    if disc.getOrDefault(u, 0) > disc.getOrDefault(v, 0):
+      desc = u; anc = v
+    else:
+      desc = v; anc = u
+    # Build chain: back edge + tree edges from desc toward anc
+    var chain: seq[(N, N)] = @[(desc, anc)]
+    var cur = desc
+    while cur in parent and parent[cur] != cur and cur != anc:
+      let p = parent[cur]
+      if (cur, p) notin visited and (p, cur) notin visited:
+        chain.add((cur, p))
+        visited.incl((cur, p))
+      else:
+        break
+      cur = p
+    if chain.len > 0:
+      result.add(chain)

@@ -63,6 +63,7 @@ import nimnet/algorithms/similarity;         export similarity
 import nimnet/algorithms/spectral;           export spectral
 import nimnet/algorithms/layout;             export layout
 import nimnet/algorithms/parallel;           export parallel
+import nimnet/algorithms/isolates;           export isolates
 
 # --- Generators ---
 import nimnet/generators/classic;          export classic
