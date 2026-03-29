@@ -178,26 +178,17 @@ proc runBenchmarks() =
     let tMST = benchMSTKruskal(gw)
     echo &"nimnet,mst_kruskal,{sizeName},{n},{m},{tMST:.6f}"
 
-    # Louvain community detection (skip for large — can be slow)
-    if n <= 1_000:
-      let tLouv = benchCommunityLouvain(g)
-      echo &"nimnet,louvain,{sizeName},{n},{m},{tLouv:.6f}"
-    else:
-      echo &"nimnet,louvain,{sizeName},{n},{m},NA"
+    # Louvain community detection
+    let tLouv = benchCommunityLouvain(g)
+    echo &"nimnet,louvain,{sizeName},{n},{m},{tLouv:.6f}"
 
-    # Clustering coefficient (skip for large)
-    if n <= 1_000:
-      let tClust = benchClustering(g)
-      echo &"nimnet,clustering,{sizeName},{n},{m},{tClust:.6f}"
-    else:
-      echo &"nimnet,clustering,{sizeName},{n},{m},NA"
+    # Clustering coefficient
+    let tClust = benchClustering(g)
+    echo &"nimnet,clustering,{sizeName},{n},{m},{tClust:.6f}"
 
-    # Triangle counting (skip for large)
-    if n <= 1_000:
-      let tTri = benchTriangleCount(g)
-      echo &"nimnet,triangles,{sizeName},{n},{m},{tTri:.6f}"
-    else:
-      echo &"nimnet,triangles,{sizeName},{n},{m},NA"
+    # Triangle counting
+    let tTri = benchTriangleCount(g)
+    echo &"nimnet,triangles,{sizeName},{n},{m},{tTri:.6f}"
 
 when isMainModule:
   runBenchmarks()

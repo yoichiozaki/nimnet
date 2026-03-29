@@ -144,25 +144,16 @@ def main():
         print(f"networkx,mst_kruskal,{size_name},{n},{m},{t:.6f}")
 
         # Louvain
-        if n <= 1_000:
-            t = bench_louvain(g)
-            print(f"networkx,louvain,{size_name},{n},{m},{t:.6f}")
-        else:
-            print(f"networkx,louvain,{size_name},{n},{m},NA")
+        t = bench_louvain(g)
+        print(f"networkx,louvain,{size_name},{n},{m},{t:.6f}")
 
         # Clustering
-        if n <= 1_000:
-            t = bench_clustering(g)
-            print(f"networkx,clustering,{size_name},{n},{m},{t:.6f}")
-        else:
-            print(f"networkx,clustering,{size_name},{n},{m},NA")
+        t = bench_clustering(g)
+        print(f"networkx,clustering,{size_name},{n},{m},{t:.6f}")
 
         # Triangles
-        if n <= 1_000:
-            t = bench_triangles(g)
-            print(f"networkx,triangles,{size_name},{n},{m},{t:.6f}")
-        else:
-            print(f"networkx,triangles,{size_name},{n},{m},NA")
+        t = bench_triangles(g)
+        print(f"networkx,triangles,{size_name},{n},{m},{t:.6f}")
 
 
 if __name__ == "__main__":

@@ -19,52 +19,58 @@ func `<`*[N](a, b: PrimEntry[N]): bool = a.weight < b.weight
 
 proc kruskalMST*[N](g: Graph[N]): Graph[N] =
   ## Compute minimum spanning tree using Kruskal's algorithm.
-  ## Uses "weight" edge attribute (default 1.0).
+  ## Uses array-based Union-Find for fast find/union operations.
   result = newGraph[N]()
-  for n in g.adj.keys:
-    result.addNode(n)
+  let n = g.numberOfNodes()
+  if n == 0: return
 
-  # Collect and sort edges by weight (direct adj access avoids edgesWithAttr overhead)
-  var edges = newSeqOfCap[WeightedEdge[N]](g.numberOfEdges())
-  var seen = initHashSet[N](g.numberOfNodes() * 2)
+  # Build node index mapping for array-based Union-Find
+  var nodeList = newSeqOfCap[N](n)
+  var nodeIdx = initTable[N, int](n)
+  var idx = 0
+  for node in g.adj.keys:
+    nodeList.add(node)
+    nodeIdx[node] = idx
+    result.addNode(node)
+    idx.inc
+
+  # Collect and sort edges — use seq[bool] for dedup (faster than HashSet)
+  var edges = newSeqOfCap[(float, int, int)](g.numberOfEdges())
+  var seen = newSeq[bool](n)
   for u, neighbors in g.adj:
+    let ui = nodeIdx[u]
     for v, attr in neighbors:
-      if v notin seen or u == v:
-        edges.add((weight: attr.getWeight(), u: u, v: v))
-    seen.incl(u)
-  edges.sort(proc(a, b: WeightedEdge[N]): int = cmp(a.weight, b.weight))
+      let vi = nodeIdx[v]
+      if not seen[vi] or ui == vi:
+        edges.add((attr.weight, ui, vi))
+    seen[ui] = true
+  edges.sort()
 
-  # Union-Find
-  var parent = initTable[N, N]()
-  var rank = initTable[N, int]()
-  for n in g.adj.keys:
-    parent[n] = n
-    rank[n] = 0
+  # Array-based Union-Find with path compression and union by rank
+  var parent = newSeq[int](n)
+  var ufRank = newSeq[int](n)
+  for i in 0 ..< n:
+    parent[i] = i
 
-  proc find(x: N): N =
+  proc find(x: int): int =
     var current = x
     while parent[current] != current:
-      parent[current] = parent[parent[current]]  # path compression
+      parent[current] = parent[parent[current]]  # path halving
       current = parent[current]
     current
 
-  proc union(x, y: N): bool =
-    let px = find(x)
-    let py = find(y)
-    if px == py:
-      return false
-    if rank[px] < rank[py]:
-      parent[px] = py
-    elif rank[px] > rank[py]:
-      parent[py] = px
-    else:
-      parent[py] = px
-      rank[px].inc
-    true
-
-  for edge in edges:
-    if union(edge.u, edge.v):
-      result.addEdge(edge.u, edge.v, newEdgeAttr(edge.weight))
+  for (w, ui, vi) in edges:
+    let pu = find(ui)
+    let pv = find(vi)
+    if pu != pv:
+      if ufRank[pu] < ufRank[pv]:
+        parent[pu] = pv
+      elif ufRank[pu] > ufRank[pv]:
+        parent[pv] = pu
+      else:
+        parent[pv] = pu
+        ufRank[pu].inc
+      result.addEdge(nodeList[ui], nodeList[vi], newEdgeAttr(w))
 
 proc kruskalMSTWeight*[N](g: Graph[N]): float =
   ## Return the total weight of the minimum spanning tree.

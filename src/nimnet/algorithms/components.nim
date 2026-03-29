@@ -15,7 +15,7 @@ proc connectedComponents*[N](g: Graph[N]): seq[HashSet[N]] =
   var visited = initHashSet[N](nNodes)
   for startNode in g.adj.keys:
     if startNode notin visited:
-      var component = initHashSet[N]()
+      var component = initHashSet[N](nNodes)
       var queue = initDeque[N]()
       queue.addLast(startNode)
       visited.incl(startNode)
@@ -27,7 +27,7 @@ proc connectedComponents*[N](g: Graph[N]): seq[HashSet[N]] =
             visited.incl(neighbor)
             component.incl(neighbor)
             queue.addLast(neighbor)
-      result.add(component)
+      result.add(move component)
 
 proc isConnected*[N](g: Graph[N]): bool =
   ## Return true if the graph is connected.

@@ -216,8 +216,8 @@ proc dijkstraPath*[N](g: Graph[N], source, target: N): seq[N] =
     let uDist = entry.dist
     for v, attr in g.adj[u]:
       if v notin visited:
-        let newDist = uDist + attr.getWeight()
-        if v notin dist or newDist < dist[v]:
+        let newDist = uDist + attr.weight
+        if newDist < dist.getOrDefault(v, Inf):
           dist[v] = newDist
           pred[v] = u
           pq.push(DijkEntry[N](dist: newDist, node: v))
@@ -262,8 +262,8 @@ proc dijkstraPath*[N](g: DiGraph[N], source, target: N): seq[N] =
     let uDist = entry.dist
     for v, attr in g.adj[u]:
       if v notin visited:
-        let newDist = uDist + attr.getWeight()
-        if v notin dist or newDist < dist[v]:
+        let newDist = uDist + attr.weight
+        if newDist < dist.getOrDefault(v, Inf):
           dist[v] = newDist
           pred[v] = u
           pq.push(DijkEntry[N](dist: newDist, node: v))

@@ -147,80 +147,125 @@ proc betweennessCentrality*[N](g: Graph[N], normalized: bool = true): Table[N, f
 proc pageRank*[N](g: DiGraph[N], alpha: float = 0.85, maxIter: int = 100,
                    tol: float = 1.0e-6): Table[N, float] =
   ## Compute PageRank for a directed graph using power iteration.
+  ## Uses array-indexed computation internally for cache-friendly performance.
   ## ``alpha``: damping factor (default 0.85).
   let n = g.numberOfNodes()
   if n == 0:
     return initTable[N, float]()
 
-  # Pre-compute node list and out-degrees for fast iteration
+  # Build indexed structure for cache-friendly inner loop
   var nodeList = newSeqOfCap[N](n)
-  var outDeg = initTable[N, int]()
+  var nodeIdx = initTable[N, int](n)
+  var predIdx = newSeq[seq[int]](n)
+  var outDeg = newSeq[int](n)
+  var invOutDeg = newSeq[float](n)
+
+  var idx = 0
   for node in g.adj.keys:
     nodeList.add(node)
-    outDeg[node] = g.adj[node].len
+    nodeIdx[node] = idx
+    outDeg[idx] = g.adj[node].len
+    idx.inc
 
+  # Build predecessor adjacency by index
+  for i in 0 ..< n:
+    let node = nodeList[i]
+    predIdx[i] = newSeqOfCap[int](g.pred[node].len)
+    for p in g.pred[node].keys:
+      predIdx[i].add(nodeIdx[p])
+
+  # Precompute inverse out-degree
+  for i in 0 ..< n:
+    invOutDeg[i] = if outDeg[i] > 0: 1.0 / float(outDeg[i]) else: 0.0
+
+  # Power iteration with flat arrays
   let initVal = 1.0 / float(n)
-  result = initTable[N, float]()
-  var newRank = initTable[N, float]()
-  for node in nodeList:
-    result[node] = initVal
-    newRank[node] = 0.0
+  var rank = newSeq[float](n)
+  var newRank = newSeq[float](n)
+  for i in 0 ..< n:
+    rank[i] = initVal
 
-  for _ in 0 ..< maxIter:
+  for iter in 0 ..< maxIter:
     var danglingSum = 0.0
-    for node in nodeList:
-      if outDeg[node] == 0:
-        danglingSum += result[node]
+    for i in 0 ..< n:
+      if outDeg[i] == 0:
+        danglingSum += rank[i]
 
-    for node in nodeList:
-      var rank = (1.0 - alpha + alpha * danglingSum) / float(n)
-      for pred in g.pred[node].keys:
-        rank += alpha * result[pred] / float(outDeg[pred])
-      newRank[node] = rank
+    let base = (1.0 - alpha + alpha * danglingSum) / float(n)
+    for i in 0 ..< n:
+      var r = base
+      for j in predIdx[i]:
+        r += alpha * rank[j] * invOutDeg[j]
+      newRank[i] = r
 
     var diff = 0.0
-    for node in nodeList:
-      diff += abs(newRank[node] - result[node])
-    swap(result, newRank)
+    for i in 0 ..< n:
+      diff += abs(newRank[i] - rank[i])
+    swap(rank, newRank)
     if diff < tol:
       break
+
+  # Convert back to Table
+  result = initTable[N, float](n)
+  for i in 0 ..< n:
+    result[nodeList[i]] = rank[i]
 
 proc pageRank*[N](g: Graph[N], alpha: float = 0.85, maxIter: int = 100,
                    tol: float = 1.0e-6): Table[N, float] =
   ## Compute PageRank for undirected graph (treated as bidirectional).
+  ## Uses array-indexed computation internally for cache-friendly performance.
   let n = g.numberOfNodes()
   if n == 0:
     return initTable[N, float]()
 
-  # Pre-compute node list and degrees for fast iteration
+  # Build indexed structure for cache-friendly inner loop
   var nodeList = newSeqOfCap[N](n)
-  var deg = initTable[N, int]()
+  var nodeIdx = initTable[N, int](n)
+  var adjIdx = newSeq[seq[int]](n)
+  var invDeg = newSeq[float](n)  # precomputed 1/degree
+
+  var idx = 0
   for node, neighbors in g.adj:
     nodeList.add(node)
+    nodeIdx[node] = idx
     var d = neighbors.len
     if node in neighbors: d.inc  # self-loop
-    deg[node] = d
+    invDeg[idx] = if d > 0: 1.0 / float(d) else: 0.0
+    idx.inc
 
+  # Build adjacency by index
+  for i in 0 ..< n:
+    let node = nodeList[i]
+    adjIdx[i] = newSeqOfCap[int](g.adj[node].len)
+    for neighbor in g.adj[node].keys:
+      adjIdx[i].add(nodeIdx[neighbor])
+
+  # Power iteration with flat arrays — no hash lookups in inner loop
   let initVal = 1.0 / float(n)
-  result = initTable[N, float]()
-  var newRank = initTable[N, float]()
-  for node in nodeList:
-    result[node] = initVal
-    newRank[node] = 0.0
+  let base = (1.0 - alpha) / float(n)
+  var rank = newSeq[float](n)
+  var newRank = newSeq[float](n)
+  for i in 0 ..< n:
+    rank[i] = initVal
 
-  for _ in 0 ..< maxIter:
-    for node in nodeList:
-      var rank = (1.0 - alpha) / float(n)
-      for neighbor in g.adj[node].keys:
-        rank += alpha * result[neighbor] / float(deg[neighbor])
-      newRank[node] = rank
+  for iter in 0 ..< maxIter:
+    for i in 0 ..< n:
+      var r = base
+      for j in adjIdx[i]:
+        r += alpha * rank[j] * invDeg[j]
+      newRank[i] = r
 
     var diff = 0.0
-    for node in nodeList:
-      diff += abs(newRank[node] - result[node])
-    swap(result, newRank)
+    for i in 0 ..< n:
+      diff += abs(newRank[i] - rank[i])
+    swap(rank, newRank)
     if diff < tol:
       break
+
+  # Convert back to Table
+  result = initTable[N, float](n)
+  for i in 0 ..< n:
+    result[nodeList[i]] = rank[i]
 
 # =============================================================================
 # HITS (Hyperlink-Induced Topic Search)

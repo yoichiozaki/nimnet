@@ -59,11 +59,13 @@ type
 
 func newEdgeAttr*(): EdgeAttr {.inline.} =
   ## Create an empty edge attribute with default weight 1.0.
-  EdgeAttr(weight: 1.0, extra: initTable[string, string]())
+  ## Extra table is lazily initialized on first write for zero-cost default edges.
+  EdgeAttr(weight: 1.0)
 
 func newEdgeAttr*(weight: float): EdgeAttr {.inline.} =
   ## Create edge attributes with a weight.
-  EdgeAttr(weight: weight, extra: initTable[string, string]())
+  ## Extra table is lazily initialized on first write for zero-cost default edges.
+  EdgeAttr(weight: weight)
 
 func newEdgeAttr*(pairs: openArray[(string, string)]): EdgeAttr =
   ## Create edge attributes from key-value pairs.
@@ -71,7 +73,7 @@ func newEdgeAttr*(pairs: openArray[(string, string)]): EdgeAttr =
   ##
   ## .. code-block:: nim
   ##   let attr = newEdgeAttr({"weight": "2.5", "color": "red"})
-  result = EdgeAttr(weight: 1.0, extra: initTable[string, string]())
+  result = EdgeAttr(weight: 1.0)
   for (k, v) in pairs:
     if k == "weight":
       try: result.weight = parseFloat(v)

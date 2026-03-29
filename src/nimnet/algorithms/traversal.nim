@@ -15,17 +15,15 @@ iterator bfsEdges*[N](g: Graph[N], source: N): (N, N) =
     raise newException(NodeNotFound, "Source node not found")
   var visited = initHashSet[N](g.numberOfNodes())
   visited.incl(source)
-  var queue = initDeque[(N, N)]()
-  for neighbor in g.adj[source].keys:
-    queue.addLast((source, neighbor))
+  var queue = initDeque[N]()
+  queue.addLast(source)
   while queue.len > 0:
-    let (parent, child) = queue.popFirst()
-    if child notin visited:
-      visited.incl(child)
-      yield (parent, child)
-      for neighbor in g.adj[child].keys:
-        if neighbor notin visited:
-          queue.addLast((child, neighbor))
+    let parent = queue.popFirst()
+    for child in g.adj[parent].keys:
+      if child notin visited:
+        visited.incl(child)
+        yield (parent, child)
+        queue.addLast(child)
 
 iterator bfsEdges*[N](g: DiGraph[N], source: N): (N, N) =
   ## BFS edges for directed graph.
@@ -33,17 +31,15 @@ iterator bfsEdges*[N](g: DiGraph[N], source: N): (N, N) =
     raise newException(NodeNotFound, "Source node not found")
   var visited = initHashSet[N](g.numberOfNodes())
   visited.incl(source)
-  var queue = initDeque[(N, N)]()
-  for neighbor in g.adj[source].keys:
-    queue.addLast((source, neighbor))
+  var queue = initDeque[N]()
+  queue.addLast(source)
   while queue.len > 0:
-    let (parent, child) = queue.popFirst()
-    if child notin visited:
-      visited.incl(child)
-      yield (parent, child)
-      for neighbor in g.adj[child].keys:
-        if neighbor notin visited:
-          queue.addLast((child, neighbor))
+    let parent = queue.popFirst()
+    for child in g.adj[parent].keys:
+      if child notin visited:
+        visited.incl(child)
+        yield (parent, child)
+        queue.addLast(child)
 
 proc bfsTree*[N](g: Graph[N], source: N): Graph[N] =
   ## Return a BFS tree rooted at source as an undirected graph.
@@ -169,9 +165,19 @@ proc dfsTree*[N](g: DiGraph[N], source: N): DiGraph[N] =
 
 proc dfsPreorderNodes*[N](g: Graph[N], source: N): seq[N] =
   ## Return nodes in DFS preorder starting from source.
-  result.add(source)
-  for (_, v) in dfsEdges(g, source):
-    result.add(v)
+  ## Optimized to use node-only stack instead of edge tuples.
+  if not g.hasNode(source):
+    raise newException(NodeNotFound, "Source node not found")
+  var visited = initHashSet[N](g.numberOfNodes())
+  visited.incl(source)
+  var stack = @[source]
+  while stack.len > 0:
+    let node = stack.pop()
+    result.add(node)
+    for neighbor in g.adj[node].keys:
+      if neighbor notin visited:
+        visited.incl(neighbor)
+        stack.add(neighbor)
 
 proc dfsPreorderNodes*[N](g: DiGraph[N], source: N): seq[N] =
   ## Return nodes in DFS preorder for a directed graph.
