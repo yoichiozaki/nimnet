@@ -63,7 +63,7 @@ src/nimnet.nim               → Main re-export module
 src/nimnet/types.nim         → Core types (EdgeAttr, NodeAttr), exceptions
 src/nimnet/graph.nim         → Undirected Graph[N]
 src/nimnet/digraph.nim       → Directed DiGraph[N]
-src/nimnet/algorithms/       → 36 algorithm submodules
+src/nimnet/algorithms/       → 48 algorithm submodules
   traversal.nim              → BFS, DFS
   shortest_paths.nim         → Dijkstra, Bellman-Ford, A*
   components.nim             → Connected/strongly connected components
@@ -101,14 +101,29 @@ src/nimnet/algorithms/       → 36 algorithm submodules
   cycles.nim                 → Cycle basis, simple cycles (directed)
   matching.nim               → Maximal/max-weight/min-weight matching
   graph_products.nim         → Cartesian, tensor, strong, lexicographic product
-src/nimnet/generators/       → 6 generator submodules
+  smallworld.nim             → Small-world sigma (σ) and omega (ω)
+  graph_hashing.nim          → Weisfeiler-Lehman graph/subgraph hashes
+  similarity.nim             → SimRank, graph edit distance
+  spectral.nim               → Laplacian spectrum, algebraic connectivity, Fiedler vector
+  triads.nim                 → Triad census, triadic closure
+  voronoi.nim                → Voronoi partitions on graphs
+  lca.nim                    → Lowest common ancestor in DAGs
+  layout.nim                 → Spring, circular, shell, random, spectral layout
+  minors.nim                 → Edge contraction, graph minors
+  cuts.nim                   → Minimum node/edge cuts, Stoer-Wagner
+  parallel.nim               → Parallel PageRank, betweenness, closeness, clustering, Johnson's
+src/nimnet/generators/       → 10 generator submodules
   classic.nim                → Complete, cycle, path, star, wheel, grid, barbell, lollipop, ladder, etc.
   random.nim                 → Erdős-Rényi, Barabási-Albert, Watts-Strogatz, regular, SBM
   small.nim                  → Petersen, karate club, Florentine families
   trees.nim                  → Balanced tree, random tree
   line_graph.nim             → Line graph generator
   lattice.nim                → Grid2d, triangular lattice, hypercube
-src/nimnet/io/               → 7 I/O format submodules
+  geometric.nim              → Random geometric, Waxman, soft random geometric
+  community.nim              → Caveman, connected caveman, relaxed caveman, planted partition, ring of cliques
+  degree_sequence.nim        → Configuration model, Havel-Hakimi, expected degree, degree sequence tree
+  directed.nim               → GN, GNR, GNC, random k-out digraphs
+src/nimnet/io/               → 10 I/O format submodules
   edgelist.nim               → Edge list format
   adjlist.nim                → Adjacency list format
   json_graph.nim             → JSON node-link format
@@ -116,10 +131,17 @@ src/nimnet/io/               → 7 I/O format submodules
   gml.nim                    → GML format read/write
   graphml.nim                → GraphML XML format read/write
   gexf.nim                   → GEXF format read/write (Gephi compatible)
+  graph6.nim                 → Graph6/Sparse6 format read/write
+  pajek.nim                  → Pajek .net format read/write
+  svg.nim                    → SVG visualization export
 src/nimnet/operators.nim     → Graph operations (complement, union, relabel)
 src/nimnet/convert.nim       → Type conversions (adjacency matrix, edge list)
 src/nimnet/builder.nim       → Builder DSL (GraphBuilder, buildGraph template)
 src/nimnet/datasets.nim      → Built-in dataset loaders (dolphins, les misérables)
+src/nimnet/multigraph.nim    → Undirected multigraph (parallel edges)
+src/nimnet/views.nim         → Lazy graph views (SubGraph, NodeView, EdgeView)
+src/nimnet/compact.nim       → CompactGraph (CSR-based, read-only, cache-friendly)
+src/nimnet/static_graph.nim  → StaticGraph (compile-time fixed node set)
 tests/                       → Test files
   ttypes.nim                 → 11 tests — types and edge attributes
   tgraph.nim                 → 53 tests — undirected graph operations
@@ -128,12 +150,18 @@ tests/                       → Test files
   talgorithms_io_gen.nim     → 43 tests — advanced algorithms, I/O, generators, builder, datasets
   talgorithms_extended.nim   → 73 tests — extended coverage (DiGraph variants, operators, convert)
   talgorithms_advanced.nim   → 75 tests — advanced algorithms (distance, paths, efficiency, cycles, matching, etc.)
+  talgorithms_features.nim   → Feature tests (views, multigraph, compact, static graph)
+  talgorithms_batch2.nim     → Batch 2 algorithm coverage
+  talgorithms_batch3.nim     → Batch 3 algorithm coverage
+  tcoverage.nim              → Coverage gap tests
+  tcrossvalidation.nim       → Cross-validation tests
+  tparallel.nim              → Parallel algorithm tests (malebolgia threading)
 ```
 
 ## Testing
 - Framework: `std/unittest` (see ADR-0004)
 - Test files: `tests/t<module>.nim` with `t` prefix
-- Run: `nimble test` (runs all 7 test files, 470 total tests)
+- Run: `nimble test` (runs all 13 test files, 842 total tests)
 - Every public proc MUST have corresponding tests
 - Use `suite` and `test` blocks, `check` for assertions, `expect` for exceptions
 
