@@ -378,6 +378,33 @@ func subgraph*[N](g: Graph[N], nbunch: openArray[N]): Graph[N] =
   ## Return a subgraph induced by the given sequence of nodes.
   g.subgraph(nbunch.toHashSet)
 
+func edgeSubgraph*[N](g: Graph[N], edges: openArray[(N, N)]): Graph[N] =
+  ## Return a subgraph induced by the given edges.
+  ## Only the specified edges and their endpoint nodes are included.
+  result = newGraph[N](g.name)
+  for (u, v) in edges:
+    if g.hasEdge(u, v):
+      if u notin result.adj:
+        result.addNode(u)
+        if u in g.nodeAttr: result.nodeAttr[u] = g.nodeAttr[u]
+      if v notin result.adj:
+        result.addNode(v)
+        if v in g.nodeAttr: result.nodeAttr[v] = g.nodeAttr[v]
+      result.addEdge(u, v, g.getEdgeAttr(u, v))
+
+iterator selfLoopEdges*[N](g: Graph[N]): (N, N) =
+  ## Iterate over all self-loop edges.
+  for n in g.adj.keys:
+    if n in g.adj[n]:
+      yield (n, n)
+
+proc removeSelfLoops*[N](g: var Graph[N]) =
+  ## Remove all self-loop edges from the graph.
+  for n in g.adj.keys:
+    if n in g.adj[n]:
+      g.adj[n].del(n)
+      g.edgeCount.dec
+
 # --- String representation ---
 
 func `$`*[N](g: Graph[N]): string =

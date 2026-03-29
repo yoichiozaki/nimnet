@@ -161,3 +161,61 @@ proc dagLongestPath*[N](g: DiGraph[N]): seq[N] =
     path.add(current)
   algorithm.reverse(path)
   result = path
+
+# =============================================================================
+# Transitive closure and reduction
+# =============================================================================
+
+proc transitiveClosure*[N](g: DiGraph[N]): DiGraph[N] =
+  ## Return the transitive closure of a directed graph.
+  ## Adds edge (u, v) for every pair where v is reachable from u.
+  result = g.copy()
+  for u in g.nodes:
+    # BFS from u to find all reachable nodes
+    var visited = initHashSet[N]()
+    var queue = initDeque[N]()
+    for s in g.neighbors(u):
+      if s notin visited:
+        visited.incl(s)
+        queue.addLast(s)
+    while queue.len > 0:
+      let v = queue.popFirst()
+      if not result.hasEdge(u, v):
+        result.addEdge(u, v)
+      for w in g.neighbors(v):
+        if w notin visited:
+          visited.incl(w)
+          queue.addLast(w)
+
+proc transitiveReduction*[N](g: DiGraph[N]): DiGraph[N] =
+  ## Return the transitive reduction of a DAG.
+  ## Removes redundant edges while preserving reachability.
+  ## Raises HasACycle if the graph has a cycle.
+  if hasCycle(g):
+    raise newException(HasACycle, "Transitive reduction is only defined for DAGs")
+  result = g.copy()
+  for u in g.nodes:
+    for v in g.neighbors(u):
+      # Check if v is reachable from u without the direct edge u->v
+      # by checking if any other successor of u can reach v
+      for w in g.neighbors(u):
+        if w != v:
+          # BFS from w; if v is reachable, remove edge u->v
+          var visited = initHashSet[N]()
+          var queue = initDeque[N]()
+          visited.incl(w)
+          queue.addLast(w)
+          var found = false
+          while queue.len > 0 and not found:
+            let cur = queue.popFirst()
+            if cur == v:
+              found = true
+              break
+            for s in g.neighbors(cur):
+              if s notin visited:
+                visited.incl(s)
+                queue.addLast(s)
+          if found:
+            if result.hasEdge(u, v):
+              result.removeEdge(u, v)
+            break

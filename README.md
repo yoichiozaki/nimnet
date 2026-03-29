@@ -13,13 +13,12 @@ A comprehensive network science library for [Nim](https://nim-lang.org/), inspir
 ## Features
 
 - **Graph types**: Undirected (`Graph`) and directed (`DiGraph`) graphs with generic node types
-- **27 Algorithm modules**: BFS/DFS traversal, shortest paths (Dijkstra, Bellman-Ford, A*, Floyd-Warshall, Johnson's), centrality (degree, closeness, PageRank, eigenvector, Katz, HITS), connected/strongly connected components, clustering coefficients, community detection (greedy modularity, Louvain), MST (Kruskal, Prim), max flow (Edmonds-Karp), topological sort, graph isomorphism (VF2), planarity testing, TSP heuristics, min-cost flow, tree decomposition, k-core decomposition, clique enumeration, graph coloring, bipartite matching, Eulerian/Hamiltonian paths, link prediction, and more
+- **29 Algorithm modules**: BFS/DFS traversal, shortest paths (Dijkstra, Bellman-Ford, A*, Floyd-Warshall, Johnson's), centrality (degree, closeness, PageRank, eigenvector, Katz, HITS), connected/strongly connected components, clustering coefficients, community detection (greedy modularity, Louvain), MST (Kruskal, Prim), max flow (Edmonds-Karp), topological sort, transitive closure/reduction, graph isomorphism (VF2), planarity testing, TSP heuristics, min-cost flow, tree decomposition, k-core decomposition, clique enumeration, graph coloring, bipartite matching, Eulerian/Hamiltonian paths, link prediction, bridges & articulation points, ego graphs, and more
 - **4 Generator modules**: Classic graphs (complete, cycle, path, star, wheel, grid), random graphs (Erdős-Rényi, Barabási-Albert, Watts-Strogatz, random regular, stochastic block model), small/famous graphs (Petersen, karate club), tree generators
 - **6 I/O formats**: Edge list, adjacency list, JSON graph, DOT/Graphviz, GML, GraphML
 - **Operators**: Union, complement, intersection, difference, node relabeling, directed ↔ undirected conversion
 - **Builder DSL**: Fluent graph construction with method chaining and `buildGraph` template
 - **Built-in datasets**: Dolphins social network, Florentine families, les misérables
-- **347 tests** across 6 test files
 
 ## Installation
 
@@ -100,7 +99,7 @@ let loaded = readGml("my_graph.gml")
 | Clustering | `clustering` | Clustering coefficient, transitivity, triangles |
 | Community | `community`, `louvain` | Greedy modularity, Louvain method |
 | MST | `mst` | Kruskal, Prim |
-| DAG | `dag` | Topological sort, cycle detection, ancestors, descendants |
+| DAG | `dag` | Topological sort, cycle detection, ancestors, descendants, transitive closure/reduction |
 | Flow | `flow` | Edmonds-Karp max flow, minimum cut |
 | Min-Cost Flow | `min_cost_flow` | Successive shortest path |
 | Connectivity | `connectivity` | Node/edge connectivity, resilience |
@@ -118,6 +117,21 @@ let loaded = readGml("my_graph.gml")
 | Coloring | `coloring` | Greedy coloring (largest-first, DSATUR) |
 | Bipartite | `bipartite` | Bipartiteness, maximum matching |
 | Euler | `euler` | Eulerian circuits/paths, Hamiltonian detection |
+| Bridges | `bridges` | Bridges (cut edges), articulation points, biconnected components |
+| Ego Graph | `ego` | Ego graph extraction (k-hop neighborhood subgraph) |
+
+## Examples
+
+See the [`examples/`](examples/) directory for complete, runnable programs:
+
+- **Social network analysis** — centrality, clustering, community detection on the karate club graph
+- **Shortest path demo** — Dijkstra, Bellman-Ford, A* on a weighted city network
+- **Graph I/O roundtrip** — export/import in all 6 supported formats
+- **Network resilience** — bridges, articulation points, connectivity analysis
+
+```bash
+nim c -r -p:src examples/social_network_analysis.nim
+```
 
 ## Development
 

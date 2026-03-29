@@ -369,6 +369,33 @@ func subgraph*[N](g: DiGraph[N], nbunch: openArray[N]): DiGraph[N] =
   ## Convenience overload accepting an ``openArray``.
   g.subgraph(nbunch.toHashSet)
 
+func edgeSubgraph*[N](g: DiGraph[N], edges: openArray[(N, N)]): DiGraph[N] =
+  ## Return a subgraph induced by the given edges.
+  result = newDiGraph[N](g.name)
+  for (u, v) in edges:
+    if g.hasEdge(u, v):
+      if u notin result.adj:
+        result.addNode(u)
+        if u in g.nodeAttr: result.nodeAttr[u] = g.nodeAttr[u]
+      if v notin result.adj:
+        result.addNode(v)
+        if v in g.nodeAttr: result.nodeAttr[v] = g.nodeAttr[v]
+      result.addEdge(u, v, g.getEdgeAttr(u, v))
+
+iterator selfLoopEdges*[N](g: DiGraph[N]): (N, N) =
+  ## Iterate over all self-loop edges.
+  for n in g.adj.keys:
+    if n in g.adj[n]:
+      yield (n, n)
+
+proc removeSelfLoops*[N](g: var DiGraph[N]) =
+  ## Remove all self-loop edges from the graph.
+  for n in g.adj.keys:
+    if n in g.adj[n]:
+      g.adj[n].del(n)
+      g.pred[n].del(n)
+      g.edgeCount.dec
+
 # --- Reverse ---
 
 func reverse*[N](g: DiGraph[N]): DiGraph[N] =

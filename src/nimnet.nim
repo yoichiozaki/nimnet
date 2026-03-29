@@ -42,6 +42,8 @@ import nimnet/algorithms/planarity;      export planarity
 import nimnet/algorithms/tsp;            export tsp
 import nimnet/algorithms/min_cost_flow;  export min_cost_flow
 import nimnet/algorithms/tree_decomposition; export tree_decomposition
+import nimnet/algorithms/bridges;            export bridges
+import nimnet/algorithms/ego;                export ego
 
 # --- Generators ---
 import nimnet/generators/classic; export classic

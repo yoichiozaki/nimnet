@@ -641,3 +641,346 @@ suite "Datasets (extended)":
     let g = florentineFamiliesMarriageGraph()
     check g.numberOfNodes() > 10
     check g.numberOfEdges() >= 15
+
+# ============================================================================
+# Edge Subgraph — Graph
+# ============================================================================
+
+suite "Edge Subgraph (Graph)":
+  test "basic edgeSubgraph":
+    var g = newGraph[int]()
+    g.addEdgesFrom([(1,2), (2,3), (3,4), (4,5)])
+    let sg = g.edgeSubgraph([(2,3), (3,4)])
+    check sg.numberOfNodes() == 3
+    check sg.numberOfEdges() == 2
+    check sg.hasEdge(2, 3)
+    check sg.hasEdge(3, 4)
+    check not sg.hasNode(1)
+    check not sg.hasNode(5)
+
+  test "edgeSubgraph with nonexistent edge":
+    var g = newGraph[int]()
+    g.addEdgesFrom([(1,2), (2,3)])
+    let sg = g.edgeSubgraph([(1,2), (5,6)])  # (5,6) doesn't exist
+    check sg.numberOfNodes() == 2
+    check sg.numberOfEdges() == 1
+
+  test "edgeSubgraph empty edges":
+    var g = newGraph[int]()
+    g.addEdgesFrom([(1,2), (2,3)])
+    let sg = g.edgeSubgraph(newSeq[(int, int)]())
+    check sg.numberOfNodes() == 0
+    check sg.numberOfEdges() == 0
+
+  test "edgeSubgraph preserves edge attributes":
+    var g = newGraph[int]()
+    g.addWeightedEdge(1, 2, 3.5)
+    g.addWeightedEdge(2, 3, 2.0)
+    let sg = g.edgeSubgraph([(1,2)])
+    check sg.numberOfEdges() == 1
+    check sg[1, 2].getWeight() == 3.5
+
+# ============================================================================
+# Edge Subgraph — DiGraph
+# ============================================================================
+
+suite "Edge Subgraph (DiGraph)":
+  test "basic edgeSubgraph":
+    var dg = newDiGraph[int]()
+    dg.addEdgesFrom([(1,2), (2,3), (3,4)])
+    let sg = dg.edgeSubgraph([(1,2), (2,3)])
+    check sg.numberOfNodes() == 3
+    check sg.numberOfEdges() == 2
+    check sg.hasEdge(1, 2)
+    check sg.hasEdge(2, 3)
+    check not sg.hasNode(4)
+
+  test "edgeSubgraph direction matters":
+    var dg = newDiGraph[int]()
+    dg.addEdge(1, 2)
+    let sg = dg.edgeSubgraph([(2,1)])  # reverse direction — doesn't exist
+    check sg.numberOfNodes() == 0
+    check sg.numberOfEdges() == 0
+
+# ============================================================================
+# Self-loop edges — Graph
+# ============================================================================
+
+suite "Self-loop edges (Graph)":
+  test "selfLoopEdges iterator":
+    var g = newGraph[int]()
+    g.addEdge(1, 1)
+    g.addEdge(2, 2)
+    g.addEdge(1, 2)
+    var loops: seq[(int, int)]
+    for e in g.selfLoopEdges:
+      loops.add(e)
+    check loops.len == 2
+
+  test "selfLoopEdges on graph with no self-loops":
+    var g = newGraph[int]()
+    g.addEdgesFrom([(1,2), (2,3)])
+    var loops: seq[(int, int)]
+    for e in g.selfLoopEdges:
+      loops.add(e)
+    check loops.len == 0
+
+  test "removeSelfLoops":
+    var g = newGraph[int]()
+    g.addEdge(1, 1)
+    g.addEdge(2, 2)
+    g.addEdge(1, 2)
+    check g.numberOfSelfLoops() == 2
+    g.removeSelfLoops()
+    check g.numberOfSelfLoops() == 0
+    check g.numberOfEdges() == 1
+    check g.hasEdge(1, 2)
+
+# ============================================================================
+# Self-loop edges — DiGraph
+# ============================================================================
+
+suite "Self-loop edges (DiGraph)":
+  test "selfLoopEdges iterator":
+    var dg = newDiGraph[int]()
+    dg.addEdge(1, 1)
+    dg.addEdge(2, 2)
+    dg.addEdge(1, 2)
+    var loops: seq[(int, int)]
+    for e in dg.selfLoopEdges:
+      loops.add(e)
+    check loops.len == 2
+
+  test "removeSelfLoops":
+    var dg = newDiGraph[int]()
+    dg.addEdge(1, 1)
+    dg.addEdge(2, 2)
+    dg.addEdge(1, 2)
+    check dg.numberOfSelfLoops() == 2
+    dg.removeSelfLoops()
+    check dg.numberOfSelfLoops() == 0
+    check dg.numberOfEdges() == 1
+    check dg.hasEdge(1, 2)
+
+# ============================================================================
+# Bridges & Articulation Points
+# ============================================================================
+
+suite "Bridges":
+  test "bridge in simple graph":
+    # 1-2-3 (chain) — edges (1,2) and (2,3) are both bridges
+    var g = newGraph[int]()
+    g.addEdgesFrom([(1,2), (2,3)])
+    let b = bridges(g)
+    check b.len == 2
+
+  test "no bridges in triangle":
+    var g = newGraph[int]()
+    g.addEdgesFrom([(1,2), (2,3), (3,1)])
+    let b = bridges(g)
+    check b.len == 0
+
+  test "bridge connecting two triangles":
+    # Triangle 1-2-3 connected to triangle 4-5-6 via edge 3-4
+    var g = newGraph[int]()
+    g.addEdgesFrom([(1,2), (2,3), (3,1), (3,4), (4,5), (5,6), (6,4)])
+    let b = bridges(g)
+    check b.len == 1
+    # The bridge should be (3,4)
+    let bridge = b[0]
+    check (bridge == (3, 4) or bridge == (4, 3))
+
+  test "hasBridges":
+    var g1 = newGraph[int]()
+    g1.addEdgesFrom([(1,2), (2,3)])
+    check hasBridges(g1)
+
+    var g2 = newGraph[int]()
+    g2.addEdgesFrom([(1,2), (2,3), (3,1)])
+    check not hasBridges(g2)
+
+  test "bridges on empty graph":
+    var g = newGraph[int]()
+    check bridges(g).len == 0
+
+  test "bridges on single node":
+    var g = newGraph[int]()
+    g.addNode(1)
+    check bridges(g).len == 0
+
+suite "Articulation Points":
+  test "articulation point in chain":
+    # 1-2-3: node 2 is an articulation point
+    var g = newGraph[int]()
+    g.addEdgesFrom([(1,2), (2,3)])
+    let ap = articulationPoints(g)
+    check ap.len == 1
+    check 2 in ap
+
+  test "no articulation points in triangle":
+    var g = newGraph[int]()
+    g.addEdgesFrom([(1,2), (2,3), (3,1)])
+    check articulationPoints(g).len == 0
+
+  test "articulation point connecting components":
+    # Star: node 1 connected to 2, 3, 4
+    var g = newGraph[int]()
+    g.addEdgesFrom([(1,2), (1,3), (1,4)])
+    let ap = articulationPoints(g)
+    check 1 in ap
+
+  test "articulation points on empty graph":
+    var g = newGraph[int]()
+    check articulationPoints(g).len == 0
+
+suite "Biconnected Components":
+  test "biconnected components simple":
+    # chain: 1-2-3 — each edge is its own biconnected component
+    var g = newGraph[int]()
+    g.addEdgesFrom([(1,2), (2,3)])
+    let bc = biconnectedComponents(g)
+    check bc.len == 2
+
+  test "single triangle is one biconnected component":
+    var g = newGraph[int]()
+    g.addEdgesFrom([(1,2), (2,3), (3,1)])
+    let bc = biconnectedComponents(g)
+    check bc.len == 1
+    check bc[0].len == 3
+
+  test "isBiconnected":
+    var g1 = newGraph[int]()
+    g1.addEdgesFrom([(1,2), (2,3), (3,1)])
+    check isBiconnected(g1) == true
+
+    var g2 = newGraph[int]()
+    g2.addEdgesFrom([(1,2), (2,3)])
+    check isBiconnected(g2) == false
+
+  test "isBiconnected single node":
+    var g = newGraph[int]()
+    g.addNode(1)
+    check isBiconnected(g) == false
+
+  test "biconnected components on empty graph":
+    var g = newGraph[int]()
+    check biconnectedComponents(g).len == 0
+
+# ============================================================================
+# Ego Graph
+# ============================================================================
+
+suite "Ego Graph":
+  test "ego graph radius 1 undirected":
+    var g = newGraph[int]()
+    g.addEdgesFrom([(1,2), (2,3), (3,4), (4,5)])
+    let ego = egoGraph(g, 2, radius=1)
+    check ego.numberOfNodes() == 3  # nodes 1, 2, 3
+    check ego.hasNode(1)
+    check ego.hasNode(2)
+    check ego.hasNode(3)
+    check not ego.hasNode(4)
+
+  test "ego graph radius 2 undirected":
+    var g = newGraph[int]()
+    g.addEdgesFrom([(1,2), (2,3), (3,4), (4,5)])
+    let ego = egoGraph(g, 2, radius=2)
+    check ego.numberOfNodes() == 4  # nodes 1, 2, 3, 4
+    check ego.hasNode(1)
+    check ego.hasNode(4)
+    check not ego.hasNode(5)
+
+  test "ego graph radius 0":
+    var g = newGraph[int]()
+    g.addEdgesFrom([(1,2), (2,3)])
+    let ego = egoGraph(g, 2, radius=0)
+    check ego.numberOfNodes() == 1
+    check ego.hasNode(2)
+
+  test "ego graph directed":
+    var dg = newDiGraph[int]()
+    dg.addEdgesFrom([(1,2), (2,3), (3,4)])
+    let ego = egoGraph(dg, 1, radius=1)
+    check ego.numberOfNodes() == 2  # nodes 1, 2 (follows outgoing only)
+    check ego.hasNode(1)
+    check ego.hasNode(2)
+    check not ego.hasNode(3)
+
+  test "ego graph directed radius 2":
+    var dg = newDiGraph[int]()
+    dg.addEdgesFrom([(1,2), (2,3), (3,4)])
+    let ego = egoGraph(dg, 1, radius=2)
+    check ego.numberOfNodes() == 3  # nodes 1, 2, 3
+    check ego.hasNode(3)
+    check not ego.hasNode(4)
+
+  test "ego graph nonexistent node raises":
+    var g = newGraph[int]()
+    g.addEdge(1, 2)
+    expect NodeNotFound:
+      discard egoGraph(g, 99)
+
+  test "ego graph preserves edges":
+    var g = newGraph[int]()
+    g.addEdgesFrom([(1,2), (2,3), (1,3)])
+    let ego = egoGraph(g, 1, radius=1)
+    check ego.hasEdge(2, 3)  # edge within the ego neighborhood
+
+# ============================================================================
+# Transitive Closure & Reduction
+# ============================================================================
+
+suite "Transitive Closure":
+  test "transitive closure simple DAG":
+    var dg = newDiGraph[int]()
+    dg.addEdgesFrom([(1,2), (2,3)])
+    let tc = transitiveClosure(dg)
+    check tc.hasEdge(1, 2)
+    check tc.hasEdge(2, 3)
+    check tc.hasEdge(1, 3)  # added by transitive closure
+
+  test "transitive closure already complete":
+    var dg = newDiGraph[int]()
+    dg.addEdgesFrom([(1,2), (2,3), (1,3)])
+    let tc = transitiveClosure(dg)
+    check tc.numberOfEdges() == 3  # no new edges added
+
+  test "transitive closure longer chain":
+    var dg = newDiGraph[int]()
+    dg.addEdgesFrom([(1,2), (2,3), (3,4)])
+    let tc = transitiveClosure(dg)
+    check tc.hasEdge(1, 3)
+    check tc.hasEdge(1, 4)
+    check tc.hasEdge(2, 4)
+
+suite "Transitive Reduction":
+  test "transitive reduction simple DAG":
+    var dg = newDiGraph[int]()
+    dg.addEdgesFrom([(1,2), (2,3), (1,3)])  # (1,3) is redundant
+    let tr = transitiveReduction(dg)
+    check tr.hasEdge(1, 2)
+    check tr.hasEdge(2, 3)
+    check not tr.hasEdge(1, 3)  # removed
+
+  test "transitive reduction already minimal":
+    var dg = newDiGraph[int]()
+    dg.addEdgesFrom([(1,2), (2,3)])
+    let tr = transitiveReduction(dg)
+    check tr.numberOfEdges() == 2
+
+  test "transitive reduction raises on cycle":
+    var dg = newDiGraph[int]()
+    dg.addEdgesFrom([(1,2), (2,3), (3,1)])
+    expect HasACycle:
+      discard transitiveReduction(dg)
+
+  test "transitive reduction diamond":
+    # 1->2, 1->3, 2->4, 3->4, 1->4 (redundant)
+    var dg = newDiGraph[int]()
+    dg.addEdgesFrom([(1,2), (1,3), (2,4), (3,4), (1,4)])
+    let tr = transitiveReduction(dg)
+    check not tr.hasEdge(1, 4)
+    check tr.hasEdge(1, 2)
+    check tr.hasEdge(1, 3)
+    check tr.hasEdge(2, 4)
+    check tr.hasEdge(3, 4)
