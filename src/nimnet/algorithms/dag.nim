@@ -1,6 +1,6 @@
 ## DAG algorithms: topological sort and cycle detection
 
-import std/[tables, sets, deques, algorithm]
+import std/[tables, sets, deques, algorithm, math]
 import ../types
 import ../digraph
 
@@ -219,3 +219,203 @@ proc transitiveReduction*[N](g: DiGraph[N]): DiGraph[N] =
             if result.hasEdge(u, v):
               result.removeEdge(u, v)
             break
+
+# =============================================================================
+# Topological generations
+# =============================================================================
+
+proc topologicalGenerations*[N](g: DiGraph[N]): seq[seq[N]] =
+  ## Return nodes grouped by topological generation.
+  ## Generation 0 = nodes with no predecessors, generation 1 = nodes whose
+  ## predecessors are all in generation 0, etc.
+  var inDeg = initTable[N, int]()
+  for n in g.nodes:
+    inDeg[n] = g.inDegree(n)
+  var currentGen: seq[N]
+  for n, d in inDeg:
+    if d == 0:
+      currentGen.add(n)
+  var processed = 0
+  while currentGen.len > 0:
+    result.add(currentGen)
+    processed += currentGen.len
+    var nextGen: seq[N]
+    for n in currentGen:
+      for s in g.neighbors(n):
+        inDeg[s].dec
+        if inDeg[s] == 0:
+          nextGen.add(s)
+    currentGen = nextGen
+  if processed != g.numberOfNodes():
+    raise newException(HasACycle, "Graph contains a cycle")
+
+# =============================================================================
+# All topological sorts
+# =============================================================================
+
+proc allTopologicalSorts*[N](g: DiGraph[N]): seq[seq[N]] =
+  ## Return all possible topological orderings of a DAG.
+  ## WARNING: Can be exponentially many. Use with small DAGs only.
+  let n = g.numberOfNodes()
+  if n == 0:
+    return @[newSeq[N]()]
+  var inDeg = initTable[N, int]()
+  for node in g.nodes:
+    inDeg[node] = g.inDegree(node)
+
+  var res: seq[seq[N]]
+  var path: seq[N]
+  var visited = initHashSet[N]()
+
+  proc backtrack() =
+    var candidates: seq[N]
+    for node in g.nodes:
+      if node notin visited and inDeg[node] == 0:
+        candidates.add(node)
+    if candidates.len == 0:
+      if path.len == n:
+        res.add(path)
+      return
+    for node in candidates:
+      visited.incl(node)
+      path.add(node)
+      for s in g.neighbors(node):
+        inDeg[s].dec
+      backtrack()
+      for s in g.neighbors(node):
+        inDeg[s].inc
+      discard path.pop()
+      visited.excl(node)
+
+  backtrack()
+  result = res
+
+# =============================================================================
+# Lexicographic topological sort
+# =============================================================================
+
+proc lexicographicalTopologicalSort*[N](g: DiGraph[N]): seq[N] =
+  ## Return the lexicographically smallest topological ordering.
+  ## Uses a min-heap / sorted selection of available nodes.
+  var inDeg = initTable[N, int]()
+  for n in g.nodes:
+    inDeg[n] = g.inDegree(n)
+  var available: seq[N]
+  for n, d in inDeg:
+    if d == 0:
+      available.add(n)
+  available.sort()
+  var idx = 0
+  while idx < available.len:
+    let n = available[idx]
+    idx.inc
+    result.add(n)
+    var newAvail: seq[N]
+    for s in g.neighbors(n):
+      inDeg[s].dec
+      if inDeg[s] == 0:
+        newAvail.add(s)
+    if newAvail.len > 0:
+      newAvail.sort()
+      # Insert into available at the right position
+      for a in newAvail:
+        var inserted = false
+        for i in idx ..< available.len:
+          if a < available[i]:
+            available.insert(a, i)
+            inserted = true
+            break
+        if not inserted:
+          available.add(a)
+  if result.len != g.numberOfNodes():
+    raise newException(HasACycle, "Graph contains a cycle")
+
+# =============================================================================
+# DAG longest path length
+# =============================================================================
+
+proc dagLongestPathLength*[N](g: DiGraph[N]): int =
+  ## Return the length of the longest path in a DAG (number of edges).
+  let path = dagLongestPath(g)
+  result = max(0, path.len - 1)
+
+# =============================================================================
+# Is aperiodic
+# =============================================================================
+
+proc isAperiodic*[N](g: DiGraph[N]): bool =
+  ## Return true if the directed graph is aperiodic.
+  ## A directed graph is aperiodic if the GCD of all cycle lengths is 1.
+  ## Uses the property that a strongly connected digraph is aperiodic iff
+  ## the GCD of the shortest cycle lengths from any node is 1.
+  if g.numberOfNodes() == 0:
+    return false
+  # Check strong connectivity first
+  let nodeList = g.nodeSeq()
+  var visited = initHashSet[N]()
+  var queue = initDeque[N]()
+  visited.incl(nodeList[0])
+  queue.addLast(nodeList[0])
+  while queue.len > 0:
+    let u = queue.popFirst()
+    for v in g.neighbors(u):
+      if v notin visited:
+        visited.incl(v)
+        queue.addLast(v)
+  if visited.len != g.numberOfNodes():
+    return false  # Not strongly connected
+
+  # BFS from a single node, compute distances
+  var dist = initTable[N, int]()
+  const source = 0  # use index
+  dist[nodeList[0]] = 0
+  queue.addLast(nodeList[0])
+  var g_val = 0
+  while queue.len > 0:
+    let u = queue.popFirst()
+    for v in g.neighbors(u):
+      if v notin dist:
+        dist[v] = dist[u] + 1
+        queue.addLast(v)
+      else:
+        # Found a cycle or cross edge
+        let cycleLen = dist[u] - dist[v] + 1
+        g_val = gcd(g_val, cycleLen)
+  result = g_val == 1
+
+# =============================================================================
+# Antichains
+# =============================================================================
+
+proc antichains*[N](g: DiGraph[N]): seq[seq[N]] =
+  ## Return all antichains in a DAG.
+  ## An antichain is a set of nodes where no node is an ancestor of another.
+  ## Uses the transitive closure to check reachability.
+  let tc = transitiveClosure(g)
+  let nodeList = g.nodeSeq()
+  let n = nodeList.len
+
+  # Build reachability matrix
+  var reachable = initTable[N, HashSet[N]]()
+  for u in nodeList:
+    reachable[u] = initHashSet[N]()
+    for v in tc.neighbors(u):
+      reachable[u].incl(v)
+
+  # Enumerate all antichains via backtracking
+  proc isAntichain(nodes: seq[N]): bool =
+    for i in 0 ..< nodes.len:
+      for j in i + 1 ..< nodes.len:
+        if nodes[j] in reachable[nodes[i]] or nodes[i] in reachable[nodes[j]]:
+          return false
+    return true
+
+  # Generate all subsets (only feasible for small graphs)
+  result = @[newSeq[N]()]  # empty antichain
+  for mask in 1 ..< (1 shl n):
+    var subset: seq[N]
+    for i in 0 ..< n:
+      if (mask and (1 shl i)) != 0:
+        subset.add(nodeList[i])
+    if isAntichain(subset):
+      result.add(subset)

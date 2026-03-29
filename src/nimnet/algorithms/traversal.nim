@@ -234,3 +234,130 @@ proc dfsLabeledEdges*[N](g: Graph[N], source: N): seq[(N, N, string)] =
           stack.add((child, neighbor, false))
     elif not isBacktrack:
       result.add((parent, child, "nontree"))
+
+# =============================================================================
+# Extended traversal — descendants at distance
+# =============================================================================
+
+proc descendantsAtDistance*[N](g: Graph[N], source: N, distance: int): HashSet[N] =
+  ## Return all nodes at exactly the given distance from source.
+  if not g.hasNode(source):
+    raise newException(NodeNotFound, "Source node not found")
+  result = initHashSet[N]()
+  var visited = initHashSet[N]()
+  visited.incl(source)
+  var currentLayer = @[source]
+  var d = 0
+  while currentLayer.len > 0 and d < distance:
+    var nextLayer: seq[N]
+    for node in currentLayer:
+      for neighbor in g.neighbors(node):
+        if neighbor notin visited:
+          visited.incl(neighbor)
+          nextLayer.add(neighbor)
+    currentLayer = nextLayer
+    d.inc
+  if d == distance:
+    for n in currentLayer:
+      result.incl(n)
+
+proc descendantsAtDistance*[N](g: DiGraph[N], source: N, distance: int): HashSet[N] =
+  ## Return all nodes at exactly the given distance from source in a digraph.
+  if not g.hasNode(source):
+    raise newException(NodeNotFound, "Source node not found")
+  result = initHashSet[N]()
+  var visited = initHashSet[N]()
+  visited.incl(source)
+  var currentLayer = @[source]
+  var d = 0
+  while currentLayer.len > 0 and d < distance:
+    var nextLayer: seq[N]
+    for node in currentLayer:
+      for neighbor in g.neighbors(node):
+        if neighbor notin visited:
+          visited.incl(neighbor)
+          nextLayer.add(neighbor)
+    currentLayer = nextLayer
+    d.inc
+  if d == distance:
+    for n in currentLayer:
+      result.incl(n)
+
+# =============================================================================
+# Edge BFS
+# =============================================================================
+
+iterator edgeBfs*[N](g: Graph[N], source: N): (N, N) =
+  ## Iterate over edges in a BFS order starting from source.
+  ## Unlike bfsEdges which yields tree edges only, this yields all
+  ## edges encountered during BFS (including cross edges).
+  if not g.hasNode(source):
+    raise newException(NodeNotFound, "Source node not found")
+  var visitedEdges = initHashSet[(N, N)]()
+  var visitedNodes = initHashSet[N]()
+  visitedNodes.incl(source)
+  var queue = initDeque[N]()
+  queue.addLast(source)
+  while queue.len > 0:
+    let u = queue.popFirst()
+    for v in g.neighbors(u):
+      if (u, v) notin visitedEdges and (v, u) notin visitedEdges:
+        visitedEdges.incl((u, v))
+        yield (u, v)
+        if v notin visitedNodes:
+          visitedNodes.incl(v)
+          queue.addLast(v)
+
+# =============================================================================
+# Edge DFS
+# =============================================================================
+
+iterator edgeDfs*[N](g: Graph[N], source: N): (N, N) =
+  ## Iterate over edges in DFS order starting from source.
+  ## Yields all edges encountered during DFS.
+  if not g.hasNode(source):
+    raise newException(NodeNotFound, "Source node not found")
+  var visitedEdges = initHashSet[(N, N)]()
+  var stack: seq[(N, N)]
+  for v in g.neighbors(source):
+    stack.add((source, v))
+  while stack.len > 0:
+    let (u, v) = stack.pop()
+    if (u, v) notin visitedEdges and (v, u) notin visitedEdges:
+      visitedEdges.incl((u, v))
+      yield (u, v)
+      for w in g.neighbors(v):
+        if (v, w) notin visitedEdges and (w, v) notin visitedEdges:
+          stack.add((v, w))
+
+# =============================================================================
+# DFS predecessors and successors
+# =============================================================================
+
+proc dfsPredecessors*[N](g: Graph[N], source: N): Table[N, N] =
+  ## Return a table mapping each node to its predecessor in DFS tree.
+  result = initTable[N, N]()
+  for (u, v) in dfsEdges(g, source):
+    result[v] = u
+
+proc dfsPredecessors*[N](g: DiGraph[N], source: N): Table[N, N] =
+  ## Return DFS predecessors for a directed graph.
+  result = initTable[N, N]()
+  for (u, v) in dfsEdges(g, source):
+    result[v] = u
+
+proc dfsSuccessors*[N](g: Graph[N], source: N): Table[N, seq[N]] =
+  ## Return a table mapping each node to its successors in DFS tree.
+  result = initTable[N, seq[N]]()
+  for (u, v) in dfsEdges(g, source):
+    if u notin result:
+      result[u] = @[]
+    result[u].add(v)
+
+proc dfsSuccessors*[N](g: DiGraph[N], source: N): Table[N, seq[N]] =
+  ## Return DFS successors for a directed graph.
+  result = initTable[N, seq[N]]()
+  for (u, v) in dfsEdges(g, source):
+    if u notin result:
+      result[u] = @[]
+    result[u].add(v)

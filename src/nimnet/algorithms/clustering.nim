@@ -139,3 +139,96 @@ proc transitivity*[N](g: Graph[N]): float =
   # triads = sum of dv*(dv-1) = ordered 2-paths
   # Original formula: 6T / triads, so 2 * 3T / triads
   result = 2.0 * float(totalTriangles) / float(triads)
+
+# =============================================================================
+# Square clustering
+# =============================================================================
+
+proc squareClustering*[N](g: Graph[N], n: N): float =
+  ## Compute the square clustering coefficient for node n.
+  ## Ratio of squares (4-cycles) to potential squares through n.
+  if not g.hasNode(n):
+    raise newException(NodeNotFound, "Node not found")
+  let neighborsN = g.adj[n]
+  let deg = neighborsN.len
+  if deg < 2:
+    return 0.0
+  var squares = 0
+  var potential = 0
+  let nbrList = block:
+    var s: seq[N]
+    for k in neighborsN.keys: s.add(k)
+    s
+  for i in 0 ..< nbrList.len:
+    let u = nbrList[i]
+    for j in i + 1 ..< nbrList.len:
+      let v = nbrList[j]
+      potential.inc
+      # Count common neighbors of u and v that are not n
+      for w in g.neighbors(u):
+        if w != n and w != v and g.hasEdge(w, v):
+          squares.inc
+  if potential == 0:
+    return 0.0
+  result = squares.float / potential.float
+
+proc squareClustering*[N](g: Graph[N]): Table[N, float] =
+  ## Compute square clustering coefficient for all nodes.
+  result = initTable[N, float]()
+  for n in g.nodes:
+    result[n] = squareClustering(g, n)
+
+# =============================================================================
+# Generalized degree
+# =============================================================================
+
+proc generalizedDegree*[N](g: Graph[N], n: N): Table[int, int] =
+  ## Compute the generalized degree for node n.
+  ## Returns a table mapping k -> number of edges incident to n that
+  ## belong to exactly k triangles.
+  if not g.hasNode(n):
+    raise newException(NodeNotFound, "Node not found")
+  result = initTable[int, int]()
+  let neighborsN = g.adj[n]
+  for u in neighborsN.keys:
+    # Count triangles containing edge (n, u)
+    var triCount = 0
+    for w in g.neighbors(u):
+      if w != n and w in neighborsN:
+        triCount.inc
+    result[triCount] = result.getOrDefault(triCount, 0) + 1
+
+proc generalizedDegree*[N](g: Graph[N]): Table[N, Table[int, int]] =
+  ## Compute generalized degree for all nodes.
+  result = initTable[N, Table[int, int]]()
+  for n in g.nodes:
+    result[n] = generalizedDegree(g, n)
+
+# =============================================================================
+# All triangles (as node sets)
+# =============================================================================
+
+proc allTriangles*[N](g: Graph[N]): seq[(N, N, N)] =
+  ## Return all triangles in the graph as (u, v, w) tuples.
+  ## Each triangle is returned exactly once.
+  let n = g.numberOfNodes()
+  if n < 3:
+    return @[]
+  var nodeList = newSeqOfCap[N](n)
+  var nodeIdx = initTable[N, int](n)
+  var idx = 0
+  for node in g.adj.keys:
+    nodeIdx[node] = idx
+    nodeList.add(node)
+    idx.inc
+  # For each edge (i,j) with idx(i) < idx(j), find common neighbor k with idx(k) > idx(j)
+  for i in 0 ..< n:
+    let u = nodeList[i]
+    for v in g.neighbors(u):
+      let j = nodeIdx[v]
+      if j <= i: continue
+      for w in g.neighbors(v):
+        let k = nodeIdx[w]
+        if k <= j: continue
+        if g.hasEdge(w, u):
+          result.add((u, v, w))

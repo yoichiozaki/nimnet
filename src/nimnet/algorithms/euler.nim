@@ -229,3 +229,51 @@ proc isHamiltonian*[N](g: Graph[N]): bool =
     return false
 
   result = backtrack()
+
+# =============================================================================
+# Has Eulerian path
+# =============================================================================
+
+func hasEulerianPath*[N](g: Graph[N]): bool =
+  ## Return true if the graph has an Eulerian path (circuit or trail).
+  isEulerian(g) or isSemiEulerian(g)
+
+func hasEulerianPath*[N](g: DiGraph[N]): bool =
+  ## Return true if the directed graph has an Eulerian path.
+  ## Requires: at most one node with outDeg-inDeg=1, at most one with inDeg-outDeg=1,
+  ## and the rest balanced. Also weakly connected.
+  if g.numberOfNodes() == 0:
+    return true
+  var surplusOut = 0
+  var surplusIn = 0
+  for n in g.nodes:
+    let diff = g.outDegree(n) - g.inDegree(n)
+    if diff == 1:
+      surplusOut.inc
+    elif diff == -1:
+      surplusIn.inc
+    elif diff != 0:
+      return false
+  if not ((surplusOut == 0 and surplusIn == 0) or
+          (surplusOut == 1 and surplusIn == 1)):
+    return false
+  # Check weak connectivity
+  var visited = initHashSet[N]()
+  var queue = initDeque[N]()
+  var startNode: N
+  for n in g.nodes:
+    startNode = n
+    break
+  visited.incl(startNode)
+  queue.addLast(startNode)
+  while queue.len > 0:
+    let cur = queue.popFirst()
+    for v in g.successors(cur):
+      if v notin visited:
+        visited.incl(v)
+        queue.addLast(v)
+    for v in g.predecessors(cur):
+      if v notin visited:
+        visited.incl(v)
+        queue.addLast(v)
+  result = visited.len == g.numberOfNodes()
