@@ -3,7 +3,7 @@
 ## Maximum matching (Edmonds' blossom simplified as greedy),
 ## maximal matching, and matching validation.
 
-import std/[tables, sets, algorithm, sequtils]
+import std/[tables, sets, algorithm]
 import ../graph
 import ../types
 

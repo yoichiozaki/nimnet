@@ -1,6 +1,6 @@
 ## Maximum flow algorithms
 
-import std/[tables, sets, deques, math]
+import std/[tables, sets, deques]
 import ../types
 import ../digraph
 

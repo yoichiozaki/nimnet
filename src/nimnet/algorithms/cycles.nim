@@ -1,6 +1,6 @@
 ## Cycle basis and simple cycle algorithms.
 
-import std/[tables, sets, deques, algorithm]
+import std/[tables, sets, deques]
 import ../graph
 import ../digraph
 

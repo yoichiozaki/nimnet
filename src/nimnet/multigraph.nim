@@ -4,7 +4,7 @@
 ## ``MultiDiGraph[N]`` — directed graph with multiple edges per node pair.
 ## Each edge is identified by (u, v, key) where key is an auto-assigned int.
 
-import std/[tables, sets, hashes, strformat, json]
+import std/[tables, sets, strformat, json]
 import ./types
 
 type

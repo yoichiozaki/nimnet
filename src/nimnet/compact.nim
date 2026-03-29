@@ -3,7 +3,7 @@
 ## Provides cache-efficient, read-only graph storage for fast traversal
 ## on large graphs. Convert from Graph/DiGraph with ``toCompact``.
 
-import std/[tables, sets, algorithm]
+import std/[tables, sets]
 import ./types, ./graph, ./digraph
 
 type

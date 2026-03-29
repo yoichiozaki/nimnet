@@ -1,7 +1,6 @@
 ## Tree generators
 
-import std/[random, tables, sets, deques]
-import ../types
+import std/[random]
 import ../graph
 
 proc balancedTree*(r, h: int): Graph[int] =

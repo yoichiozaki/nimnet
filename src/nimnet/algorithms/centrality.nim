@@ -1,6 +1,6 @@
 ## Centrality measures for nimnet
 
-import std/[tables, sets, deques, math, sequtils, algorithm]
+import std/[tables, sets, deques, algorithm]
 import ../types
 import ../graph
 import ../digraph

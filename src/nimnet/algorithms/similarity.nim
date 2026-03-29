@@ -3,7 +3,7 @@
 ## - ``simrankSimilarity`` — SimRank pairwise similarity
 ## - ``graphEditDistance`` — approximate graph edit distance
 
-import std/[tables, sets, math]
+import std/[tables, sets]
 import ../types, ../graph, ../digraph
 
 proc simrankSimilarity*[N](g: Graph[N], c: float = 0.8,

@@ -1,6 +1,6 @@
 ## Community detection algorithms
 
-import std/[tables, sets, sequtils, math]
+import std/[tables, sets, sequtils]
 import ../types
 import ../graph
 

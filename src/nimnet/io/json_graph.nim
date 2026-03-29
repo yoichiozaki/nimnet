@@ -1,6 +1,6 @@
 ## JSON graph format I/O
 
-import std/[json, tables, strutils]
+import std/[json, tables]
 import ../types
 import ../graph
 import ../digraph

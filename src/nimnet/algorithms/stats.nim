@@ -2,7 +2,7 @@
 ##
 ## Degree distribution, assortativity, and graph summary utilities.
 
-import std/[tables, sets, deques, math, strformat]
+import std/[tables, sets, deques, strformat]
 import ../types
 import ../graph
 

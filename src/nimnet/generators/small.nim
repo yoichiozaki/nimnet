@@ -1,6 +1,6 @@
 ## Small / famous graph generators
 
-import std/[tables, math, json]
+import std/[tables, json]
 import ../types
 import ../graph
 

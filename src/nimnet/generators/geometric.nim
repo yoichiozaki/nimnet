@@ -7,7 +7,7 @@
 ## - ``waxmanGraph(n, beta, alpha)`` — Waxman random geographic model
 ## - ``softRandomGeometricGraph(n, radius)`` — soft radius threshold
 
-import std/[tables, math, random, json]
+import std/[math, random, json]
 import ../types
 import ../graph
 

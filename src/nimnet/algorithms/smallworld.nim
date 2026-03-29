@@ -7,7 +7,7 @@
 ##   L is average shortest path length, and subscript r denotes random graph baseline
 ## - ``omega(g)`` — ω = L_r/L − C/C_l where subscript l denotes lattice baseline
 
-import std/[tables, sets, math, random]
+import std/[tables, sets, random]
 import ../graph
 import ../types
 import ./clustering

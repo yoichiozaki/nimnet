@@ -8,7 +8,7 @@
 ## - ``degreeSequenceTree`` — tree with given degree sequence
 ## - ``isGraphical`` — Erdős–Gallai test for realizability
 
-import std/[tables, sets, algorithm, random, sequtils]
+import std/[algorithm, random]
 import ../types, ../graph
 
 func isGraphical*(degSequence: openArray[int]): bool =

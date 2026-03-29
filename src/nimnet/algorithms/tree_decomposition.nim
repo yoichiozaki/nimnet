@@ -2,7 +2,7 @@
 ##
 ## Greedy heuristic for computing tree decomposition.
 
-import std/[tables, sets, algorithm]
+import std/[tables, sets]
 import ../graph
 
 proc treewidthUpperBound*[N](g: Graph[N]): int =

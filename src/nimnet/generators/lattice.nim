@@ -2,7 +2,6 @@
 ##
 ## Grid, hexagonal, triangular lattice, hypercube graphs.
 
-import std/[math]
 import ../graph
 
 proc grid2dGraph*(m, n: int, periodic: bool = false): Graph[int] =

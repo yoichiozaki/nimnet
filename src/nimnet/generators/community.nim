@@ -10,8 +10,7 @@
 ## - ``relaxedCavemanGraph(l, k, p)`` — caveman with random rewiring
 ## - ``ringOfCliques(numCliques, cliqueSize)`` — cliques arranged in a ring
 
-import std/[random, math]
-import ../types
+import std/[random]
 import ../graph
 
 proc cavemanGraph*(l, k: int): Graph[int] =

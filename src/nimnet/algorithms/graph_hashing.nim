@@ -7,7 +7,7 @@
 ## - ``weisfeilerLehmanHash(g)`` — whole-graph WL hash
 ## - ``weisfeilerLehmanSubgraphHashes(g)`` — per-node WL hashes
 
-import std/[tables, sets, hashes, algorithm, sequtils, strutils]
+import std/[tables, sets, hashes, algorithm, strutils]
 import ../graph
 import ../digraph
 

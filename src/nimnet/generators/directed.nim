@@ -6,7 +6,7 @@
 ## - ``scaleFreeGraph`` — scale-free directed graph
 ## - ``randomKOutGraph`` — random k-out digraph
 
-import std/[tables, sets, random, sequtils]
+import std/[tables, random]
 import ../types, ../digraph
 
 proc gnGraph*(n: int, seed: int64 = 0): DiGraph[int] =
