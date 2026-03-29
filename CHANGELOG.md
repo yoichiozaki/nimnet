@@ -5,9 +5,38 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [0.1.0] - 2025-07-16
 
 ### Added
+
+#### Batch 3: Advanced Modules
+- **Spectral analysis**: Algebraic connectivity, Fiedler vector, spectral gap, Laplacian spectrum
+- **Graph layouts**: Spring (Fruchterman-Reingold), circular, random, shell, spectral layout
+- **SVG export**: Render graphs to SVG with configurable styles and layouts
+- **Graph views**: Lazy subgraph, reverse, and generic filtered views (no copy)
+- **MultiGraph / MultiDiGraph**: Parallel-edge graph types
+- **Compact CSR graph**: Cache-friendly compressed sparse row representation
+- **Static graph**: Immutable, compile-time-friendly graph type
+- **Parallel algorithms**: Parallel BFS, PageRank, connected components, betweenness centrality
+- **Nodeable concept**: Type-constraint for node types (`hash` + `==` + `$`)
+- **Enhanced datasets**: Dolphins, Florentine families, les misérables, Zachary karate club
+
+#### Batch 2: Additional Algorithm Modules
+- **Triads**: Triad census for directed graphs
+- **Graph minors**: Node/edge contraction, quotient graphs
+- **Cut algorithms**: Minimum node/edge cuts, Stoer-Wagner
+- **Small-world**: Sigma and omega coefficients
+- **LCA**: Lowest common ancestor for DAGs
+- **Graph hashing**: Weisfeiler-Lehman graph hash
+- **Voronoi**: Voronoi partition on graphs
+- **Geometric generators**: Random geometric, Waxman, soft random geometric
+- **Community generators**: Caveman, connected caveman, relaxed caveman, planted partition, LFR benchmark
+
+### Changed
+- **BREAKING**: `EdgeAttr` and `NodeAttr` migrated from `Table[string, string]` to `JsonNode` — enables storing typed values (float, int, bool, nested objects) in attributes
+- New attribute helpers: `attrStr`, `attrFloat`, `getAttrFloat`
+- `getWeight()` now handles JFloat, JInt, and JString value types
+- `newEdgeAttr()` returns `newJObject()` instead of `initTable`
 
 #### Performance Optimizations
 - **Dijkstra**: O(V²) linear-scan → O((V+E) log V) binary heap (HeapQueue) — **35× faster**
@@ -95,6 +124,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Adjacency matrix, edge list, degree sequence conversions
 
 ### Testing
-- 470 tests across 7 test files (ttypes, tgraph, tdigraph, talgorithms_core, talgorithms_io_gen, talgorithms_extended, talgorithms_networkx)
+- 695 tests across 11 test files
+- Cross-validation against NetworkX reference values
 - Coverage measurement via lcov + Codecov integration
 - Coverage badge on README
