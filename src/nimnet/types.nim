@@ -18,9 +18,10 @@ type
     `$`(n) is string
 
   # --- Attribute types ---------------------------------------------------
-  EdgeAttr* = JsonNode
-    ## Edge attributes stored as a JSON object.
-    ## Convention: use key ``"weight"`` for numeric edge weights.
+  EdgeAttr* = object
+    ## Edge attributes with a fast-path weight field and optional string extras.
+    weight*: float                    ## Direct O(1) weight access, default 1.0
+    extra*: Table[string, string]     ## Optional string key-value attributes
 
   NodeAttr* = JsonNode
     ## Node attributes stored as a JSON object.
@@ -57,19 +58,26 @@ type
 # --- Attribute constructors ------------------------------------------------
 
 func newEdgeAttr*(): EdgeAttr {.inline.} =
-  ## Create an empty edge attribute object.
-  newJObject()
+  ## Create an empty edge attribute with default weight 1.0.
+  EdgeAttr(weight: 1.0, extra: initTable[string, string]())
 
 func newEdgeAttr*(weight: float): EdgeAttr {.inline.} =
   ## Create edge attributes with a weight.
-  result = newJObject()
-  result["weight"] = newJFloat(weight)
+  EdgeAttr(weight: weight, extra: initTable[string, string]())
 
 func newEdgeAttr*(pairs: openArray[(string, string)]): EdgeAttr =
   ## Create edge attributes from key-value pairs.
-  result = newJObject()
+  ## If ``"weight"`` is among the pairs, it is parsed into the weight field.
+  ##
+  ## .. code-block:: nim
+  ##   let attr = newEdgeAttr({"weight": "2.5", "color": "red"})
+  result = EdgeAttr(weight: 1.0, extra: initTable[string, string]())
   for (k, v) in pairs:
-    result[k] = newJString(v)
+    if k == "weight":
+      try: result.weight = parseFloat(v)
+      except ValueError: discard
+    else:
+      result.extra[k] = v
 
 func newNodeAttr*(): NodeAttr {.inline.} =
   ## Create an empty node attribute object.
@@ -84,47 +92,71 @@ func newNodeAttr*(pairs: openArray[(string, string)]): NodeAttr =
 # --- Weight utilities ------------------------------------------------------
 
 func getWeight*(attr: EdgeAttr, default: float = 1.0): float {.inline.} =
-  ## Get numeric weight from edge attributes.
-  ## Returns ``default`` if the ``"weight"`` key is absent or attr is nil.
-  if attr.isNil or attr.kind != JObject: return default
-  if "weight" notin attr: return default
-  let w = attr["weight"]
-  case w.kind
-  of JFloat: return w.getFloat()
-  of JInt: return float(w.getInt())
-  of JString:
-    try: return parseFloat(w.getStr())
-    except ValueError: return default
-  else: return default
+  ## Get numeric weight from edge attributes. O(1) direct field access.
+  ## The ``default`` parameter is kept for API compatibility but is unused
+  ## since weight always has a value (1.0 when created via ``newEdgeAttr()``).
+  attr.weight
 
-func `weight=`*(attr: var EdgeAttr, w: float) {.inline.} =
-  ## Sugar for setting the weight: ``attr.weight = 3.0``
-  if attr.isNil:
-    attr = newJObject()
-  attr["weight"] = newJFloat(w)
+# --- Compatibility operators -----------------------------------------------
+# These allow EdgeAttr to be used as if it were a Table[string, string],
+# preserving backward compatibility with existing code.
 
-# --- Compatibility helpers -------------------------------------------------
-# Provide string-oriented access to ease migration from Table[string,string].
+func `[]`*(attr: EdgeAttr, key: string): string {.inline.} =
+  ## Access attribute by key. ``"weight"`` returns the weight as a string.
+  if key == "weight":
+    $attr.weight
+  else:
+    attr.extra[key]
+
+func `[]=`*(attr: var EdgeAttr, key: string, value: string) {.inline.} =
+  ## Set attribute by key. ``"weight"`` sets the weight field directly.
+  if key == "weight":
+    try: attr.weight = parseFloat(value)
+    except ValueError: discard
+  else:
+    attr.extra[key] = value
+
+func contains*(attr: EdgeAttr, key: string): bool {.inline.} =
+  ## Check if key exists. ``"weight"`` always returns true.
+  if key == "weight": true
+  else: key in attr.extra
+
+func hasKey*(attr: EdgeAttr, key: string): bool {.inline.} =
+  ## Check if key exists. Alias for ``contains``.
+  attr.contains(key)
+
+func len*(attr: EdgeAttr): int {.inline.} =
+  ## Number of attributes (weight field plus any extras).
+  attr.extra.len + 1
+
+iterator pairs*(attr: EdgeAttr): (string, string) =
+  ## Iterate over all attributes as ``(key, value)`` pairs.
+  ## Yields ``("weight", $attr.weight)`` first, then all extra pairs.
+  yield ("weight", $attr.weight)
+  for k, v in attr.extra:
+    yield (k, v)
+
+func `==`*(a, b: EdgeAttr): bool {.inline.} =
+  ## Compare two EdgeAttr objects for equality.
+  a.weight == b.weight and a.extra == b.extra
 
 func getStr*(attr: EdgeAttr, key: string, default: string = ""): string =
-  ## Get a string value from an attribute. Converts numbers to string.
-  if attr.isNil or attr.kind != JObject or key notin attr: return default
-  let v = attr[key]
-  case v.kind
-  of JString: v.getStr()
-  of JFloat: $v.getFloat()
-  of JInt: $v.getInt()
-  of JBool: $v.getBool()
-  else: default
+  ## Get a string value from an EdgeAttr by key.
+  ## For ``"weight"``, converts the float to string.
+  if key == "weight":
+    $attr.weight
+  elif key in attr.extra:
+    attr.extra[key]
+  else:
+    default
 
 func getAttrFloat*(attr: EdgeAttr, key: string, default: float = 0.0): float =
-  ## Get a float value from an attribute by key.
-  if attr.isNil or attr.kind != JObject or key notin attr: return default
-  let v = attr[key]
-  case v.kind
-  of JFloat: v.getFloat()
-  of JInt: float(v.getInt())
-  of JString:
-    try: parseFloat(v.getStr())
+  ## Get a float value from an EdgeAttr by key.
+  ## For ``"weight"``, returns the weight field directly.
+  if key == "weight":
+    attr.weight
+  elif key in attr.extra:
+    try: parseFloat(attr.extra[key])
     except ValueError: default
-  else: default
+  else:
+    default

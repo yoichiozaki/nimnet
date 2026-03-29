@@ -205,8 +205,8 @@ proc setEdgeAttr*[N](g: var DiGraph[N], u, v: N, key, value: string) =
   ## Set a single attribute ``key`` to ``value`` on edge ``(u, v)``.
   if not g.hasEdge(u, v):
     raise newException(EdgeNotFound, fmt"Edge ({u}, {v}) not found")
-  g.adj[u][v][key] = newJString(value)
-  g.pred[v][u][key] = newJString(value)
+  g.adj[u][v][key] = value
+  g.pred[v][u][key] = value
 
 func weight*[N](g: DiGraph[N], u, v: N, default: float = 1.0): float {.inline.} =
   ## Return the weight of edge ``(u, v)``, or ``default`` if unset.

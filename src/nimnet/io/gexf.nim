@@ -34,7 +34,7 @@ proc writeGexf*[N](g: Graph[N], filename: string) =
         let attr = g.getEdgeAttr(u, v)
         var weightStr = ""
         if "weight" in attr:
-          weightStr = " weight=\"" & (if attr["weight"].kind == JString: attr["weight"].getStr() else: $attr["weight"].getFloat()) & "\""
+          weightStr = " weight=\"" & $attr.weight & "\""
         f.writeLine("      <edge id=\"" & $edgeId & "\" source=\"" & $u &
                     "\" target=\"" & $v & "\"" & weightStr & " />")
         edgeId += 1
@@ -64,7 +64,7 @@ proc writeGexf*[N](g: DiGraph[N], filename: string) =
       let attr = g.getEdgeAttr(u, v)
       var weightStr = ""
       if "weight" in attr:
-        weightStr = " weight=\"" & (if attr["weight"].kind == JString: attr["weight"].getStr() else: $attr["weight"].getFloat()) & "\""
+        weightStr = " weight=\"" & $attr.weight & "\""
       f.writeLine("      <edge id=\"" & $edgeId & "\" source=\"" & $u &
                   "\" target=\"" & $v & "\"" & weightStr & " />")
       edgeId += 1
@@ -102,7 +102,7 @@ proc readGexf*(filename: string): Graph[string] =
                 let tgt = attrs["target"]
                 if attrs.hasKey("weight"):
                   var edgeAttr: EdgeAttr = newEdgeAttr()
-                  edgeAttr["weight"] = newJString(attrs["weight"])
+                  edgeAttr["weight"] = attrs["weight"]
                   result.addEdge(src, tgt)
                   # Set edge attribute
                   discard  # TODO: set edge attr after adding

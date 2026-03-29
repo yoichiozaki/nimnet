@@ -160,7 +160,7 @@ suite "Graph - Subscript operators":
     var g = newGraph[int]()
     g.addWeightedEdge(1, 2, 5.0)
     let attr = g[1, 2]
-    check attr["weight"].getFloat() == 5.0
+    check attr["weight"] == "5.0"
 
   test "g[u, v] raises on missing edge":
     var g = newGraph[int]()
@@ -395,8 +395,8 @@ suite "Graph - Attributes":
     var g = newGraph[int]()
     g.addEdge(1, 2)
     g.setEdgeAttr(1, 2, "color", "blue")
-    check g.getEdgeAttr(1, 2)["color"].getStr() == "blue"
-    check g.getEdgeAttr(2, 1)["color"].getStr() == "blue"  # symmetric
+    check g.getEdgeAttr(1, 2)["color"] == "blue"
+    check g.getEdgeAttr(2, 1)["color"] == "blue"  # symmetric
 
   test "string nodes":
     var g = newGraph[string]()

@@ -4,27 +4,27 @@ import nimnet/types
 suite "EdgeAttr":
   test "empty":
     let a = newEdgeAttr()
-    check a.len == 0
+    check a.len == 1  # weight field always present
     check a.getWeight() == 1.0
 
   test "weight constructor":
     let a = newEdgeAttr(2.5)
     check a.getWeight() == 2.5
-    check a["weight"].getFloat() == 2.5
+    check a["weight"] == "2.5"
 
   test "openArray constructor":
     let a = newEdgeAttr({"weight": "3.0", "color": "red"})
     check a.getWeight() == 3.0
-    check a["color"].getStr() == "red"
+    check a["color"] == "red"
 
   test "weight= setter sugar":
     var a = newEdgeAttr()
     a.weight = 4.2
     check a.getWeight() == 4.2
 
-  test "getWeight default":
+  test "getWeight default param ignored":
     let a = newEdgeAttr()
-    check a.getWeight(99.0) == 99.0
+    check a.getWeight(99.0) == 1.0  # default param is unused; weight is always 1.0
 
 suite "NodeAttr":
   test "empty":

@@ -23,7 +23,7 @@ proc writeDot*[N](g: Graph[N], filename: string) =
   for (u, v, attr) in g.edgesWithAttr:
     var attrs: seq[string]
     for k, val in attr:
-      attrs.add(k & "=\"" & (if val.kind == JString: val.getStr() else: $val) & "\"")
+      attrs.add(k & "=\"" & val & "\"")
     if attrs.len > 0:
       f.writeLine("  " & $u & " -- " & $v & " [" & attrs.join(", ") & "];")
     else:
@@ -41,7 +41,7 @@ proc writeDot*[N](g: DiGraph[N], filename: string) =
   for (u, v, attr) in g.edgesWithAttr:
     var attrs: seq[string]
     for k, val in attr:
-      attrs.add(k & "=\"" & (if val.kind == JString: val.getStr() else: $val) & "\"")
+      attrs.add(k & "=\"" & val & "\"")
     if attrs.len > 0:
       f.writeLine("  " & $u & " -> " & $v & " [" & attrs.join(", ") & "];")
     else:

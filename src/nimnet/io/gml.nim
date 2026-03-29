@@ -34,8 +34,7 @@ proc writeGml*[N](g: Graph[N], filename: string) =
     f.writeLine(fmt"    target {v}")
     let attrs = g.getEdgeAttr(u, v)
     if "weight" in attrs:
-      let wNode = attrs["weight"]
-      let w = if wNode.kind == JString: wNode.getStr() else: $wNode
+      let w = attrs["weight"]
       f.writeLine(fmt"    weight {w}")
     f.writeLine("  ]")
 
@@ -64,8 +63,7 @@ proc writeGml*[N](g: DiGraph[N], filename: string) =
     f.writeLine(fmt"    target {v}")
     let attrs = g.getEdgeAttr(u, v)
     if "weight" in attrs:
-      let wNode = attrs["weight"]
-      let w = if wNode.kind == JString: wNode.getStr() else: $wNode
+      let w = attrs["weight"]
       f.writeLine(fmt"    weight {w}")
     f.writeLine("  ]")
 

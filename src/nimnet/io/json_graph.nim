@@ -29,7 +29,7 @@ proc toJsonNode*[N](g: Graph[N]): JsonNode =
     linkObj["source"] = newJString($u)
     linkObj["target"] = newJString($v)
     for k, val in attr:
-      linkObj[k] = val
+      linkObj[k] = newJString(val)
     links.add(linkObj)
   result["links"] = links
 
@@ -54,7 +54,7 @@ proc toJsonNode*[N](g: DiGraph[N]): JsonNode =
     linkObj["source"] = newJString($u)
     linkObj["target"] = newJString($v)
     for k, val in attr:
-      linkObj[k] = val
+      linkObj[k] = newJString(val)
     links.add(linkObj)
   result["links"] = links
 
@@ -92,5 +92,11 @@ proc readJsonGraph*(filename: string): Graph[string] =
     var attr = newEdgeAttr()
     for k, v in linkObj:
       if k != "source" and k != "target":
-        attr[k] = v
+        # Convert JsonNode to string for EdgeAttr compatibility
+        case v.kind
+        of JFloat: attr[k] = $v.getFloat()
+        of JInt: attr[k] = $v.getInt()
+        of JBool: attr[k] = $v.getBool()
+        of JString: attr[k] = v.getStr()
+        else: attr[k] = $v
     result.addEdge(source, target, attr)

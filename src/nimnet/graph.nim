@@ -219,8 +219,8 @@ proc setEdgeAttr*[N](g: var Graph[N], u, v: N, key, value: string) =
   ## Set a single attribute on edge ``(u, v)``.
   if not g.hasEdge(u, v):
     raise newException(EdgeNotFound, fmt"Edge ({u}, {v}) not found")
-  g.adj[u][v][key] = newJString(value)
-  g.adj[v][u][key] = newJString(value)
+  g.adj[u][v][key] = value
+  g.adj[v][u][key] = value
 
 func weight*[N](g: Graph[N], u, v: N, default: float = 1.0): float {.inline.} =
   ## Get the weight of edge ``(u, v)``. Returns ``default`` (1.0) if unset.

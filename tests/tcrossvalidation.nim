@@ -32,35 +32,35 @@ proc buildFlowGraph(): DiGraph[int] =
   result = newDiGraph[int]()
   result.addEdge(0, 1)
   var a01 = newEdgeAttr()
-  a01["weight"] = newJString("10")
+  a01["weight"] = "10"
   result.setEdgeAttr(0, 1, a01)
   result.addEdge(0, 2)
   var a02 = newEdgeAttr()
-  a02["weight"] = newJString("8")
+  a02["weight"] = "8"
   result.setEdgeAttr(0, 2, a02)
   result.addEdge(1, 3)
   var a13 = newEdgeAttr()
-  a13["weight"] = newJString("5")
+  a13["weight"] = "5"
   result.setEdgeAttr(1, 3, a13)
   result.addEdge(1, 2)
   var a12 = newEdgeAttr()
-  a12["weight"] = newJString("2")
+  a12["weight"] = "2"
   result.setEdgeAttr(1, 2, a12)
   result.addEdge(2, 4)
   var a24 = newEdgeAttr()
-  a24["weight"] = newJString("10")
+  a24["weight"] = "10"
   result.setEdgeAttr(2, 4, a24)
   result.addEdge(3, 5)
   var a35 = newEdgeAttr()
-  a35["weight"] = newJString("7")
+  a35["weight"] = "7"
   result.setEdgeAttr(3, 5, a35)
   result.addEdge(4, 3)
   var a43 = newEdgeAttr()
-  a43["weight"] = newJString("8")
+  a43["weight"] = "8"
   result.setEdgeAttr(4, 3, a43)
   result.addEdge(4, 5)
   var a45 = newEdgeAttr()
-  a45["weight"] = newJString("10")
+  a45["weight"] = "10"
   result.setEdgeAttr(4, 5, a45)
 
 proc buildDirectedGraph(): DiGraph[int] =

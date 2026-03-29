@@ -34,92 +34,65 @@ import nimnet/io/dot as dotio
 suite "types.nim helpers":
   test "getStr with string value":
     var attr = newEdgeAttr()
-    attr["color"] = newJString("red")
+    attr["color"] = "red"
     check types.getStr(attr, "color") == "red"
     check types.getStr(attr, "missing") == ""
     check types.getStr(attr, "missing", "default") == "default"
 
-  test "getStr with float value":
-    var attr = newEdgeAttr()
-    attr["weight"] = newJFloat(3.14)
+  test "getStr with weight":
+    let attr = newEdgeAttr(3.14)
     let s = types.getStr(attr, "weight")
     check s.contains("3.14")
 
-  test "getStr with int value":
+  test "getStr extra key":
     var attr = newEdgeAttr()
-    attr["count"] = newJInt(42)
+    attr["count"] = "42"
     check types.getStr(attr, "count") == "42"
 
-  test "getStr with bool value":
+  test "getStr with string extra":
     var attr = newEdgeAttr()
-    attr["active"] = newJBool(true)
+    attr["active"] = "true"
     check types.getStr(attr, "active") == "true"
 
-  test "getStr with nil attr":
-    var attr: EdgeAttr = nil
-    check types.getStr(attr, "key") == ""
-    check types.getStr(attr, "key", "fallback") == "fallback"
-
-  test "getStr with non-object JSON":
-    var attr = newJString("not an object")
-    check types.getStr(EdgeAttr(attr), "key") == ""
-
-  test "getAttrFloat with float value":
+  test "getAttrFloat via extra":
     var attr = newEdgeAttr()
-    attr["cost"] = newJFloat(9.99)
+    attr["cost"] = "9.99"
     check abs(attr.getAttrFloat("cost") - 9.99) < 1e-10
 
-  test "getAttrFloat with int value":
+  test "getAttrFloat extra string":
     var attr = newEdgeAttr()
-    attr["count"] = newJInt(7)
+    attr["count"] = "7"
     check abs(attr.getAttrFloat("count") - 7.0) < 1e-10
 
-  test "getAttrFloat with string value":
-    var attr = newEdgeAttr()
-    attr["weight"] = newJString("2.5")
+  test "getAttrFloat via weight field":
+    let attr = newEdgeAttr(2.5)
     check abs(attr.getAttrFloat("weight") - 2.5) < 1e-10
 
   test "getAttrFloat with invalid string":
     var attr = newEdgeAttr()
-    attr["weight"] = newJString("not_a_number")
-    check abs(attr.getAttrFloat("weight", 99.0) - 99.0) < 1e-10
-
-  test "getAttrFloat with nil attr":
-    var attr: EdgeAttr = nil
-    check abs(attr.getAttrFloat("key", 5.0) - 5.0) < 1e-10
+    attr["cost"] = "not_a_number"
+    check abs(attr.getAttrFloat("cost", 99.0) - 99.0) < 1e-10
 
   test "getAttrFloat missing key":
     var attr = newEdgeAttr()
     check abs(attr.getAttrFloat("missing", 1.0) - 1.0) < 1e-10
 
-  test "getWeight with nil attr":
-    var attr: EdgeAttr = nil
-    check abs(attr.getWeight() - 1.0) < 1e-10
-    check abs(attr.getWeight(0.0) - 0.0) < 1e-10
-
-  test "getWeight with JInt value":
-    var attr = newEdgeAttr()
-    attr["weight"] = newJInt(5)
+  test "getWeight direct field":
+    let attr = newEdgeAttr(5.0)
     check abs(attr.getWeight() - 5.0) < 1e-10
 
-  test "getWeight with JString valid float":
+  test "getWeight via string weight setter":
     var attr = newEdgeAttr()
-    attr["weight"] = newJString("3.14")
+    attr["weight"] = "3.14"
     check abs(attr.getWeight() - 3.14) < 1e-10
 
-  test "getWeight with JString invalid":
+  test "getWeight default param (compat only)":
+    let attr = newEdgeAttr()
+    check abs(attr.getWeight() - 1.0) < 1e-10
+
+  test "weight= setter":
     var attr = newEdgeAttr()
-    attr["weight"] = newJString("abc")
-    check abs(attr.getWeight(99.0) - 99.0) < 1e-10
-
-  test "getWeight with non-object JSON":
-    var attr = newJArray()
-    check abs(EdgeAttr(attr).getWeight(7.0) - 7.0) < 1e-10
-
-  test "weight= setter on nil attr":
-    var attr: EdgeAttr = nil
     attr.weight = 42.0
-    check not attr.isNil
     check abs(attr.getWeight() - 42.0) < 1e-10
 
   test "newNodeAttr constructors":
@@ -132,8 +105,8 @@ suite "types.nim helpers":
 
   test "newEdgeAttr from pairs":
     let a = newEdgeAttr({"color": "blue", "style": "dashed"})
-    check a["color"].getStr() == "blue"
-    check a["style"].getStr() == "dashed"
+    check a["color"] == "blue"
+    check a["style"] == "dashed"
 
 # ============================================================================
 # digraph.nim — iterator coverage
