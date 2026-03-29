@@ -22,6 +22,7 @@ task build_tests, "Compile all tests":
   exec "nim c --threads:on -p:src --nimcache:build/nimcache/talgorithms_batch2 tests/talgorithms_batch2.nim"
   exec "nim c --threads:on -p:src --nimcache:build/nimcache/talgorithms_batch3 tests/talgorithms_batch3.nim"
   exec "nim c --threads:on -p:src --nimcache:build/nimcache/tcoverage tests/tcoverage.nim"
+  exec "nim c --threads:on -p:src --nimcache:build/nimcache/tcoverage2 tests/tcoverage2.nim"
   exec "nim c --threads:on -p:src --nimcache:build/nimcache/tparallel tests/tparallel.nim"
 
 task run_tests, "Run compiled tests":
@@ -38,6 +39,7 @@ task run_tests, "Run compiled tests":
     exec "tests\\talgorithms_batch2.exe"
     exec "tests\\talgorithms_batch3.exe"
     exec "tests\\tcoverage.exe"
+    exec "tests\\tcoverage2.exe"
     exec "tests\\tparallel.exe"
   else:
     exec "./tests/ttypes"
@@ -52,6 +54,7 @@ task run_tests, "Run compiled tests":
     exec "./tests/talgorithms_batch2"
     exec "./tests/talgorithms_batch3"
     exec "./tests/tcoverage"
+    exec "./tests/tcoverage2"
     exec "./tests/tparallel"
 
 task test, "Compile and run all tests":
@@ -67,6 +70,7 @@ task test, "Compile and run all tests":
   exec "nim c -r --threads:on -p:src --nimcache:build/nimcache/talgorithms_batch2 tests/talgorithms_batch2.nim"
   exec "nim c -r --threads:on -p:src --nimcache:build/nimcache/talgorithms_batch3 tests/talgorithms_batch3.nim"
   exec "nim c -r --threads:on -p:src --nimcache:build/nimcache/tcoverage tests/tcoverage.nim"
+  exec "nim c -r --threads:on -p:src --nimcache:build/nimcache/tcoverage2 tests/tcoverage2.nim"
   exec "nim c -r --threads:on -p:src --nimcache:build/nimcache/tparallel tests/tparallel.nim"
 
 task cleanup, "Remove compiled exe files and build artifacts":
