@@ -203,3 +203,79 @@ proc stochasticBlockModel*(sizes: seq[int], p: seq[seq[float]], seed: int64 = 0)
       let cj = getCommunity(j)
       if rng.rand(1.0) < p[ci][cj]:
         result.addEdge(i, j)
+
+proc powerLawClusterGraph*(n, m: int, p: float,
+                            seed: int64 = 0): Graph[int] =
+  ## Generate a Holme-Kim power-law cluster graph.
+  ## Extends Barabási-Albert with triangle formation probability ``p``.
+  ## After attaching to a node via preferential attachment, with probability
+  ## ``p`` a triangle is formed by also connecting to one of its neighbors.
+  if m < 1 or m > n:
+    raise newException(NimNetError, "m must be >= 1 and <= n")
+  if p < 0.0 or p > 1.0:
+    raise newException(NimNetError, "p must be in [0, 1]")
+
+  var rng = if seed != 0: initRand(seed) else: initRand()
+  result = newGraph[int]()
+
+  # Start with a complete graph of m+1 nodes
+  for i in 0 .. m:
+    result.addNode(i)
+  for i in 0 .. m:
+    for j in i + 1 .. m:
+      result.addEdge(i, j)
+
+  # Repeated edges list for preferential attachment
+  var repeated: seq[int]
+  for i in 0 .. m:
+    for j in 0 ..< m: # each has degree m
+      repeated.add(i)
+
+  for source in m + 1 ..< n:
+    result.addNode(source)
+    var targets = initHashSet[int]()
+
+    # First attachment via preferential attachment
+    while targets.len < 1:
+      let target = repeated[rng.rand(repeated.len - 1)]
+      if target != source:
+        targets.incl(target)
+
+    var lastTarget = 0
+    for t in targets:
+      lastTarget = t
+    result.addEdge(source, lastTarget)
+    repeated.add(source)
+    repeated.add(lastTarget)
+
+    var count = 1
+    while count < m:
+      if rng.rand(1.0) < p:
+        # Triangle formation: connect to a neighbor of the last target
+        var neighborList: seq[int]
+        for nb in result.neighbors(lastTarget):
+          if nb != source and not result.hasEdge(source, nb):
+            neighborList.add(nb)
+        if neighborList.len > 0:
+          let nbTarget = neighborList[rng.rand(neighborList.len - 1)]
+          result.addEdge(source, nbTarget)
+          repeated.add(source)
+          repeated.add(nbTarget)
+          lastTarget = nbTarget
+          count += 1
+          continue
+
+      # Preferential attachment
+      var found = false
+      for attempt in 0 ..< 100:
+        let target = repeated[rng.rand(repeated.len - 1)]
+        if target != source and not result.hasEdge(source, target):
+          result.addEdge(source, target)
+          repeated.add(source)
+          repeated.add(target)
+          lastTarget = target
+          found = true
+          break
+      if not found:
+        break
+      count += 1

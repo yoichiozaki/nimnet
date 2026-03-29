@@ -556,3 +556,94 @@ proc astarPathLength*[N](g: Graph[N], source, target: N,
   result = 0.0
   for i in 0 ..< path.len - 1:
     result += g.adj[path[i]][path[i + 1]].getWeight()
+
+# =============================================================================
+# Bellman-Ford Enhancements
+# =============================================================================
+
+proc hasNegativeCycle*[N](g: Graph[N]): bool =
+  ## Check whether the undirected graph contains a negative weight cycle.
+  ## An undirected graph has a negative cycle if any edge has negative weight.
+  for (u, v, attr) in g.edgesWithAttr:
+    if attr.getWeight() < 0.0:
+      return true
+  return false
+
+proc hasNegativeCycle*[N](g: DiGraph[N]): bool =
+  ## Check whether the directed graph contains a negative weight cycle
+  ## reachable from any node. Uses Bellman-Ford from each component.
+  var visited = initHashSet[N]()
+
+  for startNode in g.nodes:
+    if startNode in visited:
+      continue
+
+    var dist = initTable[N, float]()
+    for n in g.nodes:
+      dist[n] = Inf
+    dist[startNode] = 0.0
+    visited.incl(startNode)
+
+    let nodeCount = g.numberOfNodes()
+    for i in 0 ..< nodeCount - 1:
+      for (u, v, attr) in g.edgesWithAttr:
+        let w = attr.getWeight()
+        if dist[u] != Inf and dist[u] + w < dist[v]:
+          dist[v] = dist[u] + w
+          visited.incl(v)
+
+    # Check for negative cycle
+    for (u, v, attr) in g.edgesWithAttr:
+      let w = attr.getWeight()
+      if dist[u] != Inf and dist[u] + w < dist[v]:
+        return true
+
+  return false
+
+proc bellmanFordDistances*[N](g: Graph[N], source: N): Table[N, float] =
+  ## Compute shortest distances from ``source`` to all reachable nodes
+  ## using Bellman-Ford. Supports negative weights.
+  ##
+  ## **Raises:** ``NimNetUnfeasible`` if negative cycle is detected.
+  if not g.hasNode(source):
+    raise newException(NodeNotFound, "Source node not found")
+
+  for n in g.nodes:
+    result[n] = Inf
+  result[source] = 0.0
+
+  let nodeCount = g.numberOfNodes()
+  for i in 0 ..< nodeCount - 1:
+    for (u, v, attr) in g.edgesWithAttr:
+      let w = attr.getWeight()
+      if result[u] + w < result[v]:
+        result[v] = result[u] + w
+      if result[v] + w < result[u]:
+        result[u] = result[v] + w
+
+  for (u, v, attr) in g.edgesWithAttr:
+    let w = attr.getWeight()
+    if result[u] + w < result[v] or result[v] + w < result[u]:
+      raise newException(NimNetUnfeasible, "Negative cycle detected")
+
+proc bellmanFordDistances*[N](g: DiGraph[N], source: N): Table[N, float] =
+  ## Compute shortest distances from ``source`` to all reachable nodes
+  ## in a directed graph using Bellman-Ford.
+  if not g.hasNode(source):
+    raise newException(NodeNotFound, "Source node not found")
+
+  for n in g.nodes:
+    result[n] = Inf
+  result[source] = 0.0
+
+  let nodeCount = g.numberOfNodes()
+  for i in 0 ..< nodeCount - 1:
+    for (u, v, attr) in g.edgesWithAttr:
+      let w = attr.getWeight()
+      if result[u] != Inf and result[u] + w < result[v]:
+        result[v] = result[u] + w
+
+  for (u, v, attr) in g.edgesWithAttr:
+    let w = attr.getWeight()
+    if result[u] != Inf and result[u] + w < result[v]:
+      raise newException(NimNetUnfeasible, "Negative cycle detected")

@@ -59,16 +59,19 @@ import nimnet/algorithms/smallworld;         export smallworld
 import nimnet/algorithms/lca;                export lca
 import nimnet/algorithms/graph_hashing;      export graph_hashing
 import nimnet/algorithms/voronoi;            export voronoi
+import nimnet/algorithms/similarity;         export similarity
 
 # --- Generators ---
-import nimnet/generators/classic;    export classic
-import nimnet/generators/random;     export random
-import nimnet/generators/small;      export small
-import nimnet/generators/trees;      export trees
-import nimnet/generators/line_graph; export line_graph
-import nimnet/generators/lattice;    export lattice
-import nimnet/generators/geometric;  export geometric
-import nimnet/generators/community;  export community
+import nimnet/generators/classic;          export classic
+import nimnet/generators/random;           export random
+import nimnet/generators/small;            export small
+import nimnet/generators/trees;            export trees
+import nimnet/generators/line_graph;       export line_graph
+import nimnet/generators/lattice;          export lattice
+import nimnet/generators/geometric;        export geometric
+import nimnet/generators/community;        export community
+import nimnet/generators/degree_sequence;  export degree_sequence
+import nimnet/generators/directed;         export directed
 
 # --- I/O ---
 import nimnet/io/edgelist;   export edgelist
@@ -78,6 +81,8 @@ import nimnet/io/dot;        export dot
 import nimnet/io/gml;        export gml
 import nimnet/io/graphml;    export graphml
 import nimnet/io/gexf;       export gexf
+import nimnet/io/pajek;      export pajek
+import nimnet/io/graph6;     export graph6
 
 # --- Operators & Conversions ---
 import nimnet/operators; export operators
