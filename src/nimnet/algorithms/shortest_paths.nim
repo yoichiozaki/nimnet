@@ -286,7 +286,7 @@ proc dijkstraPathLength*[N](g: Graph[N], source, target: N): float =
     if u in visited:
       continue
     if u == target:
-      return d
+      return dist[u]
     visited.incl(u)
     for neighbor in g.neighbors(u):
       if neighbor notin visited:
@@ -322,7 +322,7 @@ proc dijkstraPathLength*[N](g: DiGraph[N], source, target: N): float =
     if u in visited:
       continue
     if u == target:
-      return d
+      return dist[u]
     visited.incl(u)
     for neighbor in g.neighbors(u):
       if neighbor notin visited:
@@ -484,7 +484,7 @@ proc astarPath*[N](g: Graph[N], source, target: N,
   var closedSet = initHashSet[N]()
 
   while openSet.len > 0:
-    let (_, currentG, current) = openSet.pop()
+    let (_, _, current) = openSet.pop()
     if current == target:
       var path: seq[N] = @[target]
       var node = target
@@ -498,7 +498,7 @@ proc astarPath*[N](g: Graph[N], source, target: N,
     closedSet.incl(current)
     for neighbor in g.neighbors(current):
       let edgeWeight = g[current, neighbor].getWeight()
-      let tentativeG = currentG + edgeWeight
+      let tentativeG = gScore[current] + edgeWeight
       if neighbor in closedSet and tentativeG >= gScore.getOrDefault(neighbor, Inf):
         continue
       if neighbor notin gScore or tentativeG < gScore[neighbor]:
