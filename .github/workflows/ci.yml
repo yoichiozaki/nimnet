@@ -16,29 +16,18 @@ jobs:
     steps:
       - uses: actions/checkout@v5
 
-      - name: Cache Nim toolchain and packages
-        id: cache-nim
+      - name: Cache choosenim and nimble
         uses: actions/cache@v5
         with:
           path: |
             ~/.choosenim
             ~/.nimble
-          key: ${{ runner.os }}-nim-stable-v2
+          key: ${{ runner.os }}-nim-stable-v3
 
       - uses: jiro4989/setup-nim-action@v2
-        if: steps.cache-nim.outputs.cache-hit != 'true'
         with:
           nim-version: 'stable'
           repo-token: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Add Nim to PATH (cache hit)
-        if: steps.cache-nim.outputs.cache-hit == 'true'
-        shell: bash
-        run: |
-          echo "$HOME/.nimble/bin" >> $GITHUB_PATH
-          for dir in "$HOME/.choosenim/toolchains"/nim-*/bin; do
-            [ -d "$dir" ] && echo "$dir" >> $GITHUB_PATH
-          done
 
       - name: Cache nimcache
         uses: actions/cache@v5
