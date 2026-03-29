@@ -106,6 +106,7 @@ proc isStronglyConnected*[N](g: DiGraph[N]): bool =
   components.len == 1
 
 proc numberOfStronglyConnectedComponents*[N](g: DiGraph[N]): int =
+  ## Return the number of strongly connected components.
   stronglyConnectedComponents(g).len
 
 proc condensation*[N](g: DiGraph[N]): DiGraph[int] =
@@ -159,6 +160,7 @@ proc weaklyConnectedComponents*[N](g: DiGraph[N]): seq[HashSet[N]] =
       result.add(component)
 
 proc isWeaklyConnected*[N](g: DiGraph[N]): bool =
+  ## Return true if the directed graph is weakly connected.
   if g.numberOfNodes() == 0:
     return true
   weaklyConnectedComponents(g).len == 1

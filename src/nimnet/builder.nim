@@ -63,23 +63,28 @@ proc initDiGraphBuilder*[N](name: string = ""): DiGraphBuilder[N] =
   result.graph = newDiGraph[N](name)
 
 proc addNode*[N](b: var DiGraphBuilder[N], node: N): var DiGraphBuilder[N] {.discardable.} =
+  ## Add a node. Returns self for chaining.
   b.graph.addNode(node)
   result = b
 
 proc addEdge*[N](b: var DiGraphBuilder[N], u, v: N): var DiGraphBuilder[N] {.discardable.} =
+  ## Add a directed edge. Returns self for chaining.
   b.graph.addEdge(u, v)
   result = b
 
 proc addWeightedEdge*[N](b: var DiGraphBuilder[N], u, v: N, weight: float): var DiGraphBuilder[N] {.discardable.} =
+  ## Add a weighted directed edge. Returns self for chaining.
   b.graph.addWeightedEdge(u, v, weight)
   result = b
 
 proc addPath*[N](b: var DiGraphBuilder[N], nodes: openArray[N]): var DiGraphBuilder[N] {.discardable.} =
+  ## Add a directed path through the given nodes.
   for i in 0 ..< nodes.len - 1:
     b.graph.addEdge(nodes[i], nodes[i + 1])
   result = b
 
 proc addCycle*[N](b: var DiGraphBuilder[N], nodes: openArray[N]): var DiGraphBuilder[N] {.discardable.} =
+  ## Add a directed cycle through the given nodes.
   for i in 0 ..< nodes.len - 1:
     b.graph.addEdge(nodes[i], nodes[i + 1])
   if nodes.len > 2:
@@ -87,6 +92,7 @@ proc addCycle*[N](b: var DiGraphBuilder[N], nodes: openArray[N]): var DiGraphBui
   result = b
 
 proc build*[N](b: DiGraphBuilder[N]): DiGraph[N] =
+  ## Return the constructed directed graph.
   result = b.graph
 
 # DSL macros

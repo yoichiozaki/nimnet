@@ -91,6 +91,7 @@ proc shortestPathLength*[N](g: Graph[N], source, target: N): int =
   path.len - 1
 
 proc shortestPathLength*[N](g: DiGraph[N], source, target: N): int =
+  ## Return length of shortest path in a directed graph (number of edges).
   let path = shortestPath(g, source, target)
   path.len - 1
 
@@ -115,6 +116,7 @@ proc hasPath*[N](g: Graph[N], source, target: N): bool =
   false
 
 proc hasPath*[N](g: DiGraph[N], source, target: N): bool =
+  ## Return true if a directed path exists from source to target.
   if not g.hasNode(source) or not g.hasNode(target):
     return false
   if source == target:
@@ -150,6 +152,7 @@ proc singleSourceShortestPathLength*[N](g: Graph[N], source: N): Table[N, int] =
         queue.addLast(neighbor)
 
 proc singleSourceShortestPathLength*[N](g: DiGraph[N], source: N): Table[N, int] =
+  ## Return shortest path lengths from source in a directed graph.
   if not g.hasNode(source):
     raise newException(NodeNotFound, "Source node not found")
   result = initTable[N, int]()
@@ -220,6 +223,7 @@ proc dijkstraPath*[N](g: Graph[N], source, target: N): seq[N] =
   result = path
 
 proc dijkstraPath*[N](g: DiGraph[N], source, target: N): seq[N] =
+  ## Find shortest weighted path in a directed graph using Dijkstra's algorithm.
   if not g.hasNode(source):
     raise newException(NodeNotFound, "Source node not found")
   if not g.hasNode(target):
@@ -307,6 +311,7 @@ proc dijkstraPathLength*[N](g: Graph[N], source, target: N): float =
   dist[target]
 
 proc dijkstraPathLength*[N](g: DiGraph[N], source, target: N): float =
+  ## Return weighted shortest path length in a directed graph.
   if not g.hasNode(source):
     raise newException(NodeNotFound, "Source node not found")
   if not g.hasNode(target):
@@ -430,6 +435,7 @@ proc bellmanFordPath*[N](g: Graph[N], source, target: N): seq[N] =
   result = path
 
 proc bellmanFordPath*[N](g: DiGraph[N], source, target: N): seq[N] =
+  ## Find shortest weighted path in a directed graph using Bellman-Ford.
   if not g.hasNode(source):
     raise newException(NodeNotFound, "Source node not found")
   if not g.hasNode(target):

@@ -7,7 +7,8 @@ import ../digraph
 
 proc writeEdgelist*[N](g: Graph[N], filename: string, delimiter: string = " ",
                         writeData: bool = true) =
-  ## Write graph to an edge list file.
+  ## Write an undirected graph to an edge list file.
+  ## Each line contains ``u<delimiter>v[<delimiter>key=val ...]``.
   var f = newFileStream(filename, fmWrite)
   if f == nil:
     raise newException(IOError, "Cannot open file: " & filename)
@@ -22,7 +23,7 @@ proc writeEdgelist*[N](g: Graph[N], filename: string, delimiter: string = " ",
 proc readEdgelist*(filename: string, delimiter: string = " ",
                    createUsing: string = "graph"): Graph[string] =
   ## Read an undirected graph from an edge list file.
-  ## Nodes are read as strings.
+  ## Lines starting with ``#`` are treated as comments.
   result = newGraph[string]()
   var f = newFileStream(filename, fmRead)
   if f == nil:

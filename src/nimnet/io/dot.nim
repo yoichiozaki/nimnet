@@ -59,6 +59,7 @@ proc toDotString*[N](g: Graph[N]): string =
   result &= "}"
 
 proc toDotString*[N](g: DiGraph[N]): string =
+  ## Return DOT format string representation for a directed graph.
   let name = if g.name.len > 0: g.name else: "G"
   result = "digraph " & name & " {\n"
   for n in g.nodes:

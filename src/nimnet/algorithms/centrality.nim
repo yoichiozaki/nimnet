@@ -23,6 +23,8 @@ proc degreeCentrality*[N](g: Graph[N]): Table[N, float] =
     result[node] = float(g.degree(node)) * norm
 
 proc inDegreeCentrality*[N](g: DiGraph[N]): Table[N, float] =
+  ## Compute in-degree centrality for a directed graph.
+  ## Normalized by (n - 1).
   let n = g.numberOfNodes()
   result = initTable[N, float]()
   if n <= 1:
@@ -34,6 +36,8 @@ proc inDegreeCentrality*[N](g: DiGraph[N]): Table[N, float] =
     result[node] = float(g.inDegree(node)) * norm
 
 proc outDegreeCentrality*[N](g: DiGraph[N]): Table[N, float] =
+  ## Compute out-degree centrality for a directed graph.
+  ## Normalized by (n - 1).
   let n = g.numberOfNodes()
   result = initTable[N, float]()
   if n <= 1:
@@ -140,8 +144,8 @@ proc betweennessCentrality*[N](g: Graph[N], normalized: bool = true): Table[N, f
 
 proc pageRank*[N](g: DiGraph[N], alpha: float = 0.85, maxIter: int = 100,
                    tol: float = 1.0e-6): Table[N, float] =
-  ## Compute PageRank using power iteration.
-  ## alpha: damping factor (default 0.85)
+  ## Compute PageRank for a directed graph using power iteration.
+  ## ``alpha``: damping factor (default 0.85).
   let n = g.numberOfNodes()
   if n == 0:
     return initTable[N, float]()
@@ -207,8 +211,8 @@ proc pageRank*[N](g: Graph[N], alpha: float = 0.85, maxIter: int = 100,
 
 proc hits*[N](g: DiGraph[N], maxIter: int = 100,
               tol: float = 1.0e-8): (Table[N, float], Table[N, float]) =
-  ## Compute HITS hubs and authorities via power iteration.
-  ## Returns (hubs, authorities).
+  ## Compute HITS hubs and authorities for a directed graph.
+  ## Returns ``(hubs, authorities)``.
   let n = g.numberOfNodes()
   if n == 0:
     return (initTable[N, float](), initTable[N, float]())
@@ -269,7 +273,7 @@ proc hits*[N](g: DiGraph[N], maxIter: int = 100,
 
 proc eigenvectorCentrality*[N](g: Graph[N], maxIter: int = 100,
                                 tol: float = 1.0e-6): Table[N, float] =
-  ## Compute eigenvector centrality via power iteration.
+  ## Compute eigenvector centrality for an undirected graph via power iteration.
   let n = g.numberOfNodes()
   if n == 0:
     return initTable[N, float]()
@@ -312,8 +316,8 @@ proc katzCentrality*[N](g: Graph[N], alpha: float = 0.1,
                          beta: float = 1.0,
                          maxIter: int = 1000,
                          tol: float = 1.0e-6): Table[N, float] =
-  ## Compute Katz centrality.
-  ## C_katz(i) = alpha * sum(A_ij * C_katz(j)) + beta
+  ## Compute Katz centrality for an undirected graph.
+  ## ``C_katz(i) = alpha * sum(A_ij * C_katz(j)) + beta``.
   let n = g.numberOfNodes()
   if n == 0:
     return initTable[N, float]()

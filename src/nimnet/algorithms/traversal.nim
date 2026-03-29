@@ -100,6 +100,7 @@ proc bfsPredecessors*[N](g: Graph[N], source: N): Table[N, N] =
     result[v] = u
 
 proc bfsPredecessors*[N](g: DiGraph[N], source: N): Table[N, N] =
+  ## Return BFS predecessors for a directed graph.
   result = initTable[N, N]()
   for (u, v) in bfsEdges(g, source):
     result[v] = u
@@ -160,6 +161,7 @@ proc dfsTree*[N](g: Graph[N], source: N): Graph[N] =
     result.addEdge(u, v)
 
 proc dfsTree*[N](g: DiGraph[N], source: N): DiGraph[N] =
+  ## Return a DFS tree rooted at source for a directed graph.
   result = newDiGraph[N]()
   result.addNode(source)
   for (u, v) in dfsEdges(g, source):
@@ -172,6 +174,7 @@ proc dfsPreorderNodes*[N](g: Graph[N], source: N): seq[N] =
     result.add(v)
 
 proc dfsPreorderNodes*[N](g: DiGraph[N], source: N): seq[N] =
+  ## Return nodes in DFS preorder for a directed graph.
   result.add(source)
   for (_, v) in dfsEdges(g, source):
     result.add(v)
@@ -192,6 +195,7 @@ proc dfsPostorderNodes*[N](g: Graph[N], source: N): seq[N] =
   result = order
 
 proc dfsPostorderNodes*[N](g: DiGraph[N], source: N): seq[N] =
+  ## Return nodes in DFS postorder for a directed graph.
   if not g.hasNode(source):
     raise newException(NodeNotFound, "Source node not found")
   var visited = initHashSet[N]()

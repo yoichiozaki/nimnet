@@ -40,10 +40,18 @@ func len*[N](g: DiGraph[N]): int {.inline.} =
   ## Number of nodes. Enables ``g.len``.
   g.adj.len
 
-func numberOfNodes*[N](g: DiGraph[N]): int {.inline.} = g.adj.len
-func order*[N](g: DiGraph[N]): int {.inline.} = g.adj.len
-func numberOfEdges*[N](g: DiGraph[N]): int {.inline.} = g.edgeCount
-func size*[N](g: DiGraph[N]): int {.inline.} = g.edgeCount
+func numberOfNodes*[N](g: DiGraph[N]): int {.inline.} =
+  ## Alias for ``len``. Returns the number of nodes.
+  g.adj.len
+func order*[N](g: DiGraph[N]): int {.inline.} =
+  ## Graph-theory alias for ``len``. Returns the number of nodes.
+  g.adj.len
+func numberOfEdges*[N](g: DiGraph[N]): int {.inline.} =
+  ## Returns the number of directed edges.
+  g.edgeCount
+func size*[N](g: DiGraph[N]): int {.inline.} =
+  ## Graph-theory alias for ``numberOfEdges``.
+  g.edgeCount
 
 # --- Membership (O(1)) ---
 
@@ -51,9 +59,12 @@ func contains*[N](g: DiGraph[N], n: N): bool {.inline.} =
   ## Enables ``n in g``.
   n in g.adj
 
-func hasNode*[N](g: DiGraph[N], n: N): bool {.inline.} = n in g.adj
+func hasNode*[N](g: DiGraph[N], n: N): bool {.inline.} =
+  ## Returns true if the graph contains node ``n``.
+  n in g.adj
 
 func hasEdge*[N](g: DiGraph[N], u, v: N): bool {.inline.} =
+  ## Returns true if a directed edge from ``u`` to ``v`` exists.
   u in g.adj and v in g.adj[u]
 
 # --- Node operations ---
@@ -65,6 +76,7 @@ proc addNode*[N](g: var DiGraph[N], n: N) {.inline.} =
     g.pred[n] = initTable[N, EdgeAttr]()
 
 proc addNode*[N](g: var DiGraph[N], n: N, attr: NodeAttr) =
+  ## Add a node with associated attributes.
   g.addNode(n)
   g.nodeAttr[n] = attr
 
@@ -108,6 +120,7 @@ proc addEdge*[N](g: var DiGraph[N], u, v: N) {.inline.} =
   g.addEdge(u, v, newEdgeAttr())
 
 proc addWeightedEdge*[N](g: var DiGraph[N], u, v: N, weight: float) {.inline.} =
+  ## Add a directed edge from ``u`` to ``v`` with the given weight.
   g.addEdge(u, v, newEdgeAttr(weight))
 
 proc addEdgesFrom*[N](g: var DiGraph[N], edges: openArray[(N, N)]) =
@@ -117,6 +130,7 @@ proc addEdgesFrom*[N](g: var DiGraph[N], edges: openArray[(N, N)]) =
 
 proc addWeightedEdgesFrom*[N](g: var DiGraph[N],
     edges: openArray[tuple[u, v: N, weight: float]]) =
+  ## Batch-add directed edges with weights.
   for e in edges:
     g.addWeightedEdge(e.u, e.v, e.weight)
 
@@ -145,16 +159,19 @@ func `[]`*[N](g: DiGraph[N], u, v: N): EdgeAttr =
 # --- Attribute operations ---
 
 func getNodeAttr*[N](g: DiGraph[N], n: N): NodeAttr =
+  ## Return the attribute table for node ``n``.
   if n notin g.adj:
     raise newException(NodeNotFound, fmt"Node {n} not found")
   g.nodeAttr.getOrDefault(n, newNodeAttr())
 
 proc setNodeAttr*[N](g: var DiGraph[N], n: N, attr: NodeAttr) =
+  ## Replace all attributes on node ``n``.
   if n notin g.adj:
     raise newException(NodeNotFound, fmt"Node {n} not found")
   g.nodeAttr[n] = attr
 
 proc setNodeAttr*[N](g: var DiGraph[N], n: N, key, value: string) =
+  ## Set a single attribute ``key`` to ``value`` on node ``n``.
   if n notin g.adj:
     raise newException(NodeNotFound, fmt"Node {n} not found")
   if n notin g.nodeAttr:
@@ -162,23 +179,27 @@ proc setNodeAttr*[N](g: var DiGraph[N], n: N, key, value: string) =
   g.nodeAttr[n][key] = value
 
 func getEdgeAttr*[N](g: DiGraph[N], u, v: N): EdgeAttr =
+  ## Return the attribute table for edge ``(u, v)``.
   if not g.hasEdge(u, v):
     raise newException(EdgeNotFound, fmt"Edge ({u}, {v}) not found")
   g.adj[u][v]
 
 proc setEdgeAttr*[N](g: var DiGraph[N], u, v: N, attr: EdgeAttr) =
+  ## Replace all attributes on edge ``(u, v)``.
   if not g.hasEdge(u, v):
     raise newException(EdgeNotFound, fmt"Edge ({u}, {v}) not found")
   g.adj[u][v] = attr
   g.pred[v][u] = attr
 
 proc setEdgeAttr*[N](g: var DiGraph[N], u, v: N, key, value: string) =
+  ## Set a single attribute ``key`` to ``value`` on edge ``(u, v)``.
   if not g.hasEdge(u, v):
     raise newException(EdgeNotFound, fmt"Edge ({u}, {v}) not found")
   g.adj[u][v][key] = value
   g.pred[v][u][key] = value
 
 func weight*[N](g: DiGraph[N], u, v: N, default: float = 1.0): float {.inline.} =
+  ## Return the weight of edge ``(u, v)``, or ``default`` if unset.
   if not g.hasEdge(u, v):
     raise newException(EdgeNotFound, fmt"Edge ({u}, {v}) not found")
   g.adj[u][v].getWeight(default)
@@ -191,6 +212,7 @@ iterator items*[N](g: DiGraph[N]): N =
     yield n
 
 iterator nodes*[N](g: DiGraph[N]): N =
+  ## Iterate over all nodes in the graph.
   for n in g.adj.keys:
     yield n
 
@@ -200,11 +222,13 @@ iterator pairs*[N](g: DiGraph[N]): (N, Table[N, EdgeAttr]) =
     yield (n, neighbors)
 
 iterator edges*[N](g: DiGraph[N]): (N, N) =
+  ## Iterate over all directed edges as ``(u, v)`` pairs.
   for u in g.adj.keys:
     for v in g.adj[u].keys:
       yield (u, v)
 
 iterator edgesWithAttr*[N](g: DiGraph[N]): (N, N, EdgeAttr) =
+  ## Iterate over all directed edges as ``(u, v, attr)`` triples.
   for u in g.adj.keys:
     for v, attr in g.adj[u]:
       yield (u, v, attr)
@@ -231,11 +255,13 @@ iterator predecessors*[N](g: DiGraph[N], n: N): N =
 # --- Degree ---
 
 func outDegree*[N](g: DiGraph[N], n: N): int {.inline.} =
+  ## Return the number of outgoing edges from node ``n``.
   if n notin g.adj:
     raise newException(NodeNotFound, fmt"Node {n} not found")
   g.adj[n].len
 
 func inDegree*[N](g: DiGraph[N], n: N): int {.inline.} =
+  ## Return the number of incoming edges to node ``n``.
   if n notin g.pred:
     raise newException(NodeNotFound, fmt"Node {n} not found")
   g.pred[n].len
@@ -245,36 +271,48 @@ func degree*[N](g: DiGraph[N], n: N): int {.inline.} =
   g.inDegree(n) + g.outDegree(n)
 
 iterator degree*[N](g: DiGraph[N]): (N, int) =
+  ## Iterate over ``(node, degree)`` for every node (in-degree + out-degree).
   for n in g.adj.keys:
     yield (n, g.degree(n))
 
 iterator inDegreeIter*[N](g: DiGraph[N]): (N, int) =
+  ## Iterate over ``(node, inDegree)`` for every node.
   for n in g.adj.keys:
     yield (n, g.inDegree(n))
 
 iterator outDegreeIter*[N](g: DiGraph[N]): (N, int) =
+  ## Iterate over ``(node, outDegree)`` for every node.
   for n in g.adj.keys:
     yield (n, g.outDegree(n))
 
 # --- Graph properties ---
 
 func density*[N](g: DiGraph[N]): float =
+  ## Edge density: ``|E| / (|V| * (|V| - 1))``.
   let n = g.len
   let m = g.edgeCount
   if n <= 1: 0.0
   else: float(m) / (float(n) * float(n - 1))
 
-func isEmpty*[N](g: DiGraph[N]): bool {.inline.} = g.edgeCount == 0
-func isDirected*[N](g: DiGraph[N]): bool {.inline.} = true
-func hasSelfLoop*[N](g: DiGraph[N], n: N): bool {.inline.} = g.hasEdge(n, n)
+func isEmpty*[N](g: DiGraph[N]): bool {.inline.} =
+  ## True when the graph has no edges.
+  g.edgeCount == 0
+func isDirected*[N](g: DiGraph[N]): bool {.inline.} =
+  ## Always returns true for ``DiGraph``.
+  true
+func hasSelfLoop*[N](g: DiGraph[N], n: N): bool {.inline.} =
+  ## True when node ``n`` has an edge to itself.
+  g.hasEdge(n, n)
 
 func numberOfSelfLoops*[N](g: DiGraph[N]): int =
+  ## Count the number of self-loop edges in the graph.
   for n in g.adj.keys:
     if n in g.adj[n]: result.inc
 
 # --- Copy and equality ---
 
 func copy*[N](g: DiGraph[N]): DiGraph[N] =
+  ## Return a deep copy of the graph.
   result.name = g.name
   result.edgeCount = g.edgeCount
   for u, neighbors in g.adj:
@@ -292,12 +330,14 @@ func `==`*[N](a, b: DiGraph[N]): bool =
   a.adj == b.adj and a.nodeAttr == b.nodeAttr
 
 proc clear*[N](g: var DiGraph[N]) =
+  ## Remove all nodes and edges.
   g.adj.clear()
   g.pred.clear()
   g.nodeAttr.clear()
   g.edgeCount = 0
 
 proc clearEdges*[N](g: var DiGraph[N]) =
+  ## Remove all edges, keeping nodes intact.
   for n in g.adj.keys: g.adj[n].clear()
   for n in g.pred.keys: g.pred[n].clear()
   g.edgeCount = 0
@@ -310,6 +350,7 @@ func recomputeEdgeCount[N](g: var DiGraph[N]) =
     g.edgeCount += neighbors.len
 
 func subgraph*[N](g: DiGraph[N], nbunch: HashSet[N]): DiGraph[N] =
+  ## Return the subgraph induced by the given set of nodes.
   result = newDiGraph[N](g.name)
   for n in nbunch:
     if n in g.adj:
@@ -325,6 +366,7 @@ func subgraph*[N](g: DiGraph[N], nbunch: HashSet[N]): DiGraph[N] =
   recomputeEdgeCount(result)
 
 func subgraph*[N](g: DiGraph[N], nbunch: openArray[N]): DiGraph[N] =
+  ## Convenience overload accepting an ``openArray``.
   g.subgraph(nbunch.toHashSet)
 
 # --- Reverse ---
@@ -352,16 +394,19 @@ func `$`*[N](g: DiGraph[N]): string =
 # --- Utility ---
 
 func nodeSeq*[N](g: DiGraph[N]): seq[N] =
+  ## Collect all nodes into a sequence.
   result = newSeqOfCap[N](g.len)
   for n in g.adj.keys:
     result.add(n)
 
 func edgeSeq*[N](g: DiGraph[N]): seq[(N, N)] =
+  ## Collect all directed edges into a sequence.
   result = newSeqOfCap[(N, N)](g.edgeCount)
   for e in g.edges:
     result.add(e)
 
 func adjacencyTable*[N](g: DiGraph[N], n: N): Table[N, EdgeAttr] =
+  ## Return the successor adjacency table for node ``n``.
   if n notin g.adj:
     raise newException(NodeNotFound, fmt"Node {n} not found")
   g.adj[n]
