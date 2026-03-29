@@ -7,3 +7,8 @@ srcDir        = "src"
 
 # Dependencies
 requires "nim >= 2.0.0"
+
+task test, "Run all tests":
+  exec "nim c -r -p:src tests/ttypes.nim"
+  exec "nim c -r -p:src tests/tgraph.nim"
+  exec "nim c -r -p:src tests/tdigraph.nim"

@@ -35,5 +35,5 @@ jobs:
       - name: Run tests
         run: nimble test
 
-      - name: Build
-        run: nimble build
+      - name: Compile library
+        run: nim c --hints:off src/nimnet.nim
