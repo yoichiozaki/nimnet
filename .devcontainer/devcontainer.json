@@ -1,0 +1,20 @@
+{
+  "name": "NimNet Dev",
+  "image": "nimlang/nim:2",
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "nimsaem.nimvscode"
+      ],
+      "settings": {
+        "nim.projectMapping": [
+          {
+            "projectFile": "nimnet.nimble",
+            "fileRegex": ".*\\.nim$"
+          }
+        ]
+      }
+    }
+  },
+  "postCreateCommand": "nimble setup"
+}
