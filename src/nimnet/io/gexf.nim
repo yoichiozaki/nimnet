@@ -103,9 +103,7 @@ proc readGexf*(filename: string): Graph[string] =
                 if attrs.hasKey("weight"):
                   var edgeAttr: EdgeAttr = newEdgeAttr()
                   edgeAttr["weight"] = attrs["weight"]
-                  result.addEdge(src, tgt)
-                  # Set edge attribute
-                  discard  # TODO: set edge attr after adding
+                  result.addEdge(src, tgt, edgeAttr)
                 else:
                   result.addEdge(src, tgt)
 
@@ -132,4 +130,9 @@ proc readGexfDirected*(filename: string): DiGraph[string] =
               if attrs != nil and attrs.hasKey("source") and attrs.hasKey("target"):
                 let src = attrs["source"]
                 let tgt = attrs["target"]
-                result.addEdge(src, tgt)
+                if attrs.hasKey("weight"):
+                  var edgeAttr: EdgeAttr = newEdgeAttr()
+                  edgeAttr["weight"] = attrs["weight"]
+                  result.addEdge(src, tgt, edgeAttr)
+                else:
+                  result.addEdge(src, tgt)

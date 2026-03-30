@@ -45,3 +45,46 @@ jobs:
 
       - name: Run tests
         run: nimble run_tests
+
+  coverage:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Cache choosenim and nimble
+        uses: actions/cache@v5
+        with:
+          path: |
+            ~/.choosenim
+            ~/.nimble
+          key: Linux-nim-stable-v3
+
+      - uses: jiro4989/setup-nim-action@v2
+        with:
+          nim-version: 'stable'
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Install dependencies
+        run: nimble install -y
+
+      - name: Install lcov
+        run: sudo apt-get install -y lcov
+
+      - name: Run tests with coverage
+        run: |
+          mkdir -p coverage
+          for testfile in tests/t*.nim; do
+            nim c --threads:on -p:src --debugger:native --passC:--coverage --passL:--coverage -o:build/$(basename "$testfile" .nim) "$testfile"
+            ./build/$(basename "$testfile" .nim) || true
+          done
+
+      - name: Collect coverage
+        run: |
+          lcov --capture --directory . --output-file coverage/lcov.info --ignore-errors source,gcov
+          lcov --remove coverage/lcov.info '*/nimcache/*' '*/tests/*' '/usr/*' '*/choosenim/*' '*/nimble/*' --output-file coverage/lcov_filtered.info --ignore-errors unused
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v5
+        with:
+          files: coverage/lcov_filtered.info
+          fail_ci_if_error: false
