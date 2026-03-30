@@ -40,6 +40,9 @@ jobs:
       - name: Install dependencies
         run: nimble install -y
 
+      - name: Lint check
+        run: nim check --threads:on -p:src --hints:off src/nimnet.nim
+
       - name: Compile tests
         run: nimble build_tests
 

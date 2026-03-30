@@ -1,7 +1,7 @@
 ## Structural holes measures for nimnet
 ## Burt's structural holes: constraint, effective size, local constraint
 
-import std/[tables, sets, math]
+import std/[tables, sets]
 import ../types
 import ../graph
 

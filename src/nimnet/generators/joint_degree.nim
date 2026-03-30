@@ -1,6 +1,6 @@
 ## Joint degree graph generators
 
-import std/[tables, random, algorithm, sets]
+import std/[tables, random]
 import ../graph
 
 proc isValidJointDegree*(jointDegree: Table[(int, int), int]): bool =

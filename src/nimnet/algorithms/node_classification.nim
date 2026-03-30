@@ -1,6 +1,6 @@
 ## Semi-supervised node classification and s-metric for nimnet
 
-import std/[tables, sets, deques, math]
+import std/[tables, sets, deques, sequtils]
 import ../types
 import ../graph
 

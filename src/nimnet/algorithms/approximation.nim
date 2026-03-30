@@ -1,6 +1,6 @@
 ## Approximation algorithms for NP-hard graph problems
 
-import std/[tables, sets, deques, random, algorithm, heapqueue, math]
+import std/[tables, sets, deques, random, algorithm, heapqueue]
 import ../types
 import ../graph
 

@@ -1,6 +1,6 @@
 ## Chordal graph algorithms for nimnet
 
-import std/[tables, sets, deques, algorithm, sequtils]
+import std/[tables, sets, deques, algorithm]
 import ../types
 import ../graph
 

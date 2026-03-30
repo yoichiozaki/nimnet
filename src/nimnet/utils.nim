@@ -2,7 +2,7 @@
 ##
 ## Provides graph-level queries, freeze support, display, and helper functions.
 
-import std/[tables, sets, strutils, algorithm, deques, hashes]
+import std/[tables, sets, strutils, algorithm, deques]
 import ./types, ./graph, ./digraph
 
 # --- Freeze support --------------------------------------------------------

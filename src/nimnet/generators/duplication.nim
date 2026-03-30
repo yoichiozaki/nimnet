@@ -1,6 +1,6 @@
 ## Duplication-based graph generators
 
-import std/[random, sets]
+import std/[random]
 import ../graph
 
 proc duplicationDivergenceGraph*(n: int, p: float, seed: int64 = 0): Graph[int] =

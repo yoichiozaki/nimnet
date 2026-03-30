@@ -1,6 +1,6 @@
 ## Leiden community detection algorithm for nimnet
 
-import std/[tables, sets, random, math, algorithm]
+import std/[tables, sets, random, algorithm]
 import ../types
 import ../graph
 import ../digraph

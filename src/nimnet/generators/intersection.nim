@@ -1,6 +1,6 @@
 ## Intersection graph generators
 
-import std/[random, sets, tables, hashes]
+import std/[random, sets]
 import ../graph
 
 proc uniformRandomIntersectionGraph*(n, m: int, p: float, seed: int64 = 0): Graph[int] =

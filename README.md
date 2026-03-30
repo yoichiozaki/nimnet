@@ -16,9 +16,9 @@ A comprehensive network science library for [Nim](https://nim-lang.org/), inspir
 - **Graph views**: Lazy subgraph views (`GraphView`, `DiGraphView`) — zero-copy, read-only
 - **CompactGraph**: Cache-friendly CSR (Compressed Sparse Row) representation
 - **StaticGraph**: Compile-time graph construction templates
-- **48 Algorithm modules**: BFS/DFS traversal, shortest paths (Dijkstra, Bellman-Ford, A*, Floyd-Warshall, Johnson's), centrality (degree, closeness, PageRank, eigenvector, Katz, HITS), connected/strongly connected components, clustering coefficients, community detection (greedy modularity, Louvain), MST (Kruskal, Prim), max flow (Edmonds-Karp), topological sort, transitive closure/reduction, graph isomorphism (VF2), planarity testing, TSP heuristics, min-cost flow, tree decomposition, k-core decomposition, clique enumeration, graph coloring, bipartite matching, Eulerian/Hamiltonian paths, link prediction, bridges & articulation points, ego graphs, distance measures, simple paths, efficiency, rich-club coefficient, Wiener index, cycle basis, matching, graph products, small-world metrics, graph hashing (WL), similarity (SimRank, graph edit distance), spectral analysis, triads, voronoi, LCA, layout (spring, circular, shell), minors, cuts, parallel algorithms (PageRank, betweenness, closeness, clustering, Johnson's)
-- **10 Generator modules**: Classic graphs (complete, cycle, path, star, wheel, grid, barbell, lollipop, ladder, etc.), random graphs (Erdős-Rényi, Barabási-Albert, Watts-Strogatz, random regular, stochastic block model), small/famous graphs (Petersen, karate club), tree generators, line graph, lattice (grid2d, triangular, hypercube), geometric graphs (random geometric, Waxman), community generators (caveman, planted partition), degree sequence generators (configuration model, Havel-Hakimi), directed graph generators (GN, GNR, GNC, random k-out)
-- **10 I/O formats**: Edge list, adjacency list, JSON graph, DOT/Graphviz, GML, GraphML, GEXF, Graph6, Pajek, SVG export
+- **61 Algorithm modules**: BFS/DFS traversal, shortest paths (Dijkstra, Bellman-Ford, A*, Floyd-Warshall, Johnson's), centrality (degree, closeness, PageRank, eigenvector, Katz, HITS), connected/strongly connected components, clustering coefficients, community detection (greedy modularity, Louvain, Leiden), MST (Kruskal, Prim), max flow (Edmonds-Karp), topological sort, transitive closure/reduction, graph isomorphism (VF2), planarity testing, TSP heuristics, min-cost flow, tree decomposition, k-core decomposition, clique enumeration, graph coloring, bipartite matching, Eulerian/Hamiltonian paths, link prediction, bridges & articulation points, ego graphs, distance measures, simple paths, efficiency, rich-club coefficient, Wiener index, cycle basis, matching, graph products, small-world metrics, graph hashing (WL), similarity (SimRank, graph edit distance), spectral analysis, triads, voronoi, LCA, layout (spring, circular, shell), minors, cuts, parallel algorithms, approximation, chordal graph analysis, communicability, d-separation, isolates, network flow, node classification, polynomials, structural holes, tournaments, edge swaps
+- **21 Generator modules**: Classic graphs (complete, cycle, path, star, wheel, grid, barbell, lollipop, ladder, etc.), random graphs (Erdős-Rényi, Barabási-Albert, Watts-Strogatz, random regular, stochastic block model), small/famous graphs (Petersen, karate club), tree generators, line graph, lattice (grid2d, triangular, hypercube), geometric graphs (random geometric, Waxman), community generators (caveman, planted partition), degree sequence generators (configuration model, Havel-Hakimi), directed graph generators (GN, GNR, GNC, random k-out), duplication-divergence, internet topology (Barabási-Albert forest), intersection graphs, joint degree graphs, Mycielski graphs, Harary graphs, stochastic graphs, non-isomorphic trees, triad generators, expander graphs, miscellaneous generators
+- **13 I/O formats**: Edge list, adjacency list, multiline adjacency list, JSON graph, DOT/Graphviz, GML, GraphML, GEXF, Graph6, Pajek, LEDA, network text (tree display), SVG export
 - **Operators**: Union, complement, intersection, difference, node relabeling, directed ↔ undirected conversion
 - **Builder DSL**: Fluent graph construction with method chaining and `buildGraph` template
 - **Built-in datasets**: Dolphins social network, Florentine families, les misérables
@@ -32,7 +32,7 @@ nimble install nimnet
 Or add to your `.nimble` file:
 
 ```nim
-requires "nimnet >= 0.1.0"
+requires "nimnet >= 1.0.0"
 ```
 
 ## Quick Start
@@ -141,6 +141,19 @@ let loaded = readGml("my_graph.gml")
 | Minors | `minors` | Edge contraction, graph minors |
 | Cuts | `cuts` | Cut size, conductance, normalized cut, edge expansion, node boundary |
 | Parallel | `parallel` | Parallel PageRank, betweenness, closeness, clustering, Johnson's (malebolgia) |
+| Approximation | `approximation` | Approximate vertex cover, independent set, clique, dominating set, TSP, coloring, min-cut |
+| Chordal | `chordal` | Chordality testing, perfect elimination ordering, chordal completion |
+| Communicability | `communicability` | Communicability, communicability betweenness |
+| d-Separation | `d_separation` | d-separation testing on DAGs, Markov blanket |
+| Isolates | `isolates` | Isolate detection and removal |
+| Leiden | `leiden` | Leiden community detection algorithm |
+| Misc | `misc` | Graph complement, reciprocity, max weight clique |
+| Network Flow | `network_flow` | Network simplex, min-cost max-flow |
+| Node Classification | `node_classification` | Label propagation node classification |
+| Polynomials | `polynomials` | Chromatic polynomial, Tutte polynomial |
+| Structural Holes | `structural_holes` | Constraint, effective size, efficiency |
+| Swaps | `swaps` | Edge swaps, double edge swaps (degree-preserving) |
+| Tournament | `tournament` | Tournament testing, Hamiltonian path in tournaments |
 
 ## Additional Data Structures
 

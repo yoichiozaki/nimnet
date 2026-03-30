@@ -1,6 +1,6 @@
 ## Miscellaneous graph generators - cograph, interval, sudoku, visibility
 
-import std/[random, algorithm, sets, math]
+import std/[random]
 import ../graph
 
 proc randomCograph*(n: int, seed: int64 = 0): Graph[int] =

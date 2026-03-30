@@ -3,7 +3,7 @@
 ## LEDA native format for graphs.
 
 import std/[strutils]
-import ../types, ../graph
+import ../graph
 
 proc readLeda*(data: string): Graph[int] =
   ## Read a graph from LEDA format string.

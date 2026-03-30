@@ -3,7 +3,7 @@
 ## Project Overview
 NimNet is a network science library for Nim, inspired by Python's NetworkX.
 It provides graph data structures (Graph, DiGraph) with adjacency map internals,
-27 algorithm modules, 4 generator modules, 6 I/O formats, a builder DSL,
+61 algorithm modules, 21 generator modules, 13 I/O formats, a builder DSL,
 built-in datasets, and graph operators.
 
 ## Architecture
@@ -63,7 +63,7 @@ src/nimnet.nim               → Main re-export module
 src/nimnet/types.nim         → Core types (EdgeAttr, NodeAttr), exceptions
 src/nimnet/graph.nim         → Undirected Graph[N]
 src/nimnet/digraph.nim       → Directed DiGraph[N]
-src/nimnet/algorithms/       → 48 algorithm submodules
+src/nimnet/algorithms/       → 61 algorithm submodules
   traversal.nim              → BFS, DFS
   shortest_paths.nim         → Dijkstra, Bellman-Ford, A*
   components.nim             → Connected/strongly connected components
@@ -71,6 +71,7 @@ src/nimnet/algorithms/       → 48 algorithm submodules
   clustering.nim             → Clustering coefficient, transitivity, triangles
   community.nim              → Greedy modularity community detection
   louvain.nim                → Louvain community detection
+  leiden.nim                 → Leiden community detection
   mst.nim                    → Kruskal, Prim MST
   dag.nim                    → Topological sort, DAG operations
   flow.nim                   → Edmonds-Karp max flow, min cut
@@ -112,7 +113,19 @@ src/nimnet/algorithms/       → 48 algorithm submodules
   minors.nim                 → Edge contraction, graph minors
   cuts.nim                   → Minimum node/edge cuts, Stoer-Wagner
   parallel.nim               → Parallel PageRank, betweenness, closeness, clustering, Johnson's
-src/nimnet/generators/       → 10 generator submodules
+  approximation.nim          → Approximate vertex cover, independent set, clique, coloring
+  chordal.nim                → Chordality testing, perfect elimination ordering
+  communicability.nim         → Communicability, communicability betweenness
+  d_separation.nim           → d-separation testing on DAGs
+  isolates.nim               → Isolate detection and removal
+  misc.nim                   → Graph complement, reciprocity
+  network_flow.nim           → Network simplex, min-cost max-flow
+  node_classification.nim    → Label propagation node classification
+  polynomials.nim            → Chromatic polynomial, Tutte polynomial
+  structural_holes.nim       → Constraint, effective size, efficiency
+  swaps.nim                  → Edge swaps (degree-preserving)
+  tournament.nim             → Tournament testing, Hamiltonian path
+src/nimnet/generators/       → 21 generator submodules
   classic.nim                → Complete, cycle, path, star, wheel, grid, barbell, lollipop, ladder, etc.
   random.nim                 → Erdős-Rényi, Barabási-Albert, Watts-Strogatz, regular, SBM
   small.nim                  → Petersen, karate club, Florentine families
@@ -123,9 +136,21 @@ src/nimnet/generators/       → 10 generator submodules
   community.nim              → Caveman, connected caveman, relaxed caveman, planted partition, ring of cliques
   degree_sequence.nim        → Configuration model, Havel-Hakimi, expected degree, degree sequence tree
   directed.nim               → GN, GNR, GNC, random k-out digraphs
-src/nimnet/io/               → 10 I/O format submodules
+  duplication.nim            → Duplication-divergence model
+  expanders.nim              → Margulis-Gabber-Galil, chordal cycle expanders
+  harary.nim                 → Harary graph, HKN graph
+  internet.nim               → Barabási-Albert forest (Internet topology)
+  intersection.nim           → Random/uniform intersection graphs
+  joint_degree.nim           → Joint degree graph generation
+  misc_generators.nim        → Full rary tree, circulant, null graph
+  mycielski.nim              → Mycielskian graph, Mycielski graph
+  nonisomorphic_trees.nim    → Non-isomorphic tree enumeration
+  stochastic.nim             → Stochastic graph generation
+  triad_generator.nim        → Triad graph generation
+src/nimnet/io/               → 13 I/O format submodules
   edgelist.nim               → Edge list format
   adjlist.nim                → Adjacency list format
+  multiline_adjlist.nim      → Multiline adjacency list format
   json_graph.nim             → JSON node-link format
   dot.nim                    → DOT/Graphviz export
   gml.nim                    → GML format read/write
@@ -133,6 +158,8 @@ src/nimnet/io/               → 10 I/O format submodules
   gexf.nim                   → GEXF format read/write (Gephi compatible)
   graph6.nim                 → Graph6/Sparse6 format read/write
   pajek.nim                  → Pajek .net format read/write
+  leda.nim                   → LEDA graph format read/write
+  network_text.nim           → Network text tree-style display
   svg.nim                    → SVG visualization export
 src/nimnet/operators.nim     → Graph operations (complement, union, relabel)
 src/nimnet/convert.nim       → Type conversions (adjacency matrix, edge list)
@@ -162,7 +189,7 @@ tests/                       → Test files
 ## Testing
 - Framework: `std/unittest` (see ADR-0004)
 - Test files: `tests/t<module>.nim` with `t` prefix
-- Run: `nimble test` (runs all 14 test files, 1040 total tests)
+- Run: `nimble test` (runs all 15 test files, 1169+ total tests)
 - Every public proc MUST have corresponding tests
 - Use `suite` and `test` blocks, `check` for assertions, `expect` for exceptions
 
@@ -238,7 +265,7 @@ let g = small.florentineFamiliesGraph()
 - GitHub Actions: `.github/workflows/ci.yml`
 - Matrix: ubuntu-latest, macos-latest, windows-latest
 - Uses `jiro4989/setup-nim-action@v2`
-- Nim version: 2.2.8
+- Nim version: stable
 
 ## Commit Message Format
 - `feat: <description>` — new feature

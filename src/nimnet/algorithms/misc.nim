@@ -1,6 +1,6 @@
 ## Miscellaneous graph algorithms for nimnet (#135)
 
-import std/[tables, sets, deques, algorithm, random, math]
+import std/[tables, sets, deques, algorithm, random]
 import ../types
 import ../graph
 import ../digraph

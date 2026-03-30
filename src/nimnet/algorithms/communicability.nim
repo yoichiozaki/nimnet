@@ -1,6 +1,6 @@
 ## Communicability and closeness vitality for nimnet
 
-import std/[tables, sets, deques, math]
+import std/[tables, sets, deques]
 import ../types
 import ../graph
 

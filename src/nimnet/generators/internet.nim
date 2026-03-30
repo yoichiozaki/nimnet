@@ -1,6 +1,6 @@
 ## Internet AS graph generator
 
-import std/[random, sets]
+import std/[random]
 import ../graph
 
 proc randomInternetAsGraph*(n: int, seed: int64 = 0): Graph[int] =

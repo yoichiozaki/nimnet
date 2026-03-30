@@ -1,6 +1,6 @@
 ## Graph polynomials and non-randomness for nimnet
 
-import std/[tables, sets, math, algorithm]
+import std/[tables, sets, algorithm]
 import ../types
 import ../graph
 

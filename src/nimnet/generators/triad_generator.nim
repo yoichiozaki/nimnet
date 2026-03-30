@@ -1,6 +1,6 @@
 ## Triad graph generator - generates one of the 16 triad types
 
-import ../graph, ../digraph
+import ../digraph
 
 const triadNames* = [
   "003", "012", "102", "021D", "021U", "021C", "111D", "111U",

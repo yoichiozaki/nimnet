@@ -4,6 +4,8 @@ author        = "yoichiozaki"
 description   = "A comprehensive network science library for Nim, inspired by NetworkX"
 license       = "MIT"
 srcDir        = "src"
+# homepage: https://github.com/yoichiozaki/nimnet
+skipDirs      = @["benchmarks", "docs", "build", "examples", ".github"]
 
 # Dependencies
 requires "nim >= 2.0.0"
@@ -24,6 +26,7 @@ task build_tests, "Compile all tests":
   exec "nim c --threads:on -p:src --nimcache:build/nimcache/tcoverage tests/tcoverage.nim"
   exec "nim c --threads:on -p:src --nimcache:build/nimcache/tcoverage2 tests/tcoverage2.nim"
   exec "nim c --threads:on -p:src --nimcache:build/nimcache/tparallel tests/tparallel.nim"
+  exec "nim c --threads:on -p:src --nimcache:build/nimcache/tcoverage3 tests/tcoverage3.nim"
 
 task run_tests, "Run compiled tests":
   when defined(windows):
@@ -41,6 +44,7 @@ task run_tests, "Run compiled tests":
     exec "tests\\tcoverage.exe"
     exec "tests\\tcoverage2.exe"
     exec "tests\\tparallel.exe"
+    exec "tests\\tcoverage3.exe"
   else:
     exec "./tests/ttypes"
     exec "./tests/tgraph"
@@ -56,6 +60,7 @@ task run_tests, "Run compiled tests":
     exec "./tests/tcoverage"
     exec "./tests/tcoverage2"
     exec "./tests/tparallel"
+    exec "./tests/tcoverage3"
 
 task test, "Compile and run all tests":
   exec "nim c -r --threads:on -p:src --nimcache:build/nimcache/ttypes tests/ttypes.nim"
@@ -72,6 +77,7 @@ task test, "Compile and run all tests":
   exec "nim c -r --threads:on -p:src --nimcache:build/nimcache/tcoverage tests/tcoverage.nim"
   exec "nim c -r --threads:on -p:src --nimcache:build/nimcache/tcoverage2 tests/tcoverage2.nim"
   exec "nim c -r --threads:on -p:src --nimcache:build/nimcache/tparallel tests/tparallel.nim"
+  exec "nim c -r --threads:on -p:src --nimcache:build/nimcache/tcoverage3 tests/tcoverage3.nim"
   exec "nim c -r --threads:on -p:src --nimcache:build/nimcache/tnewfeatures3 tests/tnewfeatures3.nim"
 
 task cleanup, "Remove compiled exe files and build artifacts":
