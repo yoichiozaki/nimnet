@@ -299,6 +299,129 @@ print(f"lexicographic_product(P3, P2) nodes = {LP.number_of_nodes()}")
 print(f"lexicographic_product(P3, P2) edges = {LP.number_of_edges()}")
 
 # ============================================================
+# 13. Eigenvector centrality (Karate Club)
+# ============================================================
+print("\n=== Eigenvector Centrality (Karate Club) ===")
+ec = nx.eigenvector_centrality(K, max_iter=1000, tol=1e-6)
+for n in [0, 2, 33]:
+    print(f"eigenvector_centrality[{n}] = {ec[n]:.10f}")
+
+# ============================================================
+# 14. Katz centrality (Karate Club)
+# ============================================================
+print("\n=== Katz Centrality (Karate Club) ===")
+kc = nx.katz_centrality(K, alpha=0.01, beta=1.0)
+for n in [0, 2, 33]:
+    print(f"katz_centrality[{n}] = {kc[n]:.10f}")
+
+# ============================================================
+# 15. Graph coloring (Petersen)
+# ============================================================
+print("\n=== Graph Coloring (Petersen) ===")
+coloring = nx.coloring.greedy_color(P, strategy='largest_first')
+num_colors = max(coloring.values()) + 1
+print(f"greedy_colors = {num_colors}")
+
+# ============================================================
+# 16. Bipartiteness
+# ============================================================
+print("\n=== Bipartiteness ===")
+print(f"karate_is_bipartite = {nx.is_bipartite(K)}")
+K33 = nx.complete_bipartite_graph(3, 3)
+print(f"K33_is_bipartite = {nx.is_bipartite(K33)}")
+
+# ============================================================
+# 17. Topological sort (DAG)
+# ============================================================
+print("\n=== Topological Sort ===")
+DAG = nx.DiGraph()
+DAG.add_edges_from([(0,1), (0,2), (1,3), (2,3), (3,4)])
+print(f"is_dag = {nx.is_directed_acyclic_graph(DAG)}")
+ts = list(nx.topological_sort(DAG))
+print(f"topological_sort = {ts}")
+
+# ============================================================
+# 18. Cycle basis (C6)
+# ============================================================
+print("\n=== Cycle Basis (C6) ===")
+cb = nx.cycle_basis(C6)
+print(f"cycle_count = {len(cb)}")
+print(f"cycle_length = {len(cb[0]) if cb else 0}")
+
+# ============================================================
+# 19. Bridges and articulation points
+# ============================================================
+print("\n=== Bridges / Articulation Points ===")
+BRG = nx.Graph()
+BRG.add_edges_from([(0,1), (1,2), (2,0), (2,3), (3,4), (4,5), (5,3)])
+bridges = list(nx.bridges(BRG))
+print(f"bridges = {sorted([(min(u,v),max(u,v)) for u,v in bridges])}")
+aps = sorted(nx.articulation_points(BRG))
+print(f"articulation_points = {aps}")
+
+# ============================================================
+# 20. Floyd-Warshall
+# ============================================================
+print("\n=== Floyd-Warshall (Weighted Graph) ===")
+fw = dict(nx.floyd_warshall(WG))
+print(f"fw(0,4) = {fw[0][4]:.10f}")
+print(f"fw(0,3) = {fw[0][3]:.10f}")
+print(f"fw(1,4) = {fw[1][4]:.10f}")
+
+# ============================================================
+# 21. Link prediction
+# ============================================================
+print("\n=== Link Prediction ===")
+LPG = nx.Graph()
+LPG.add_edges_from([(0,1), (0,2), (1,2), (1,3), (2,3), (3,4)])
+cn = sorted(nx.common_neighbors(LPG, 0, 3))
+print(f"common_neighbors(0,3) = {cn}")
+jc = list(nx.jaccard_coefficient(LPG, [(0,4)]))
+print(f"jaccard(0,4) = {jc[0][2]:.10f}")
+aa = list(nx.adamic_adar_index(LPG, [(0,3)]))
+print(f"adamic_adar(0,3) = {aa[0][2]:.10f}")
+
+# ============================================================
+# 22. Louvain community detection (Karate Club)
+# ============================================================
+print("\n=== Louvain (Karate Club) ===")
+comms = nx.community.louvain_communities(K, seed=42)
+mod = nx.community.modularity(K, comms)
+print(f"num_communities = {len(comms)}")
+print(f"modularity = {mod:.10f}")
+all_nodes = set()
+for c in comms:
+    all_nodes |= c
+print(f"all_nodes_covered = {len(all_nodes)}")
+
+# ============================================================
+# 23. Matching
+# ============================================================
+print("\n=== Matching ===")
+MG = nx.Graph()
+MG.add_edges_from([(0,1), (1,2), (2,3), (3,4)])
+mm = nx.max_weight_matching(MG)
+print(f"max_matching_size = {len(mm)}")
+
+# ============================================================
+# 24. Triad census
+# ============================================================
+print("\n=== Triad Census ===")
+TG = nx.DiGraph()
+TG.add_edges_from([(0,1),(1,2),(2,0),(2,3),(3,4),(4,3),(0,3)])
+tc = nx.triadic_census(TG)
+for k, v in sorted(tc.items()):
+    if v > 0:
+        print(f"  {k} = {v}")
+
+# ============================================================
+# 25. Algebraic connectivity
+# ============================================================
+print("\n=== Algebraic Connectivity (Karate Club) ===")
+ac = nx.algebraic_connectivity(K, tol=1e-8)
+print(f"algebraic_connectivity = {ac:.10f}")
+
+# ============================================================
 # Summary
 # ============================================================
 print("\n=== DONE ===")

@@ -14,6 +14,13 @@ type
 func `<`*[N](a, b: DijkEntry[N]): bool = a.dist < b.dist
 
 type
+  IdxDijkEntry = object
+    d: float
+    idx: int
+
+func `<`*(a, b: IdxDijkEntry): bool = a.d < b.d
+
+type
   AstarEntry[N] = object
     fScore: float
     gScore: float
@@ -189,7 +196,7 @@ proc singleSourceShortestPathLength*[N](g: DiGraph[N], source: N): Table[N, int]
 
 proc dijkstraPath*[N](g: Graph[N], source, target: N): seq[N] =
   ## Find shortest weighted path using Dijkstra's algorithm.
-  ## Uses "weight" edge attribute (default 1.0).
+  ## Uses index-based arrays internally for cache-friendly performance.
   if not g.hasNode(source):
     raise newException(NodeNotFound, "Source node not found")
   if not g.hasNode(target):
@@ -197,40 +204,75 @@ proc dijkstraPath*[N](g: Graph[N], source, target: N): seq[N] =
   if source == target:
     return @[source]
 
-  var dist = initTable[N, float]()
-  var pred = initTable[N, N]()
-  var visited = initHashSet[N](g.numberOfNodes())
-  dist[source] = 0.0
+  let n = g.numberOfNodes()
 
-  var pq: HeapQueue[DijkEntry[N]]
-  pq.push(DijkEntry[N](dist: 0.0, node: source))
+  # Build index mapping
+  var nodeList = newSeqOfCap[N](n)
+  var nodeIdx = initTable[N, int](n)
+  var idx = 0
+  for node in g.adj.keys:
+    nodeList.add(node)
+    nodeIdx[node] = idx
+    idx.inc
+
+  # Build CSR-like adjacency: flat arrays of (neighborIdx, weight)
+  var adjOff = newSeq[int](n + 1)  # offsets into adjData
+  var totalEdges = 0
+  for i in 0 ..< n:
+    totalEdges += g.adj[nodeList[i]].len
+  var adjNbr = newSeqOfCap[int](totalEdges)
+  var adjWgt = newSeqOfCap[float](totalEdges)
+  var off = 0
+  for i in 0 ..< n:
+    adjOff[i] = off
+    for v, attr in g.adj[nodeList[i]]:
+      adjNbr.add(nodeIdx[v])
+      adjWgt.add(attr.weight)
+      off.inc
+  adjOff[n] = off
+
+  let srcIdx = nodeIdx[source]
+  let tgtIdx = nodeIdx[target]
+
+  # Array-based Dijkstra — no hash lookups in hot loop
+  var dist = newSeq[float](n)
+  var predArr = newSeq[int](n)
+  var visited = newSeq[bool](n)
+  for i in 0 ..< n:
+    dist[i] = Inf
+    predArr[i] = -1
+  dist[srcIdx] = 0.0
+
+  var pq: HeapQueue[IdxDijkEntry]
+  pq.push(IdxDijkEntry(d: 0.0, idx: srcIdx))
 
   while pq.len > 0:
     let entry = pq.pop()
-    let u = entry.node
-    if u in visited:
+    let u = entry.idx
+    if visited[u]:
       continue
-    if u == target:
+    if u == tgtIdx:
       break
-    visited.incl(u)
-    let uDist = entry.dist
-    for v, attr in g.adj[u]:
-      if v notin visited:
-        let newDist = uDist + attr.weight
-        if newDist < dist.getOrDefault(v, Inf):
+    visited[u] = true
+    let uDist = entry.d
+    for k in adjOff[u] ..< adjOff[u + 1]:
+      let v = adjNbr[k]
+      if not visited[v]:
+        let newDist = uDist + adjWgt[k]
+        if newDist < dist[v]:
           dist[v] = newDist
-          pred[v] = u
-          pq.push(DijkEntry[N](dist: newDist, node: v))
+          predArr[v] = u
+          pq.push(IdxDijkEntry(d: newDist, idx: v))
 
-  if target notin dist:
+  if dist[tgtIdx] == Inf:
     raise newException(NimNetNoPath, "No path between source and target")
 
   var path: seq[N]
-  var current = target
-  while current != source:
-    path.add(current)
-    current = pred[current]
-  path.add(source)
+  var cur = tgtIdx
+  while cur != srcIdx:
+    path.add(nodeList[cur])
+    cur = predArr[cur]
+  path.add(nodeList[srcIdx])
   path.reverse()
   result = path
 
@@ -243,40 +285,74 @@ proc dijkstraPath*[N](g: DiGraph[N], source, target: N): seq[N] =
   if source == target:
     return @[source]
 
-  var dist = initTable[N, float]()
-  var pred = initTable[N, N]()
-  var visited = initHashSet[N](g.numberOfNodes())
-  dist[source] = 0.0
+  let n = g.numberOfNodes()
 
-  var pq: HeapQueue[DijkEntry[N]]
-  pq.push(DijkEntry[N](dist: 0.0, node: source))
+  # Build index mapping
+  var nodeList = newSeqOfCap[N](n)
+  var nodeIdx = initTable[N, int](n)
+  var idx = 0
+  for node in g.adj.keys:
+    nodeList.add(node)
+    nodeIdx[node] = idx
+    idx.inc
+
+  # Build CSR-like adjacency
+  var adjOff = newSeq[int](n + 1)
+  var totalEdges = 0
+  for i in 0 ..< n:
+    totalEdges += g.adj[nodeList[i]].len
+  var adjNbr = newSeqOfCap[int](totalEdges)
+  var adjWgt = newSeqOfCap[float](totalEdges)
+  var off = 0
+  for i in 0 ..< n:
+    adjOff[i] = off
+    for v, attr in g.adj[nodeList[i]]:
+      adjNbr.add(nodeIdx[v])
+      adjWgt.add(attr.weight)
+      off.inc
+  adjOff[n] = off
+
+  let srcIdx = nodeIdx[source]
+  let tgtIdx = nodeIdx[target]
+
+  var dist = newSeq[float](n)
+  var predArr = newSeq[int](n)
+  var visited = newSeq[bool](n)
+  for i in 0 ..< n:
+    dist[i] = Inf
+    predArr[i] = -1
+  dist[srcIdx] = 0.0
+
+  var pq: HeapQueue[IdxDijkEntry]
+  pq.push(IdxDijkEntry(d: 0.0, idx: srcIdx))
 
   while pq.len > 0:
     let entry = pq.pop()
-    let u = entry.node
-    if u in visited:
+    let u = entry.idx
+    if visited[u]:
       continue
-    if u == target:
+    if u == tgtIdx:
       break
-    visited.incl(u)
-    let uDist = entry.dist
-    for v, attr in g.adj[u]:
-      if v notin visited:
-        let newDist = uDist + attr.weight
-        if newDist < dist.getOrDefault(v, Inf):
+    visited[u] = true
+    let uDist = entry.d
+    for k in adjOff[u] ..< adjOff[u + 1]:
+      let v = adjNbr[k]
+      if not visited[v]:
+        let newDist = uDist + adjWgt[k]
+        if newDist < dist[v]:
           dist[v] = newDist
-          pred[v] = u
-          pq.push(DijkEntry[N](dist: newDist, node: v))
+          predArr[v] = u
+          pq.push(IdxDijkEntry(d: newDist, idx: v))
 
-  if target notin dist:
+  if dist[tgtIdx] == Inf:
     raise newException(NimNetNoPath, "No path between source and target")
 
   var path: seq[N]
-  var current = target
-  while current != source:
-    path.add(current)
-    current = pred[current]
-  path.add(source)
+  var cur = tgtIdx
+  while cur != srcIdx:
+    path.add(nodeList[cur])
+    cur = predArr[cur]
+  path.add(nodeList[srcIdx])
   path.reverse()
   result = path
 
@@ -289,32 +365,62 @@ proc dijkstraPathLength*[N](g: Graph[N], source, target: N): float =
   if source == target:
     return 0.0
 
-  var dist = initTable[N, float]()
-  var visited = initHashSet[N](g.numberOfNodes())
-  dist[source] = 0.0
+  let n = g.numberOfNodes()
+  var nodeList = newSeqOfCap[N](n)
+  var nodeIdx = initTable[N, int](n)
+  var idx = 0
+  for node in g.adj.keys:
+    nodeList.add(node)
+    nodeIdx[node] = idx
+    idx.inc
 
-  var pq: HeapQueue[DijkEntry[N]]
-  pq.push(DijkEntry[N](dist: 0.0, node: source))
+  var adjOff = newSeq[int](n + 1)
+  var totalEdges = 0
+  for i in 0 ..< n:
+    totalEdges += g.adj[nodeList[i]].len
+  var adjNbr = newSeqOfCap[int](totalEdges)
+  var adjWgt = newSeqOfCap[float](totalEdges)
+  var off = 0
+  for i in 0 ..< n:
+    adjOff[i] = off
+    for v, attr in g.adj[nodeList[i]]:
+      adjNbr.add(nodeIdx[v])
+      adjWgt.add(attr.weight)
+      off.inc
+  adjOff[n] = off
+
+  let srcIdx = nodeIdx[source]
+  let tgtIdx = nodeIdx[target]
+
+  var dist = newSeq[float](n)
+  var visited = newSeq[bool](n)
+  for i in 0 ..< n:
+    dist[i] = Inf
+  dist[srcIdx] = 0.0
+
+  var pq: HeapQueue[IdxDijkEntry]
+  pq.push(IdxDijkEntry(d: 0.0, idx: srcIdx))
 
   while pq.len > 0:
     let entry = pq.pop()
-    let u = entry.node
-    if u in visited:
+    let u = entry.idx
+    if visited[u]:
       continue
-    if u == target:
-      return entry.dist
-    visited.incl(u)
-    let uDist = entry.dist
-    for v, attr in g.adj[u]:
-      if v notin visited:
-        let newDist = uDist + attr.getWeight()
-        if v notin dist or newDist < dist[v]:
+    if u == tgtIdx:
+      return entry.d
+    visited[u] = true
+    let uDist = entry.d
+    for k in adjOff[u] ..< adjOff[u + 1]:
+      let v = adjNbr[k]
+      if not visited[v]:
+        let newDist = uDist + adjWgt[k]
+        if newDist < dist[v]:
           dist[v] = newDist
-          pq.push(DijkEntry[N](dist: newDist, node: v))
+          pq.push(IdxDijkEntry(d: newDist, idx: v))
 
-  if target notin dist:
+  if dist[tgtIdx] == Inf:
     raise newException(NimNetNoPath, "No path between source and target")
-  dist[target]
+  dist[tgtIdx]
 
 proc dijkstraPathLength*[N](g: DiGraph[N], source, target: N): float =
   ## Return weighted shortest path length in a directed graph.
@@ -325,77 +431,140 @@ proc dijkstraPathLength*[N](g: DiGraph[N], source, target: N): float =
   if source == target:
     return 0.0
 
-  var dist = initTable[N, float]()
-  var visited = initHashSet[N](g.numberOfNodes())
-  dist[source] = 0.0
+  let n = g.numberOfNodes()
+  var nodeList = newSeqOfCap[N](n)
+  var nodeIdx = initTable[N, int](n)
+  var idx = 0
+  for node in g.adj.keys:
+    nodeList.add(node)
+    nodeIdx[node] = idx
+    idx.inc
 
-  var pq: HeapQueue[DijkEntry[N]]
-  pq.push(DijkEntry[N](dist: 0.0, node: source))
+  var adjOff = newSeq[int](n + 1)
+  var totalEdges = 0
+  for i in 0 ..< n:
+    totalEdges += g.adj[nodeList[i]].len
+  var adjNbr = newSeqOfCap[int](totalEdges)
+  var adjWgt = newSeqOfCap[float](totalEdges)
+  var off = 0
+  for i in 0 ..< n:
+    adjOff[i] = off
+    for v, attr in g.adj[nodeList[i]]:
+      adjNbr.add(nodeIdx[v])
+      adjWgt.add(attr.weight)
+      off.inc
+  adjOff[n] = off
+
+  let srcIdx = nodeIdx[source]
+  let tgtIdx = nodeIdx[target]
+
+  var dist = newSeq[float](n)
+  var visited = newSeq[bool](n)
+  for i in 0 ..< n:
+    dist[i] = Inf
+  dist[srcIdx] = 0.0
+
+  var pq: HeapQueue[IdxDijkEntry]
+  pq.push(IdxDijkEntry(d: 0.0, idx: srcIdx))
 
   while pq.len > 0:
     let entry = pq.pop()
-    let u = entry.node
-    if u in visited:
+    let u = entry.idx
+    if visited[u]:
       continue
-    if u == target:
-      return entry.dist
-    visited.incl(u)
-    let uDist = entry.dist
-    for v, attr in g.adj[u]:
-      if v notin visited:
-        let newDist = uDist + attr.getWeight()
-        if v notin dist or newDist < dist[v]:
+    if u == tgtIdx:
+      return entry.d
+    visited[u] = true
+    let uDist = entry.d
+    for k in adjOff[u] ..< adjOff[u + 1]:
+      let v = adjNbr[k]
+      if not visited[v]:
+        let newDist = uDist + adjWgt[k]
+        if newDist < dist[v]:
           dist[v] = newDist
-          pq.push(DijkEntry[N](dist: newDist, node: v))
+          pq.push(IdxDijkEntry(d: newDist, idx: v))
 
-  if target notin dist:
+  if dist[tgtIdx] == Inf:
     raise newException(NimNetNoPath, "No path between source and target")
-  dist[target]
+  dist[tgtIdx]
 
 proc singleSourceDijkstra*[N](g: Graph[N], source: N): (Table[N, float], Table[N, seq[N]]) =
   ## Return (distances, paths) from source to all reachable nodes.
   if not g.hasNode(source):
     raise newException(NodeNotFound, "Source node not found")
 
-  var dist = initTable[N, float]()
-  var pred = initTable[N, N]()
-  var visited = initHashSet[N](g.numberOfNodes())
-  dist[source] = 0.0
+  let n = g.numberOfNodes()
+  var nodeList = newSeqOfCap[N](n)
+  var nodeIdx = initTable[N, int](n)
+  var idx = 0
+  for node in g.adj.keys:
+    nodeList.add(node)
+    nodeIdx[node] = idx
+    idx.inc
 
-  var pq: HeapQueue[DijkEntry[N]]
-  pq.push(DijkEntry[N](dist: 0.0, node: source))
+  # Build CSR-like adjacency
+  var adjOff = newSeq[int](n + 1)
+  var totalEdges = 0
+  for i in 0 ..< n:
+    totalEdges += g.adj[nodeList[i]].len
+  var adjNbr = newSeqOfCap[int](totalEdges)
+  var adjWgt = newSeqOfCap[float](totalEdges)
+  var off = 0
+  for i in 0 ..< n:
+    adjOff[i] = off
+    for v, attr in g.adj[nodeList[i]]:
+      adjNbr.add(nodeIdx[v])
+      adjWgt.add(attr.weight)
+      off.inc
+  adjOff[n] = off
+
+  let srcIdx = nodeIdx[source]
+
+  var dist = newSeq[float](n)
+  var predArr = newSeq[int](n)
+  var visited = newSeq[bool](n)
+  for i in 0 ..< n:
+    dist[i] = Inf
+    predArr[i] = -1
+  dist[srcIdx] = 0.0
+
+  var pq: HeapQueue[IdxDijkEntry]
+  pq.push(IdxDijkEntry(d: 0.0, idx: srcIdx))
 
   while pq.len > 0:
     let entry = pq.pop()
-    let u = entry.node
-    if u in visited:
+    let u = entry.idx
+    if visited[u]:
       continue
-    visited.incl(u)
-    let uDist = entry.dist
-    for v, attr in g.adj[u]:
-      if v notin visited:
-        let newDist = uDist + attr.getWeight()
-        if v notin dist or newDist < dist[v]:
+    visited[u] = true
+    let uDist = entry.d
+    for k in adjOff[u] ..< adjOff[u + 1]:
+      let v = adjNbr[k]
+      if not visited[v]:
+        let newDist = uDist + adjWgt[k]
+        if newDist < dist[v]:
           dist[v] = newDist
-          pred[v] = u
-          pq.push(DijkEntry[N](dist: newDist, node: v))
+          predArr[v] = u
+          pq.push(IdxDijkEntry(d: newDist, idx: v))
 
-  # Reconstruct paths from predecessors
-  var paths = initTable[N, seq[N]]()
-  paths[source] = @[source]
-  for node in dist.keys:
-    if node == source:
-      continue
-    var path: seq[N]
-    var current = node
-    while current != source:
-      path.add(current)
-      current = pred[current]
-    path.add(source)
-    path.reverse()
-    paths[node] = path
+  # Convert results to Table
+  var distResult = initTable[N, float](n)
+  var pathsResult = initTable[N, seq[N]](n)
+  distResult[source] = 0.0
+  pathsResult[source] = @[source]
+  for i in 0 ..< n:
+    if i != srcIdx and dist[i] != Inf:
+      distResult[nodeList[i]] = dist[i]
+      var path: seq[N]
+      var cur = i
+      while cur != srcIdx:
+        path.add(nodeList[cur])
+        cur = predArr[cur]
+      path.add(source)
+      path.reverse()
+      pathsResult[nodeList[i]] = path
 
-  result = (dist, paths)
+  result = (distResult, pathsResult)
 
 # =============================================================================
 # Bellman-Ford Algorithm

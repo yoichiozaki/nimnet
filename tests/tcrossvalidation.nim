@@ -497,3 +497,308 @@ suite "NetworkX cross-validation: Rich Club":
     check abs(rc[2] - 0.2380952381) < Eps
     check abs(rc[3] - 0.3250000000) < Eps
     check abs(rc[4] - 0.4888888889) < Eps
+
+# ============================================================
+# Bellman-Ford (Directed Weighted Graph with negative edges)
+# ============================================================
+suite "NetworkX cross-validation: Bellman-Ford":
+  # BFG from generate_reference.py:
+  #   (0,1,6), (0,2,7), (1,2,8), (1,3,5), (1,4,-4),
+  #   (2,3,-3), (2,4,9), (3,1,-2), (4,0,2), (4,3,7)
+  var bfg = newDiGraph[int]()
+  bfg.addWeightedEdge(0, 1, 6.0)
+  bfg.addWeightedEdge(0, 2, 7.0)
+  bfg.addWeightedEdge(1, 2, 8.0)
+  bfg.addWeightedEdge(1, 3, 5.0)
+  bfg.addWeightedEdge(1, 4, -4.0)
+  bfg.addWeightedEdge(2, 3, -3.0)
+  bfg.addWeightedEdge(2, 4, 9.0)
+  bfg.addWeightedEdge(3, 1, -2.0)
+  bfg.addWeightedEdge(4, 0, 2.0)
+  bfg.addWeightedEdge(4, 3, 7.0)
+
+  test "bellman-ford distances":
+    let dist = bellmanFordDistances(bfg, 0)
+    check abs(dist[0] - 0.0) < Eps
+    check abs(dist[1] - 2.0) < Eps
+    check abs(dist[2] - 7.0) < Eps
+    check abs(dist[3] - 4.0) < Eps
+    check abs(dist[4] - (-2.0)) < Eps
+
+  test "bellman-ford path 0→4":
+    let path = bellmanFordPath(bfg, 0, 4)
+    # NetworkX: [0, 2, 3, 1, 4]
+    check path == @[0, 2, 3, 1, 4]
+
+  test "bellman-ford path 0→3":
+    let path = bellmanFordPath(bfg, 0, 3)
+    # NetworkX: [0, 2, 3]
+    check path == @[0, 2, 3]
+
+# ============================================================
+# Eigenvector Centrality (Karate Club)
+# ============================================================
+suite "NetworkX cross-validation: Eigenvector Centrality":
+  let K = karateClubGraph()
+
+  test "eigenvector centrality karate":
+    let ec = eigenvectorCentrality(K)
+    # NimNet uses max-normalization (max=1.0). Compare ratios to NetworkX.
+    # NetworkX L2-normalized: ec[0]=0.3555, ec[2]=0.3172, ec[33]=0.3734
+    # Ratios: ec[0]/ec[33]=0.9521, ec[2]/ec[33]=0.8496
+    check abs(ec[33] - 1.0) < EpsLoose  # max-normalized
+    check abs(ec[0] / ec[33] - 0.3554834942 / 0.3733712130) < EpsLoose
+    check abs(ec[2] / ec[33] - 0.3171893900 / 0.3733712130) < EpsLoose
+    # Order: node 33 > node 0 > node 2
+    check ec[33] > ec[0]
+    check ec[0] > ec[2]
+
+# ============================================================
+# Katz Centrality (Karate Club)
+# ============================================================
+suite "NetworkX cross-validation: Katz Centrality":
+  let K = karateClubGraph()
+
+  test "katz centrality karate":
+    let kc = katzCentrality(K, alpha = 0.01, beta = 1.0)
+    # NimNet doesn't normalize Katz. Compare ratios to NetworkX.
+    # NetworkX normalized: katz[0]=0.1906, katz[2]=0.1808, katz[33]=0.1922
+    # Ratios: katz[0]/katz[33]=0.9918, katz[2]/katz[33]=0.9405
+    check abs(kc[0] / kc[33] - 0.1906187233 / 0.1921946360) < EpsLoose
+    check abs(kc[2] / kc[33] - 0.1807536371 / 0.1921946360) < EpsLoose
+    # Order: node 33 > node 0 > node 2
+    check kc[33] > kc[0]
+    check kc[0] > kc[2]
+
+# ============================================================
+# Graph Coloring (Petersen)
+# ============================================================
+suite "NetworkX cross-validation: Graph Coloring":
+  let P = petersenGraph()
+
+  test "petersen greedy coloring":
+    let coloring = greedyColor(P)
+    let numColors = coloring.len
+    # Verify it's a proper coloring
+    check numColors == P.numberOfNodes()
+    var usedColors: HashSet[int]
+    for n, c in coloring:
+      usedColors.incl(c)
+    # Petersen graph chromatic number is 3, greedy should use <= 4
+    check usedColors.len <= 4
+    # Verify no two adjacent nodes share a color
+    for e in P.edges():
+      check coloring[e[0]] != coloring[e[1]]
+
+# ============================================================
+# Bipartiteness
+# ============================================================
+suite "NetworkX cross-validation: Bipartiteness":
+  test "karate club not bipartite":
+    let K = karateClubGraph()
+    check isBipartite(K) == false
+
+  test "complete bipartite K(3,3) is bipartite":
+    let bg = completeBipartiteGraph(3, 3)
+    check isBipartite(bg) == true
+
+# ============================================================
+# Topological Sort (DAG)
+# ============================================================
+suite "NetworkX cross-validation: Topological Sort":
+  var dag = newDiGraph[int]()
+  dag.addEdge(0, 1)
+  dag.addEdge(0, 2)
+  dag.addEdge(1, 3)
+  dag.addEdge(2, 3)
+  dag.addEdge(3, 4)
+
+  test "is DAG":
+    check isDirectedAcyclicGraph(dag) == true
+
+  test "topological sort valid ordering":
+    let ts = topologicalSort(dag)
+    check ts.len == 5
+    # In any valid topological ordering, 0 must come before 1,2,3,4;
+    # 1 must come before 3; 2 must come before 3; 3 must come before 4
+    var pos: Table[int, int]
+    for i, n in ts:
+      pos[n] = i
+    check pos[0] < pos[1]
+    check pos[0] < pos[2]
+    check pos[1] < pos[3]
+    check pos[2] < pos[3]
+    check pos[3] < pos[4]
+
+# ============================================================
+# Cycle Basis (C6)
+# ============================================================
+suite "NetworkX cross-validation: Cycle Basis":
+  let C6 = cycleGraph(6)
+
+  test "C6 cycle basis":
+    let cb = cycleBasis(C6)
+    # NetworkX: 1 cycle of length 6
+    check cb.len == 1
+    check cb[0].len == 6
+
+# ============================================================
+# Bridges and Articulation Points
+# ============================================================
+suite "NetworkX cross-validation: Bridges and Articulation Points":
+  # Graph: triangle (0,1,2) connected via bridge (2,3) to triangle (3,4,5)
+  var brg = newGraph[int]()
+  brg.addEdge(0, 1)
+  brg.addEdge(1, 2)
+  brg.addEdge(2, 0)
+  brg.addEdge(2, 3)
+  brg.addEdge(3, 4)
+  brg.addEdge(4, 5)
+  brg.addEdge(5, 3)
+
+  test "bridges":
+    let br = bridges(brg)
+    # NetworkX: [(2, 3)]
+    var brSet: HashSet[(int, int)]
+    for (u, v) in br:
+      brSet.incl((min(u, v), max(u, v)))
+    check brSet.len == 1
+    check (2, 3) in brSet
+
+  test "articulation points":
+    let aps = articulationPoints(brg)
+    # NetworkX: [2, 3]
+    let apSet = toHashSet(aps)
+    check 2 in apSet
+    check 3 in apSet
+    check apSet.len == 2
+
+# ============================================================
+# Floyd-Warshall (Weighted Graph)
+# ============================================================
+suite "NetworkX cross-validation: Floyd-Warshall":
+  let wg = buildWeightedGraph()
+
+  test "all pairs shortest paths":
+    let fw = floydWarshall(wg)
+    # NetworkX: fw(0,4)=10.0, fw(0,3)=8.0, fw(1,4)=7.0
+    check abs(fw[0][4] - 10.0) < Eps
+    check abs(fw[0][3] - 8.0) < Eps
+    check abs(fw[1][4] - 7.0) < Eps
+    # Should match Dijkstra results
+    check abs(fw[0][4] - dijkstraPathLength(wg, 0, 4)) < Eps
+    check abs(fw[0][3] - dijkstraPathLength(wg, 0, 3)) < Eps
+
+# ============================================================
+# Link Prediction
+# ============================================================
+suite "NetworkX cross-validation: Link Prediction":
+  var lp = newGraph[int]()
+  lp.addEdge(0, 1)
+  lp.addEdge(0, 2)
+  lp.addEdge(1, 2)
+  lp.addEdge(1, 3)
+  lp.addEdge(2, 3)
+  lp.addEdge(3, 4)
+
+  test "common neighbors count":
+    # NetworkX: common_neighbors(0,3) = [1, 2] → count = 2
+    check commonNeighbors(lp, 0, 3) == 2
+
+  test "jaccard coefficient":
+    # NetworkX: jaccard(0,4) = 0.0 (no common neighbors)
+    check abs(jaccardCoefficient(lp, 0, 4) - 0.0) < Eps
+
+  test "adamic adar index":
+    # NetworkX: adamic_adar(0,3) = 1.8204784533
+    check abs(adamicAdar(lp, 0, 3) - 1.8204784533) < Eps
+
+# ============================================================
+# Louvain Community Detection (Karate Club)
+# ============================================================
+suite "NetworkX cross-validation: Louvain":
+  let K = karateClubGraph()
+
+  test "louvain communities cover all nodes":
+    let comms = louvainCommunities(K)
+    var allNodes: HashSet[int]
+    for c in comms:
+      for n in c:
+        allNodes.incl(n)
+    check allNodes.len == 34
+
+  test "louvain produces reasonable community count":
+    let comms = louvainCommunities(K)
+    # NetworkX produces 4 communities, but Louvain is non-deterministic
+    # Any reasonable partition has 2-8 communities
+    check comms.len >= 2
+    check comms.len <= 8
+
+# ============================================================
+# Matching
+# ============================================================
+suite "NetworkX cross-validation: Matching":
+  var mg = newGraph[int]()
+  mg.addEdge(0, 1)
+  mg.addEdge(1, 2)
+  mg.addEdge(2, 3)
+  mg.addEdge(3, 4)
+
+  test "max weight matching size":
+    let mm = maxWeightMatching(mg)
+    # Path graph 0-1-2-3-4: maximum matching has 2 edges
+    check mm.len == 2
+    # Verify matching is valid (no two edges share a node)
+    var used: HashSet[int]
+    for (u, v) in mm:
+      check u notin used
+      check v notin used
+      used.incl(u)
+      used.incl(v)
+
+# ============================================================
+# Triad Census (Directed Graph)
+# ============================================================
+suite "NetworkX cross-validation: Triad Census":
+  var dg = newDiGraph[int]()
+  dg.addEdge(0, 1)
+  dg.addEdge(1, 2)
+  dg.addEdge(2, 0)
+  dg.addEdge(2, 3)
+  dg.addEdge(3, 4)
+  dg.addEdge(4, 3)
+  dg.addEdge(0, 3)
+
+  test "triad census values":
+    let tc = triadicCensus(dg)
+    # NetworkX reference values:
+    check tc["012"] == 3
+    check tc["021C"] == 1
+    check tc["021D"] == 1
+    check tc["030C"] == 1
+    check tc["030T"] == 1
+    check tc["102"] == 1
+    check tc["111D"] == 2
+    # All other types should be 0
+    check tc.getOrDefault("003", 0) == 0
+    check tc.getOrDefault("300", 0) == 0
+
+# ============================================================
+# Algebraic Connectivity (Karate Club)
+# ============================================================
+suite "NetworkX cross-validation: Algebraic Connectivity":
+  let K = karateClubGraph()
+
+  test "algebraic connectivity positive for connected graph":
+    let ac = algebraicConnectivity(K)
+    # NetworkX: 1.1871073020 (using numpy LAPACK eigensolver)
+    # NimNet uses basic QR eigenvalues, may differ in precision.
+    # Key property: algebraic connectivity > 0 for connected graphs.
+    check ac > 0.0
+
+  test "algebraic connectivity zero for disconnected graph":
+    var dg = newGraph[int]()
+    dg.addEdge(0, 1)
+    dg.addEdge(2, 3)
+    let ac = algebraicConnectivity(dg)
+    check abs(ac) < 0.01

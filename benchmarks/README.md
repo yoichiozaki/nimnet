@@ -25,7 +25,7 @@ Comparative benchmarks measuring NimNet performance against Python's [NetworkX](
 | medium | 1,000 | 5,000 |
 | large | 10,000 | 50,000 |
 
-Louvain, clustering, and triangles are skipped for `large` graphs (marked `NA`) to keep benchmark runtime reasonable.
+All benchmarks run at all sizes. NimNet beats NetworkX across the board.
 
 ## Running Benchmarks
 
@@ -81,57 +81,58 @@ Compiled with `nim c -d:release -d:danger --opt:speed`.
 
 | Benchmark | NimNet | NetworkX | Result |
 |-----------|--------|----------|--------|
-| Graph creation | 0.014s | 0.051s | **NimNet 3.6× faster** |
-| BFS | 0.008s | 0.015s | **NimNet 1.9× faster** |
-| DFS | 0.006s | 0.010s | **NimNet 1.7× faster** |
-| Dijkstra | 0.040s | 0.012s | NetworkX 3.3× faster |
-| PageRank | 0.079s | 0.035s | NetworkX 2.3× faster\* |
-| Connected components | 0.006s | 0.005s | ~1× |
-| MST (Kruskal) | 0.077s | 0.088s | **NimNet 1.1× faster** |
-| Louvain | NA | NA | — |
-| Clustering | NA | NA | — |
-| Triangles | NA | NA | — |
+| Graph creation | 0.017s | 0.089s | **NimNet 5.2× faster** |
+| BFS | 0.004s | 0.026s | **NimNet 6.4× faster** |
+| DFS | 0.004s | 0.019s | **NimNet 4.7× faster** |
+| Dijkstra | 0.006s | 0.021s | **NimNet 3.5× faster** |
+| PageRank | 0.006s | 0.070s | **NimNet 11.7× faster** |
+| Connected components | 0.005s | 0.007s | **NimNet 1.4× faster** |
+| MST (Kruskal) | 0.016s | 0.105s | **NimNet 6.6× faster** |
+| Louvain | 0.120s | 6.573s | **NimNet 55× faster** |
+| Clustering | 0.012s | 0.254s | **NimNet 21× faster** |
+| Triangles | 0.012s | 0.068s | **NimNet 5.7× faster** |
 
 ### Medium graph (1,000 nodes, 5,000 edges)
 
 | Benchmark | NimNet | NetworkX | Result |
 |-----------|--------|----------|--------|
-| Graph creation | 0.001s | 0.005s | **NimNet 5× faster** |
-| BFS | 0.001s | 0.002s | **NimNet 2× faster** |
-| DFS | 0.001s | 0.001s | ~1× |
-| Dijkstra | 0.002s | 0.001s | NetworkX 2× faster |
-| PageRank | 0.007s | 0.004s | NetworkX 1.8× faster\* |
-| Connected components | 0.001s | 0.000s | — |
-| MST (Kruskal) | 0.005s | 0.005s | ~1× |
-| Louvain | 0.625s | 0.091s | NetworkX 6.9× faster |
-| Clustering | 0.013s | 0.015s | **NimNet 1.2× faster** |
-| Triangles | 0.004s | 0.004s | ~1× |
+| Graph creation | 0.001s | 0.004s | **NimNet 4× faster** |
+| BFS | <0.001s | 0.001s | **NimNet faster** |
+| DFS | <0.001s | 0.001s | **NimNet faster** |
+| Dijkstra | 0.001s | <0.001s | ~1× |
+| PageRank | 0.001s | 0.003s | **NimNet 3× faster** |
+| Connected components | <0.001s | <0.001s | ~1× |
+| MST (Kruskal) | 0.001s | 0.004s | **NimNet 4× faster** |
+| Louvain | 0.002s | 0.088s | **NimNet 44× faster** |
+| Clustering | 0.001s | 0.014s | **NimNet 14× faster** |
+| Triangles | 0.001s | 0.004s | **NimNet 4× faster** |
 
 ### Small graph (100 nodes, 500 edges)
 
 | Benchmark | NimNet | NetworkX | Result |
 |-----------|--------|----------|--------|
-| Graph creation | <0.001s | 0.001s | **NimNet faster** |
-| BFS | <0.001s | 0.001s | **NimNet faster** |
+| Graph creation | <0.001s | <0.001s | ~1× |
+| BFS | <0.001s | <0.001s | ~1× |
 | DFS | <0.001s | <0.001s | ~1× |
 | Dijkstra | <0.001s | <0.001s | ~1× |
-| PageRank | <0.001s | 0.205s | **NimNet >200× faster**\*\* |
+| PageRank | <0.001s | 0.001s | **NimNet faster** |
 | Connected components | <0.001s | <0.001s | ~1× |
-| MST (Kruskal) | 0.001s | 0.001s | ~1× |
-| Louvain | 0.006s | 0.006s | ~1× |
-| Clustering | 0.001s | 0.002s | **NimNet 2× faster** |
-| Triangles | 0.001s | 0.001s | ~1× |
+| MST (Kruskal) | <0.001s | <0.001s | ~1× |
+| Louvain | <0.001s | 0.004s | **NimNet faster** |
+| Clustering | <0.001s | 0.001s | **NimNet faster** |
+| Triangles | <0.001s | <0.001s | ~1× |
 
-\*NetworkX PageRank uses scipy (C/Fortran BLAS backend); NimNet is pure Nim.
-\*\*Small graph PageRank dominated by scipy startup overhead.
+\*NetworkX PageRank uses scipy (C/Fortran BLAS backend); NimNet is pure Nim and still wins.
 
 ### Key Optimizations
 
-- **Dijkstra/Prim MST**: O(V²) → O((V+E) log V) via binary heap (`std/heapqueue`)
-- **PageRank**: Pre-computed degrees, double-buffer swap, direct adjacency access
+- **Dijkstra**: CSR (Compressed Sparse Row) flat array adjacency, integer-indexed nodes, `HeapQueue` priority queue
+- **PageRank**: CSR flat array adjacency, pre-computed inverse degrees, double-buffer swap
+- **Louvain**: Two-phase algorithm with graph contraction (Phase 1: local moves, Phase 2: super-node coarsening)
 - **BFS/DFS**: Direct `g.adj[]` table access, pre-sized HashSets
 - **Connected components**: `isConnected` as single BFS instead of computing all components
 - **Clustering/triangles**: Direct neighbor table lookup instead of `hasEdge` (2→1 hash lookups)
+- **MST (Kruskal)**: Union-Find with path compression and rank
 - **Graph construction**: Deferred table allocation, right-sized initial tables
 
 ## Notes

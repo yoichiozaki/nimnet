@@ -147,16 +147,15 @@ proc betweennessCentrality*[N](g: Graph[N], normalized: bool = true): Table[N, f
 proc pageRank*[N](g: DiGraph[N], alpha: float = 0.85, maxIter: int = 100,
                    tol: float = 1.0e-6): Table[N, float] =
   ## Compute PageRank for a directed graph using power iteration.
-  ## Uses array-indexed computation internally for cache-friendly performance.
+  ## Uses CSR-indexed computation internally for cache-friendly performance.
   ## ``alpha``: damping factor (default 0.85).
   let n = g.numberOfNodes()
   if n == 0:
     return initTable[N, float]()
 
-  # Build indexed structure for cache-friendly inner loop
+  # Build indexed structure with CSR layout
   var nodeList = newSeqOfCap[N](n)
   var nodeIdx = initTable[N, int](n)
-  var predIdx = newSeq[seq[int]](n)
   var outDeg = newSeq[int](n)
   var invOutDeg = newSeq[float](n)
 
@@ -167,12 +166,19 @@ proc pageRank*[N](g: DiGraph[N], alpha: float = 0.85, maxIter: int = 100,
     outDeg[idx] = g.adj[node].len
     idx.inc
 
-  # Build predecessor adjacency by index
+  # Build CSR predecessor adjacency
+  var predOff = newSeq[int](n + 1)
+  var totalPredEdges = 0
   for i in 0 ..< n:
-    let node = nodeList[i]
-    predIdx[i] = newSeqOfCap[int](g.pred[node].len)
-    for p in g.pred[node].keys:
-      predIdx[i].add(nodeIdx[p])
+    totalPredEdges += g.pred[nodeList[i]].len
+  var predNbr = newSeqOfCap[int](totalPredEdges)
+  var off = 0
+  for i in 0 ..< n:
+    predOff[i] = off
+    for p in g.pred[nodeList[i]].keys:
+      predNbr.add(nodeIdx[p])
+      off.inc
+  predOff[n] = off
 
   # Precompute inverse out-degree
   for i in 0 ..< n:
@@ -194,7 +200,8 @@ proc pageRank*[N](g: DiGraph[N], alpha: float = 0.85, maxIter: int = 100,
     let base = (1.0 - alpha + alpha * danglingSum) / float(n)
     for i in 0 ..< n:
       var r = base
-      for j in predIdx[i]:
+      for k in predOff[i] ..< predOff[i + 1]:
+        let j = predNbr[k]
         r += alpha * rank[j] * invOutDeg[j]
       newRank[i] = r
 
@@ -213,32 +220,42 @@ proc pageRank*[N](g: DiGraph[N], alpha: float = 0.85, maxIter: int = 100,
 proc pageRank*[N](g: Graph[N], alpha: float = 0.85, maxIter: int = 100,
                    tol: float = 1.0e-6): Table[N, float] =
   ## Compute PageRank for undirected graph (treated as bidirectional).
-  ## Uses array-indexed computation internally for cache-friendly performance.
+  ## Uses CSR-indexed computation internally for cache-friendly performance.
   let n = g.numberOfNodes()
   if n == 0:
     return initTable[N, float]()
 
-  # Build indexed structure for cache-friendly inner loop
+  # Build indexed structure with CSR layout for maximum cache locality
   var nodeList = newSeqOfCap[N](n)
   var nodeIdx = initTable[N, int](n)
-  var adjIdx = newSeq[seq[int]](n)
-  var invDeg = newSeq[float](n)  # precomputed 1/degree
+  var invDeg = newSeq[float](n)
 
   var idx = 0
-  for node, neighbors in g.adj:
+  for node in g.adj.keys:
     nodeList.add(node)
     nodeIdx[node] = idx
-    var d = neighbors.len
-    if node in neighbors: d.inc  # self-loop
-    invDeg[idx] = if d > 0: 1.0 / float(d) else: 0.0
     idx.inc
 
-  # Build adjacency by index
+  # First pass: compute degrees
   for i in 0 ..< n:
     let node = nodeList[i]
-    adjIdx[i] = newSeqOfCap[int](g.adj[node].len)
-    for neighbor in g.adj[node].keys:
-      adjIdx[i].add(nodeIdx[neighbor])
+    var d = g.adj[node].len
+    if node in g.adj[node]: d.inc  # self-loop
+    invDeg[i] = if d > 0: 1.0 / float(d) else: 0.0
+
+  # Build CSR adjacency (flat arrays instead of seq[seq[int]])
+  var adjOff = newSeq[int](n + 1)
+  var totalEdges = 0
+  for i in 0 ..< n:
+    totalEdges += g.adj[nodeList[i]].len
+  var adjNbr = newSeqOfCap[int](totalEdges)
+  var off = 0
+  for i in 0 ..< n:
+    adjOff[i] = off
+    for neighbor in g.adj[nodeList[i]].keys:
+      adjNbr.add(nodeIdx[neighbor])
+      off.inc
+  adjOff[n] = off
 
   # Power iteration with flat arrays — no hash lookups in inner loop
   let initVal = 1.0 / float(n)
@@ -251,7 +268,8 @@ proc pageRank*[N](g: Graph[N], alpha: float = 0.85, maxIter: int = 100,
   for iter in 0 ..< maxIter:
     for i in 0 ..< n:
       var r = base
-      for j in adjIdx[i]:
+      for k in adjOff[i] ..< adjOff[i + 1]:
+        let j = adjNbr[k]
         r += alpha * rank[j] * invDeg[j]
       newRank[i] = r
 
