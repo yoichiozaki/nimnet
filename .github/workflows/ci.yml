@@ -72,18 +72,33 @@ jobs:
 
       - name: Run tests with coverage
         run: |
-          mkdir -p coverage
+          mkdir -p build coverage
           for testfile in tests/t*.nim; do
-            nim c --threads:on -p:src --debugger:native --passC:--coverage --passL:--coverage -o:build/$(basename "$testfile" .nim) "$testfile"
-            ./build/$(basename "$testfile" .nim) || true
+            testname=$(basename "$testfile" .nim)
+            nim c --threads:on -p:src \
+              --passC:--coverage --passL:--coverage \
+              --nimcache:build/nimcache_cov/"$testname" \
+              -o:build/"$testname" "$testfile"
+            ./build/"$testname" || true
           done
 
       - name: Collect coverage
         run: |
-          lcov --capture --directory . --output-file coverage/lcov.info --ignore-errors source,gcov
-          lcov --remove coverage/lcov.info '*/nimcache/*' '*/tests/*' '/usr/*' '*/choosenim/*' '*/nimble/*' --output-file coverage/lcov_filtered.info --ignore-errors unused
+          lcov --capture --directory build/nimcache_cov \
+            --output-file coverage/lcov.info \
+            --ignore-errors inconsistent,gcov,source,empty,mismatch \
+            --rc geninfo_unexecuted_blocks=1 || true
+          if [ -f coverage/lcov.info ] && [ -s coverage/lcov.info ]; then
+            lcov --remove coverage/lcov.info '/usr/*' '*/choosenim/*' '*/nimble/*' \
+              --output-file coverage/lcov_filtered.info \
+              --ignore-errors inconsistent,unused,empty || true
+          else
+            echo "No coverage data collected"
+            touch coverage/lcov_filtered.info
+          fi
 
       - name: Upload coverage to Codecov
+        if: always()
         uses: codecov/codecov-action@v5
         with:
           files: coverage/lcov_filtered.info
