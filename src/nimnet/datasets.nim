@@ -303,3 +303,40 @@ proc loadMatrixMarket*(filename: string): Graph[int] =
             result.addEdge(u, v)
         else:
           result.addEdge(u, v)
+
+proc davisSouthernWomenGraph*(): Graph[string] =
+  ## Return the Davis Southern Women bipartite network.
+  ## 18 women and 14 events. Edges connect women to events they attended.
+  result = newGraph[string]()
+  let women = @["Evelyn", "Laura", "Theresa", "Brenda", "Charlotte",
+                 "Frances", "Eleanor", "Pearl", "Ruth", "Verne",
+                 "Myrna", "Katherine", "Sylvia", "Nora", "Helen",
+                 "Dorothy", "Olivia", "Flora"]
+  let events = @["E1", "E2", "E3", "E4", "E5", "E6", "E7", "E8",
+                  "E9", "E10", "E11", "E12", "E13", "E14"]
+  for w in women: result.addNode(w)
+  for e in events: result.addNode(e)
+  # Attendance data from Davis, Gardner & Gardner (1941)
+  let attendance: seq[(string, seq[int])] = @[
+    ("Evelyn", @[1, 2, 3, 4, 5, 6, 8, 9]),
+    ("Laura", @[1, 2, 3, 5, 6, 7, 8]),
+    ("Theresa", @[2, 3, 4, 5, 6, 7, 8, 9]),
+    ("Brenda", @[1, 3, 4, 5, 6, 7, 8]),
+    ("Charlotte", @[3, 4, 5, 7]),
+    ("Frances", @[3, 4, 5, 6, 8]),
+    ("Eleanor", @[5, 6, 7, 8]),
+    ("Pearl", @[6, 8, 9]),
+    ("Ruth", @[5, 7, 8]),
+    ("Verne", @[7, 8, 9, 12]),
+    ("Myrna", @[8, 9, 10, 12]),
+    ("Katherine", @[8, 9, 10, 12, 13, 14]),
+    ("Sylvia", @[7, 8, 9, 10, 12, 13, 14]),
+    ("Nora", @[6, 7, 9, 10, 11, 12, 13, 14]),
+    ("Helen", @[7, 8, 10, 11, 12]),
+    ("Dorothy", @[8, 9]),
+    ("Olivia", @[9, 11]),
+    ("Flora", @[9, 11])
+  ]
+  for (woman, evts) in attendance:
+    for e in evts:
+      result.addEdge(woman, events[e - 1])

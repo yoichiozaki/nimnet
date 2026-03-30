@@ -72,6 +72,7 @@ task test, "Compile and run all tests":
   exec "nim c -r --threads:on -p:src --nimcache:build/nimcache/tcoverage tests/tcoverage.nim"
   exec "nim c -r --threads:on -p:src --nimcache:build/nimcache/tcoverage2 tests/tcoverage2.nim"
   exec "nim c -r --threads:on -p:src --nimcache:build/nimcache/tparallel tests/tparallel.nim"
+  exec "nim c -r --threads:on -p:src --nimcache:build/nimcache/tnewfeatures3 tests/tnewfeatures3.nim"
 
 task cleanup, "Remove compiled exe files and build artifacts":
   let root = thisDir()

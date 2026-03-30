@@ -55,6 +55,27 @@ type
   NimNetNotImplemented* = object of NimNetError
     ## Raised for features not yet implemented.
 
+  NimNetNoCycle* = object of NimNetError
+    ## Raised when no cycle is found.
+
+  NimNetUnbounded* = object of NimNetError
+    ## Raised for unbounded solutions (e.g. flow problems).
+
+  NimNetAlgorithmError* = object of NimNetError
+    ## Raised for generic algorithm errors.
+
+  NimNetPointlessConcept* = object of NimNetError
+    ## Raised for meaningless queries (e.g. connectivity of null graph).
+
+  PowerIterationFailedConvergence* = object of NimNetError
+    ## Raised when power iteration fails to converge.
+
+  ExceededMaxIterations* = object of NimNetError
+    ## Raised when maximum iterations exceeded.
+
+  AmbiguousSolution* = object of NimNetError
+    ## Raised when the solution is ambiguous.
+
 # --- Attribute constructors ------------------------------------------------
 
 func newEdgeAttr*(): EdgeAttr {.inline.} =

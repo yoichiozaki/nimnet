@@ -9,7 +9,7 @@
 ## - ``algebraicConnectivity`` — second smallest Laplacian eigenvalue
 
 import std/[tables, sets, math, random, algorithm]
-import ../types, ../graph
+import ../types, ../graph, ../digraph
 
 proc laplacianMatrix*[N](g: Graph[N]): (seq[N], seq[seq[float]]) =
   ## Compute the Laplacian matrix L = D - A.
@@ -389,3 +389,227 @@ proc laplacianSpectrum*[N](g: Graph[N]): float =
     return 0.0
   let (eigenvalue, _) = powerIteration(lap)
   result = eigenvalue
+
+# --- Incidence Matrix ---
+
+proc incidenceMatrix*[N](g: Graph[N]): (seq[N], seq[(N, N)], seq[seq[float]]) =
+  ## Compute the incidence matrix.
+  ## Returns (nodeList, edgeList, matrix) where matrix[i][j] indicates
+  ## node i is incident to edge j.
+  var nodeList: seq[N]
+  for n in g.nodes:
+    nodeList.add(n)
+  var nodeIdx = initTable[N, int]()
+  for i, n in nodeList:
+    nodeIdx[n] = i
+
+  var edgeList: seq[(N, N)]
+  for (u, v) in g.edges:
+    edgeList.add((u, v))
+
+  let nNodes = nodeList.len
+  let nEdges = edgeList.len
+  var mat = newSeq[seq[float]](nNodes)
+  for i in 0 ..< nNodes:
+    mat[i] = newSeq[float](nEdges)
+  for j, (u, v) in edgeList:
+    mat[nodeIdx[u]][j] = 1.0
+    mat[nodeIdx[v]][j] = 1.0
+  result = (nodeList, edgeList, mat)
+
+proc incidenceMatrix*[N](g: DiGraph[N]): (seq[N], seq[(N, N)], seq[seq[float]]) =
+  ## Compute the directed incidence matrix.
+  ## Source node gets +1, target node gets -1.
+  var nodeList: seq[N]
+  for n in g.nodes:
+    nodeList.add(n)
+  var nodeIdx = initTable[N, int]()
+  for i, n in nodeList:
+    nodeIdx[n] = i
+
+  var edgeList: seq[(N, N)]
+  for (u, v) in g.edges:
+    edgeList.add((u, v))
+
+  let nNodes = nodeList.len
+  let nEdges = edgeList.len
+  var mat = newSeq[seq[float]](nNodes)
+  for i in 0 ..< nNodes:
+    mat[i] = newSeq[float](nEdges)
+  for j, (u, v) in edgeList:
+    mat[nodeIdx[u]][j] = 1.0
+    mat[nodeIdx[v]][j] = -1.0
+  result = (nodeList, edgeList, mat)
+
+# --- Directed Laplacian ---
+
+proc directedLaplacianMatrix*[N](g: DiGraph[N]): (seq[N], seq[seq[float]]) =
+  ## Compute the Laplacian matrix for a directed graph.
+  ## L = D_out - A, where D_out is the out-degree diagonal.
+  var nodeList: seq[N]
+  for n in g.nodes:
+    nodeList.add(n)
+  var nodeIdx = initTable[N, int]()
+  for i, n in nodeList:
+    nodeIdx[n] = i
+
+  let n = nodeList.len
+  var mat = newSeq[seq[float]](n)
+  for i in 0 ..< n:
+    mat[i] = newSeq[float](n)
+
+  for (u, v, attr) in g.edgesWithAttr:
+    let i = nodeIdx[u]
+    let j = nodeIdx[v]
+    let w = attr.getWeight(1.0)
+    mat[i][j] -= w
+    mat[i][i] += w
+  result = (nodeList, mat)
+
+proc directedCombinatorialLaplacianMatrix*[N](g: DiGraph[N]): (seq[N], seq[seq[float]]) =
+  ## Compute the combinatorial Laplacian for a directed graph.
+  ## Same as directedLaplacianMatrix (L = D_out - A).
+  result = directedLaplacianMatrix(g)
+
+# --- Bethe Hessian Matrix ---
+
+proc betheHessianMatrix*[N](g: Graph[N], r: float = 0.0): (seq[N], seq[seq[float]]) =
+  ## Compute the Bethe Hessian matrix.
+  ## H(r) = (r^2 - 1) * I - r * A + D
+  ## If r = 0, uses sqrt(spectral_radius(adjacency)) as default.
+  var nodeList: seq[N]
+  for n in g.nodes:
+    nodeList.add(n)
+  var nodeIdx = initTable[N, int]()
+  for i, nd in nodeList:
+    nodeIdx[nd] = i
+
+  let n = nodeList.len
+  let (_, adjMat) = adjacencyMatrix(g)
+
+  var rVal = r
+  if rVal == 0.0:
+    let (spectRad, _) = powerIteration(adjMat)
+    rVal = sqrt(max(spectRad, 1.0))
+
+  var mat = newSeq[seq[float]](n)
+  for i in 0 ..< n:
+    mat[i] = newSeq[float](n)
+    let deg = float(g.degree(nodeList[i]))
+    mat[i][i] = (rVal * rVal - 1.0) + deg
+    for j in 0 ..< n:
+      mat[i][j] -= rVal * adjMat[i][j]
+  result = (nodeList, mat)
+
+# --- Modularity Matrix ---
+
+proc modularityMatrix*[N](g: Graph[N]): (seq[N], seq[seq[float]]) =
+  ## Compute the modularity matrix B = A - (k_i * k_j) / (2m).
+  var nodeList: seq[N]
+  for n in g.nodes:
+    nodeList.add(n)
+  var nodeIdx = initTable[N, int]()
+  for i, nd in nodeList:
+    nodeIdx[nd] = i
+
+  let n = nodeList.len
+  let m2 = float(g.numberOfEdges) * 2.0
+  let (_, adjMat) = adjacencyMatrix(g)
+
+  var degs = newSeq[float](n)
+  for i, nd in nodeList:
+    degs[i] = float(g.degree(nd))
+
+  var mat = newSeq[seq[float]](n)
+  for i in 0 ..< n:
+    mat[i] = newSeq[float](n)
+    for j in 0 ..< n:
+      if m2 > 0.0:
+        mat[i][j] = adjMat[i][j] - (degs[i] * degs[j]) / m2
+      else:
+        mat[i][j] = adjMat[i][j]
+  result = (nodeList, mat)
+
+proc directedModularityMatrix*[N](g: DiGraph[N]): (seq[N], seq[seq[float]]) =
+  ## Compute the directed modularity matrix.
+  ## B = A - (k_out_i * k_in_j) / m
+  var nodeList: seq[N]
+  for n in g.nodes:
+    nodeList.add(n)
+  var nodeIdx = initTable[N, int]()
+  for i, nd in nodeList:
+    nodeIdx[nd] = i
+
+  let n = nodeList.len
+  let m = float(g.numberOfEdges)
+
+  var adjMat = newSeq[seq[float]](n)
+  for i in 0 ..< n:
+    adjMat[i] = newSeq[float](n)
+  for (u, v) in g.edges:
+    let i = nodeIdx[u]
+    let j = nodeIdx[v]
+    adjMat[i][j] = 1.0
+
+  var outDegs = newSeq[float](n)
+  var inDegs = newSeq[float](n)
+  for i, nd in nodeList:
+    outDegs[i] = float(g.outDegree(nd))
+    inDegs[i] = float(g.inDegree(nd))
+
+  var mat = newSeq[seq[float]](n)
+  for i in 0 ..< n:
+    mat[i] = newSeq[float](n)
+    for j in 0 ..< n:
+      if m > 0.0:
+        mat[i][j] = adjMat[i][j] - (outDegs[i] * inDegs[j]) / m
+      else:
+        mat[i][j] = adjMat[i][j]
+  result = (nodeList, mat)
+
+# --- Additional Spectra ---
+
+proc allEigenvalues(mat: seq[seq[float]]): seq[float] =
+  ## Compute all eigenvalues of a symmetric matrix.
+  result = qrEigenvalues(mat)
+
+proc betheHessianSpectrum*[N](g: Graph[N], r: float = 0.0): seq[float] =
+  ## All eigenvalues of the Bethe Hessian matrix.
+  let (_, mat) = betheHessianMatrix(g, r)
+  result = allEigenvalues(mat)
+
+proc normalizedLaplacianSpectrum*[N](g: Graph[N]): seq[float] =
+  ## All eigenvalues of the normalized Laplacian.
+  let (_, mat) = normalizedLaplacian(g)
+  result = allEigenvalues(mat)
+
+proc modularitySpectrum*[N](g: Graph[N]): seq[float] =
+  ## All eigenvalues of the modularity matrix.
+  let (_, mat) = modularityMatrix(g)
+  result = allEigenvalues(mat)
+
+proc adjacencySpectrumAll*[N](g: Graph[N]): seq[float] =
+  ## All eigenvalues of the adjacency matrix.
+  let (_, mat) = adjacencyMatrix(g)
+  result = allEigenvalues(mat)
+
+proc laplacianSpectrumAll*[N](g: Graph[N]): seq[float] =
+  ## All eigenvalues of the Laplacian matrix.
+  let (_, mat) = laplacianMatrix(g)
+  result = allEigenvalues(mat)
+
+# --- Spectral Ordering ---
+
+proc spectralOrdering*[N](g: Graph[N]): seq[N] =
+  ## Order nodes using the Fiedler vector (spectral ordering).
+  ## Sorts nodes by their Fiedler vector components.
+  let (nodeList, fiedler) = fiedlerVector(g)
+  if nodeList.len == 0:
+    return @[]
+  var indexed: seq[(float, N)]
+  for i, n in nodeList:
+    indexed.add((fiedler[i], n))
+  indexed.sort(proc(a, b: (float, N)): int = cmp(a[0], b[0]))
+  result = newSeq[N](indexed.len)
+  for i, (_, n) in indexed:
+    result[i] = n

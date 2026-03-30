@@ -1,6 +1,6 @@
 ## Classic graph generators
 
-import std/[tables, sets]
+import std/[tables, sets, math]
 import ../types
 import ../graph
 import ../digraph
@@ -226,3 +226,82 @@ proc friendshipGraph*(n: int): Graph[int] =
     result.addEdge(0, a)
     result.addEdge(0, b)
     result.addEdge(a, b)
+
+proc completeMultipartiteGraph*(groups: openArray[int]): Graph[int] =
+  ## Generate a complete multipartite graph.
+  ## ``groups`` gives the size of each partition.
+  result = newGraph[int]()
+  var partitions: seq[seq[int]]
+  var nodeId = 0
+  for size in groups:
+    var part: seq[int]
+    for _ in 0 ..< size:
+      result.addNode(nodeId)
+      part.add(nodeId)
+      inc nodeId
+    partitions.add(part)
+  # Connect every node to every node in OTHER partitions
+  for i in 0 ..< partitions.len:
+    for j in i + 1 ..< partitions.len:
+      for u in partitions[i]:
+        for v in partitions[j]:
+          result.addEdge(u, v)
+
+proc circulantGraph*(n: int, offsets: openArray[int]): Graph[int] =
+  ## Generate a circulant graph C_n with given offsets.
+  ## Node i is connected to nodes (i+offset) mod n and (i-offset) mod n.
+  result = newGraph[int]()
+  for i in 0 ..< n:
+    result.addNode(i)
+  for i in 0 ..< n:
+    for offset in offsets:
+      let j = (i + offset) mod n
+      if not result.hasEdge(i, j):
+        result.addEdge(i, j)
+
+proc dorogovtsevGoltsevMendesGraph*(n: int): Graph[int] =
+  ## Generate a Dorogovtsev-Goltsev-Mendes pseudofractal graph of generation n.
+  result = newGraph[int]()
+  result.addEdge(0, 1)
+  var nextNode = 2
+  for gen in 0 ..< n:
+    var edgeList: seq[(int, int)]
+    for (u, v) in result.edges:
+      edgeList.add((u, v))
+    for (u, v) in edgeList:
+      result.addEdge(u, nextNode)
+      result.addEdge(v, nextNode)
+      inc nextNode
+
+proc fullRaryTree*(r, n: int): Graph[int] =
+  ## Generate a full r-ary tree with n nodes.
+  result = newGraph[int]()
+  for i in 0 ..< n:
+    result.addNode(i)
+  for i in 0 ..< n:
+    for j in 1 .. r:
+      let child = r * i + j
+      if child < n:
+        result.addEdge(i, child)
+
+proc kneserGraph*(n, k: int): Graph[int] =
+  ## Generate the Kneser graph K(n,k).
+  ## Nodes are k-element subsets of {0..n-1}; edges connect disjoint subsets.
+  ## Nodes are encoded as bitmasks.
+  result = newGraph[int]()
+  if k > n or k < 0: return
+  # Generate all k-subsets as bitmasks
+  var subsets: seq[int]
+  proc popcount(x: int): int =
+    var v = x
+    while v > 0:
+      result += v and 1
+      v = v shr 1
+  for mask in 0 ..< (1 shl n):
+    if popcount(mask) == k:
+      subsets.add(mask)
+      result.addNode(mask)
+  for i in 0 ..< subsets.len:
+    for j in i + 1 ..< subsets.len:
+      if (subsets[i] and subsets[j]) == 0:
+        result.addEdge(subsets[i], subsets[j])

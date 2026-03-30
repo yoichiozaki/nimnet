@@ -88,6 +88,17 @@ import nimnet/generators/geometric;        export geometric
 import nimnet/generators/community;        export community
 import nimnet/generators/degree_sequence;  export degree_sequence
 import nimnet/generators/directed;         export directed
+import nimnet/generators/expanders;        export expanders
+import nimnet/generators/duplication;      export duplication
+import nimnet/generators/stochastic;       export stochastic
+import nimnet/generators/internet;         export internet
+import nimnet/generators/intersection;     export intersection
+import nimnet/generators/nonisomorphic_trees; export nonisomorphic_trees
+import nimnet/generators/triad_generator;  export triad_generator
+import nimnet/generators/joint_degree;     export joint_degree
+import nimnet/generators/mycielski;        export mycielski
+import nimnet/generators/harary;           export harary
+import nimnet/generators/misc_generators;  export misc_generators
 
 # --- I/O ---
 import nimnet/io/edgelist;   export edgelist
@@ -100,6 +111,9 @@ import nimnet/io/gexf;       export gexf
 import nimnet/io/pajek;      export pajek
 import nimnet/io/graph6;     export graph6
 import nimnet/io/svg;        export svg
+import nimnet/io/multiline_adjlist; export multiline_adjlist
+import nimnet/io/leda;       export leda
+import nimnet/io/network_text; export network_text
 
 # --- Operators & Conversions ---
 import nimnet/operators; export operators
@@ -110,3 +124,4 @@ import nimnet/views;     export views
 import nimnet/multigraph; export multigraph
 import nimnet/compact;   export compact
 import nimnet/static_graph; export static_graph
+import nimnet/utils;       export utils

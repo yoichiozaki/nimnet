@@ -25,6 +25,7 @@ type
     nodeAttr: Table[N, NodeAttr]
     edgeCount: int  ## Cached edge count — O(1) access
     name*: string
+    frozen*: bool   ## Whether the graph is frozen (immutable)
 
 # --- Constructors ---
 
@@ -335,11 +336,12 @@ func copy*[N](g: Graph[N]): Graph[N] =
   ## Return a deep copy of the graph.
   result.name = g.name
   result.edgeCount = g.edgeCount
-  for u, neighbors in g.adj:
+  result.frozen = g.frozen
+  for u, neighbors in tables.pairs(g.adj):
     result.adj[u] = default(Table[N, EdgeAttr])
-    for v, attr in neighbors:
+    for v, attr in tables.pairs(neighbors):
       result.adj[u][v] = attr
-  for n, attr in g.nodeAttr:
+  for n, attr in tables.pairs(g.nodeAttr):
     result.nodeAttr[n] = attr
 
 func `==`*[N](a, b: Graph[N]): bool =

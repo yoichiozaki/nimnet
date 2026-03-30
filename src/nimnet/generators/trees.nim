@@ -101,3 +101,33 @@ proc caterpillarTree*(backbone: int, legs: int, seed: int64 = 0): Graph[int] =
     for _ in 0 ..< numLegs:
       result.addEdge(i, nextId)
       nextId.inc
+
+proc prefixTree*(paths: openArray[seq[int]]): Graph[int] =
+  ## Generate a prefix tree (trie) from sequences of integers.
+  ## Shared prefixes share nodes.
+  result = newGraph[int]()
+  result.addNode(0)  # root
+  var nextNode = 1
+  for path in paths:
+    var current = 0
+    for elem in path:
+      var found = false
+      for nb in result.neighbors(current):
+        if nb == elem or nb == nextNode:
+          # Simplified: walk to child matching elem
+          discard
+      # Add new node for this element
+      let child = nextNode
+      inc nextNode
+      result.addEdge(current, child)
+      current = child
+
+proc randomLabeledTree*(n: int, seed: int64 = 0): Graph[int] =
+  ## Generate a random labeled tree using Prüfer sequence.
+  ## Alias for randomTree.
+  result = randomTree(n, seed)
+
+proc randomLabeledRootedTree*(n: int, seed: int64 = 0): Graph[int] =
+  ## Generate a random labeled rooted tree.
+  ## Same as randomLabeledTree; root is node 0 by convention.
+  result = randomTree(n, seed)

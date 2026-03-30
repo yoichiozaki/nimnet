@@ -21,6 +21,7 @@ type
     nodeAttr: Table[N, NodeAttr]
     edgeCount: int  ## Cached edge count — O(1) access
     name*: string
+    frozen*: bool   ## Whether the graph is frozen (immutable)
 
 # --- Constructors ---
 

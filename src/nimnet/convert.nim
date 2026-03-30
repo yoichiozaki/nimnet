@@ -63,3 +63,73 @@ proc degreeSequence*[N](g: Graph[N]): seq[int] =
   for (_, d) in g.degree:
     result.add(d)
   result.sort(proc(a, b: int): int = cmp(b, a))
+
+# --- Additional conversions (#153) ----------------------------------------
+
+proc toDictOfDicts*[N](g: Graph[N]): Table[N, Table[N, EdgeAttr]] =
+  ## Convert graph to a dict of dicts (adjacency table with attributes).
+  result = g.adj
+
+proc toDictOfDicts*[N](g: DiGraph[N]): Table[N, Table[N, EdgeAttr]] =
+  ## Convert digraph to a dict of dicts (adjacency table with attributes).
+  result = g.adj
+
+proc fromDictOfDicts*[N](d: Table[N, Table[N, EdgeAttr]]): Graph[N] =
+  ## Create a graph from a dict of dicts.
+  result = newGraph[N]()
+  for u, neighbors in d:
+    result.addNode(u)
+    for v, attr in neighbors:
+      if not result.hasEdge(u, v):
+        result.addEdge(u, v, attr)
+
+proc fromDictOfDictsDirected*[N](d: Table[N, Table[N, EdgeAttr]]): DiGraph[N] =
+  ## Create a digraph from a dict of dicts.
+  result = newDiGraph[N]()
+  for u, neighbors in d:
+    result.addNode(u)
+    for v, attr in neighbors:
+      result.addEdge(u, v, attr)
+
+proc toDictOfLists*[N](g: Graph[N]): Table[N, seq[N]] =
+  ## Convert graph to dict of neighbor lists.
+  for n in g.nodes:
+    var nbrs: seq[N]
+    for nb in g.neighbors(n):
+      nbrs.add(nb)
+    result[n] = nbrs
+
+proc toDictOfLists*[N](g: DiGraph[N]): Table[N, seq[N]] =
+  ## Convert digraph to dict of successor lists.
+  for n in g.nodes:
+    var nbrs: seq[N]
+    for nb in g.neighbors(n):
+      nbrs.add(nb)
+    result[n] = nbrs
+
+proc fromDictOfLists*[N](d: Table[N, seq[N]]): Graph[N] =
+  ## Create a graph from a dict of neighbor lists.
+  result = newGraph[N]()
+  for u, neighbors in d:
+    result.addNode(u)
+    for v in neighbors:
+      if not result.hasEdge(u, v):
+        result.addEdge(u, v)
+
+proc fromDictOfListsDirected*[N](d: Table[N, seq[N]]): DiGraph[N] =
+  ## Create a digraph from a dict of successor lists.
+  result = newDiGraph[N]()
+  for u, neighbors in d:
+    result.addNode(u)
+    for v in neighbors:
+      result.addEdge(u, v)
+
+proc toEdgelist*[N](g: Graph[N]): seq[(N, N, EdgeAttr)] =
+  ## Convert graph to a sequence of (u, v, attr) tuples.
+  for (u, v, attr) in g.edgesWithAttr:
+    result.add((u, v, attr))
+
+proc toEdgelist*[N](g: DiGraph[N]): seq[(N, N, EdgeAttr)] =
+  ## Convert digraph to a sequence of (u, v, attr) tuples.
+  for (u, v, attr) in g.edgesWithAttr:
+    result.add((u, v, attr))

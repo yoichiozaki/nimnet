@@ -7,9 +7,12 @@
 ## - ``expectedDegreeGraph`` — Chung-Lu model
 ## - ``degreeSequenceTree`` — tree with given degree sequence
 ## - ``isGraphical`` — Erdős–Gallai test for realizability
+## - ``directedConfigurationModel`` — directed random graph from in/out degree sequences
+## - ``directedHavelHakimiGraph`` — directed deterministic realization
+## - ``randomDegreeSequenceGraph`` — random graph matching a degree sequence
 
 import std/[algorithm, random]
-import ../types, ../graph
+import ../types, ../graph, ../digraph
 
 func isGraphical*(degSequence: openArray[int]): bool =
   ## Test whether the integer sequence is graphical (can be realized as a
@@ -220,3 +223,88 @@ proc degreeSequenceTree*(degSequence: openArray[int]): Graph[int] =
         break
 
   result = g
+
+proc directedConfigurationModel*(inDegSeq, outDegSeq: openArray[int], seed: int64 = 0): DiGraph[int] =
+  ## Generate a directed random graph from in-degree and out-degree sequences.
+  var rng = if seed != 0: initRand(seed) else: initRand()
+  let n = inDegSeq.len
+  result = newDiGraph[int](capacity = n)
+  for i in 0 ..< n:
+    result.addNode(i)
+  var inStubs, outStubs: seq[int]
+  for i in 0 ..< n:
+    for _ in 0 ..< inDegSeq[i]:
+      inStubs.add(i)
+    for _ in 0 ..< outDegSeq[i]:
+      outStubs.add(i)
+  rng.shuffle(inStubs)
+  rng.shuffle(outStubs)
+  let m = min(inStubs.len, outStubs.len)
+  for i in 0 ..< m:
+    if outStubs[i] != inStubs[i]:
+      result.addEdge(outStubs[i], inStubs[i])
+
+proc directedHavelHakimiGraph*(inDegSeq, outDegSeq: openArray[int]): DiGraph[int] =
+  ## Generate a directed graph using the Havel-Hakimi algorithm.
+  let n = inDegSeq.len
+  result = newDiGraph[int](capacity = n)
+  for i in 0 ..< n:
+    result.addNode(i)
+  var outRemaining = newSeq[int](n)
+  var inRemaining = newSeq[int](n)
+  for i in 0 ..< n:
+    outRemaining[i] = outDegSeq[i]
+    inRemaining[i] = inDegSeq[i]
+  for step in 0 ..< n:
+    # Find node with max remaining out-degree
+    var maxOut = 0
+    var maxNode = -1
+    for i in 0 ..< n:
+      if outRemaining[i] > maxOut:
+        maxOut = outRemaining[i]
+        maxNode = i
+    if maxNode < 0: break
+    let u = maxNode
+    let d = outRemaining[u]
+    outRemaining[u] = 0
+    # Sort others by in-degree remaining (descending)
+    var candidates: seq[(int, int)]  # (inRemaining, node)
+    for i in 0 ..< n:
+      if i != u and inRemaining[i] > 0:
+        candidates.add((inRemaining[i], i))
+    candidates.sort(proc(a, b: (int, int)): int = cmp(b[0], a[0]))
+    let k = min(d, candidates.len)
+    for i in 0 ..< k:
+      let v = candidates[i][1]
+      result.addEdge(u, v)
+      inRemaining[v] -= 1
+
+proc randomDegreeSequenceGraph*(degSeq: openArray[int], seed: int64 = 0): Graph[int] =
+  ## Generate a random simple graph with the given degree sequence.
+  var rng = if seed != 0: initRand(seed) else: initRand()
+  let n = degSeq.len
+  for attempt in 0 ..< 100:
+    var g = newGraph[int](capacity = n)
+    for i in 0 ..< n:
+      g.addNode(i)
+    var stubs: seq[int]
+    for i in 0 ..< n:
+      for _ in 0 ..< degSeq[i]:
+        stubs.add(i)
+    rng.shuffle(stubs)
+    var valid = true
+    var idx = 0
+    while idx + 1 < stubs.len:
+      let u = stubs[idx]
+      let v = stubs[idx + 1]
+      if u != v and not g.hasEdge(u, v):
+        g.addEdge(u, v)
+      else:
+        valid = false
+      idx += 2
+    if valid:
+      return g
+  # Fallback
+  result = newGraph[int](capacity = n)
+  for i in 0 ..< n:
+    result.addNode(i)

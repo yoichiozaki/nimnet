@@ -405,3 +405,101 @@ proc hoffmanSingletonGraph*(): Graph[int] =
       for k in 0 ..< 5:
         let target = (i * k + j) mod 5
         result.addEdge(j * 5 + i, 25 + k * 5 + target)
+
+proc houseXGraph*(): Graph[int] =
+  ## Generate the house graph with X (diagonals).
+  ## 5 nodes: house shape with crossed diagonals in the base square.
+  result = houseGraph()
+  result.addEdge(0, 3)
+  result.addEdge(1, 2)
+
+proc chvatalGraph*(): Graph[int] =
+  ## Generate the Chvátal graph (12 nodes, 24 edges, 4-regular).
+  result = newGraph[int]()
+  for i in 0 ..< 12:
+    result.addNode(i)
+  let edges = @[
+    (0, 1), (0, 4), (0, 6), (0, 9),
+    (1, 2), (1, 5), (1, 7),
+    (2, 3), (2, 6), (2, 8),
+    (3, 4), (3, 7), (3, 9),
+    (4, 5), (4, 8),
+    (5, 10), (5, 11),
+    (6, 10), (6, 11),
+    (7, 8), (7, 11),
+    (8, 10),
+    (9, 10), (9, 11)
+  ]
+  for (u, v) in edges:
+    result.addEdge(u, v)
+
+proc truncatedCubeGraph*(): Graph[int] =
+  ## Generate the truncated cube graph (24 nodes, 36 edges).
+  result = newGraph[int]()
+  for i in 0 ..< 24:
+    result.addNode(i)
+  # Truncated cube: each vertex of cube becomes a triangle
+  let edges = @[
+    (0, 1), (0, 2), (0, 17),
+    (1, 12), (1, 2),
+    (2, 3),
+    (3, 4), (3, 6),
+    (4, 5), (4, 6),
+    (5, 14), (5, 6),
+    (6, 7),
+    (7, 8), (7, 9),
+    (8, 9), (8, 11),
+    (9, 10),
+    (10, 11), (10, 15),
+    (11, 12),
+    (12, 13),
+    (13, 14), (13, 22),
+    (14, 15),
+    (15, 16),
+    (16, 17), (16, 19),
+    (17, 18),
+    (18, 19), (18, 21),
+    (19, 20),
+    (20, 21), (20, 23),
+    (21, 22),
+    (22, 23)
+  ]
+  for (u, v) in edges:
+    result.addEdge(u, v)
+
+proc truncatedTetrahedronGraph*(): Graph[int] =
+  ## Generate the truncated tetrahedron graph (12 nodes, 18 edges).
+  result = newGraph[int]()
+  for i in 0 ..< 12:
+    result.addNode(i)
+  let edges = @[
+    (0, 1), (0, 2), (0, 9),
+    (1, 2), (1, 6),
+    (2, 3),
+    (3, 4), (3, 11),
+    (4, 5), (4, 11),
+    (5, 6), (5, 7),
+    (6, 7),
+    (7, 8),
+    (8, 9), (8, 10),
+    (9, 10),
+    (10, 11)
+  ]
+  for (u, v) in edges:
+    result.addEdge(u, v)
+
+proc lcfGraph*(n: int, shiftList: openArray[int], repeats: int): Graph[int] =
+  ## Generate a graph from LCF notation.
+  ## Creates a Hamiltonian cycle on n nodes, then adds edges according
+  ## to the shift list repeated ``repeats`` times.
+  result = newGraph[int]()
+  for i in 0 ..< n:
+    result.addNode(i)
+    result.addEdge(i, (i + 1) mod n)
+  var idx = 0
+  for _ in 0 ..< repeats:
+    for shift in shiftList:
+      let target = (idx + shift + n) mod n
+      if not result.hasEdge(idx, target):
+        result.addEdge(idx, target)
+      idx = (idx + 1) mod n

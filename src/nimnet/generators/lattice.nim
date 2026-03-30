@@ -54,3 +54,43 @@ proc hypercubeGraph*(dim: int): Graph[int] =
       let j = i xor (1 shl bit)
       if j > i:
         result.addEdge(i, j)
+
+proc hexagonalLatticeGraph*(m, n: int): Graph[int] =
+  ## Generate a hexagonal (honeycomb) lattice graph with m rows and n columns.
+  ## Uses offset coordinates for hexagonal layout.
+  result = newGraph[int]()
+  let rows = 2 * m
+  let cols = n
+  for r in 0 ..< rows:
+    for c in 0 ..< cols:
+      let node = r * cols + c
+      result.addNode(node)
+  for r in 0 ..< rows:
+    for c in 0 ..< cols:
+      let node = r * cols + c
+      # Horizontal
+      if c + 1 < cols:
+        result.addEdge(node, node + 1)
+      # Vertical (only certain rows to form hexagons)
+      if r + 1 < rows:
+        if (r mod 2 == 0 and c mod 2 == 0) or (r mod 2 == 1 and c mod 2 == 1):
+          result.addEdge(node, node + cols)
+
+proc gridGraph*(dims: openArray[int]): Graph[int] =
+  ## Generate an n-dimensional grid graph.
+  ## ``dims`` gives the size of each dimension.
+  result = newGraph[int]()
+  if dims.len == 0: return
+  var totalNodes = 1
+  for d in dims:
+    totalNodes *= d
+  for i in 0 ..< totalNodes:
+    result.addNode(i)
+  # Connect neighbors along each dimension
+  for i in 0 ..< totalNodes:
+    var stride = 1
+    for d in countdown(dims.len - 1, 0):
+      let coord = (i div stride) mod dims[d]
+      if coord + 1 < dims[d]:
+        result.addEdge(i, i + stride)
+      stride *= dims[d]
