@@ -17,7 +17,7 @@ jobs:
       - uses: actions/checkout@v6
 
       - name: Cache choosenim and nimble
-        uses: actions/cache@v5
+        uses: actions/cache@v6
         with:
           path: |
             ~/.choosenim
@@ -30,7 +30,7 @@ jobs:
           repo-token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Cache nimcache
-        uses: actions/cache@v5
+        uses: actions/cache@v6
         with:
           path: build/nimcache
           key: ${{ runner.os }}-nimcache-${{ hashFiles('src/**/*.nim', 'tests/**/*.nim') }}
@@ -55,7 +55,7 @@ jobs:
       - uses: actions/checkout@v6
 
       - name: Cache choosenim and nimble
-        uses: actions/cache@v5
+        uses: actions/cache@v6
         with:
           path: |
             ~/.choosenim
