@@ -30,3 +30,8 @@ Thumbs.db
 build/
 .nim_runtime/
 dist/
+
+# Generated benchmark data and Python caches
+benchmarks/results/
+__pycache__/
+*.pyc

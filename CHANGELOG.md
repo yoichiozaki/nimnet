@@ -5,6 +5,57 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+- Exact general-graph `maximumCardinalityMatching`, including odd cycles, and
+  explicitly named `approxMaxWeightMatching` / `approxMinWeightMatching` aliases.
+- Known-partition overloads for bipartite matching and minimum vertex cover.
+- Sparse weighted undirected `johnsons(Graph)` all-pairs distances, with
+  `includeUnreachable=true` for explicit complete `Inf` rows on either graph
+  kind; existing reachable-only directed defaults remain intact.
+- Expected O(V+E) `fastGnpRandomGraph` with seeded repeatability and robust
+  probability boundary handling.
+- Directed edge-list string/file dataset loaders, `readEdgelistDirected`, and
+  `toGraph(CompactDiGraph)` conversion.
+- Exhaustive small-graph matching oracles, targeted invariant/scalability
+  regressions, shared benchmark fixture checks and Python tooling tests.
+
+### Changed
+- Bipartite matching now uses indexed, iterative Hopcroft-Karp rather than
+  repeated unconstrained DFS augmentation.
+- Greedy modularity merges maintain incremental community gains instead of
+  repeatedly copying partitions and evaluating full modularity.
+- All Nimble test/coverage tasks discover the same sorted `tests/t*.nim`
+  inventory; `NIMNET_TESTS` supports validated selections and executables live
+  under `build`.
+- CI covers the minimum supported Nim compiler as well as stable, keys compiled
+  caches by compiler version, and uses one non-masking coverage workflow.
+- Benchmarks use identical serialized graph/weight fixtures, equivalent work,
+  monotonic elapsed clocks, sequential timing, validated complete CSV results
+  and recorded environments. The Python comparison environment is pinned.
+- Reviewed GitHub Actions upgrades and automatic grouped benchmark dependency
+  updates; current API, attribute and performance documentation reconciled.
+
+### Fixed
+- Minimum edge covers now use maximum-cardinality matching; graphs with
+  uncovered isolated nodes raise `NimNetUnfeasible`.
+- Compact undirected self-loop edge counts, degrees and graph round-trips.
+- Directed GEXF node labels survive read/write round-trips.
+- PageRank preserves probability mass for isolates and self-loops, including
+  serial/parallel consistency, without changing unweighted semantics.
+- Louvain resolution applies to the null-model term instead of scaling the
+  entire gain; nondefault values now have their documented effect.
+- Previously ignored directed dataset modes and unsupported edge-list
+  `createUsing` selectors now fail explicitly with migration guidance.
+- Invalid random-generator parameters and exhausted regular-graph retries no
+  longer produce success-shaped malformed graphs. G(n,m) complete-graph
+  saturation remains supported.
+- Test files omitted by hand-maintained runners are now included; failed tests,
+  malformed benchmark output and absent source coverage no longer pass silently.
+- API documentation markup is rendered as literals where appropriate; strict
+  doc generation rejects diagnostics even when the compiler returns zero.
+
 ## [1.0.0] - 2026-03-30
 
 ### Changed

@@ -212,7 +212,7 @@ proc treeGraph*(data: JsonNode): Graph[string] =
 
 proc adjacencyData*[N](g: Graph[N]): JsonNode =
   ## Convert graph to JSON adjacency format.
-  ## Format: array of {id, adjacency: [{id, ...}, ...]} objects.
+  ## Format: array of ``{id, adjacency: [{id, ...}, ...]}`` objects.
   result = newJArray()
   for n in g.nodes:
     var nodeObj = newJObject()

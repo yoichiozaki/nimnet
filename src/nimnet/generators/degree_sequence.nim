@@ -167,7 +167,7 @@ proc expectedDegreeGraph*(weights: openArray[float],
 
 proc degreeSequenceTree*(degSequence: openArray[int]): Graph[int] =
   ## Create a tree from a degree sequence using a greedy approach.
-  ## The degree sequence must sum to 2*(n-1) for a valid tree.
+  ## The degree sequence must sum to ``2*(n-1)`` for a valid tree.
   ##
   ## **Raises:** ``NimNetError`` if the sequence doesn't represent a tree.
   let n = degSequence.len

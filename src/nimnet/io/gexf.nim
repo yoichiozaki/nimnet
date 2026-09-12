@@ -72,10 +72,7 @@ proc writeGexf*[N](g: DiGraph[N], filename: string) =
   f.writeLine("""  </graph>""")
   f.writeLine("""</gexf>""")
 
-proc readGexf*(filename: string): Graph[string] =
-  ## Read an undirected graph from a GEXF file.
-  ## Returns a Graph[string] where node IDs are the GEXF id attributes.
-  result = newGraph[string]()
+proc readGexfInto[G](filename: string, g: var G) =
   let xml = loadXml(filename)
   for graphNode in xml:
     if graphNode.kind == xnElement and graphNode.tag == "graph":
@@ -88,11 +85,11 @@ proc readGexf*(filename: string): Graph[string] =
               let attrs = node.attrs
               if attrs != nil and attrs.hasKey("id"):
                 let id = attrs["id"]
-                result.addNode(id)
+                g.addNode(id)
                 if attrs.hasKey("label"):
                   var nodeAttr: NodeAttr = newNodeAttr()
                   nodeAttr["label"] = newJString(attrs["label"])
-                  result.addNode(id, nodeAttr)
+                  g.addNode(id, nodeAttr)
         elif section.tag == "edges":
           for edge in section:
             if edge.kind == xnElement and edge.tag == "edge":
@@ -101,38 +98,19 @@ proc readGexf*(filename: string): Graph[string] =
                 let src = attrs["source"]
                 let tgt = attrs["target"]
                 if attrs.hasKey("weight"):
-                  var edgeAttr: EdgeAttr = newEdgeAttr()
-                  edgeAttr["weight"] = attrs["weight"]
-                  result.addEdge(src, tgt, edgeAttr)
+                  g.addEdge(src, tgt, newEdgeAttr(parseFloat(attrs["weight"])))
                 else:
-                  result.addEdge(src, tgt)
+                  g.addEdge(src, tgt)
+
+proc readGexf*(filename: string): Graph[string] =
+  ## Read an undirected graph with node labels and edge weights from a GEXF file.
+  ## Returns a ``Graph[string]`` where node IDs are the GEXF id attributes.
+  ## Invalid weights raise ``ValueError``; XML and file errors propagate.
+  result = newGraph[string]()
+  readGexfInto(filename, result)
 
 proc readGexfDirected*(filename: string): DiGraph[string] =
-  ## Read a directed graph from a GEXF file.
+  ## Read a directed graph with node labels and edge weights from a GEXF file.
+  ## Node IDs and error behavior follow ``readGexf``.
   result = newDiGraph[string]()
-  let xml = loadXml(filename)
-  for graphNode in xml:
-    if graphNode.kind == xnElement and graphNode.tag == "graph":
-      for section in graphNode:
-        if section.kind != xnElement:
-          continue
-        if section.tag == "nodes":
-          for node in section:
-            if node.kind == xnElement and node.tag == "node":
-              let attrs = node.attrs
-              if attrs != nil and attrs.hasKey("id"):
-                let id = attrs["id"]
-                result.addNode(id)
-        elif section.tag == "edges":
-          for edge in section:
-            if edge.kind == xnElement and edge.tag == "edge":
-              let attrs = edge.attrs
-              if attrs != nil and attrs.hasKey("source") and attrs.hasKey("target"):
-                let src = attrs["source"]
-                let tgt = attrs["target"]
-                if attrs.hasKey("weight"):
-                  var edgeAttr: EdgeAttr = newEdgeAttr()
-                  edgeAttr["weight"] = attrs["weight"]
-                  result.addEdge(src, tgt, edgeAttr)
-                else:
-                  result.addEdge(src, tgt)
+  readGexfInto(filename, result)

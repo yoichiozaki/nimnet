@@ -17,12 +17,26 @@ Options for edge attributes:
 ## Decision
 
 - **Node type**: Generic `N` constrained to types that implement `hash` and `==` (via Nim's `Hash` concept). This allows `int`, `string`, or any custom type as nodes.
-- **Edge attributes**: `Table[string, string]` for the initial implementation. This is simple, avoids heavy dependencies, and covers the common case of labeled/weighted edges via string conversion.
-- **Node attributes**: Separate `Table[N, Table[string, string]]` stored on the graph object.
-- **Convenience weight accessor**: `weight(g, u, v): float` proc that parses `"weight"` attribute.
+- **Current edge attributes**: `EdgeAttr` is an object with a numeric `weight: float`
+  and `extra: Table[string, string]`. This avoids parsing a string in weighted
+  algorithm hot loops. `newEdgeAttr()` initializes the weight to `1.0`.
+- **Current node attributes**: `NodeAttr = JsonNode`, stored separately for each
+  node. JSON values support strings, numbers, booleans and nested objects.
+- **Convenience weight accessors**: `weight(g, u, v)` and `getWeight(attr)` read the
+  stored numeric field. The legacy `default` parameter to `getWeight` is retained
+  for source compatibility, but does not override the stored field.
+
+### Historical note
+
+The original 2026-03-29 decision used string tables for both attribute kinds and
+parsed edge weights. The representation above was already present in baseline
+`2ece49c`; this ADR was reconciled with the shipped implementation on 2026-09-12.
+This documentation update does not introduce an attribute migration.
 
 ## Consequences
 
-- **Positive**: Simple, no external dependencies. Generic node type is flexible.
-- **Negative**: String-based attributes require parsing for numeric operations. Less type-safe than a generic edge type.
-- **Future**: Migration to `Table[string, JsonNode]` is planned (see issue) to support richer attribute types without changing the public API shape.
+- **Positive**: Numeric weight access without repeated parsing; flexible generic
+  nodes and typed node metadata; only standard-library attribute types.
+- **Negative**: Non-weight edge metadata remains string-valued, while node
+  metadata uses reference-valued JSON. Neither attribute type is a table alias;
+  callers should use the constructors and documented accessors.

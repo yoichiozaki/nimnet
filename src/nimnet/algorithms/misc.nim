@@ -11,7 +11,7 @@ import ../digraph
 
 proc boundaryExpansion*[N](g: Graph[N], s: HashSet[N]): float =
   ## Compute the boundary expansion of a set S.
-  ## |boundary(S)| / |S| where boundary is neighbors of S not in S.
+  ## ``|boundary(S)| / |S|`` where boundary is neighbors of S not in S.
   if s.len == 0: return 0.0
   var boundary = initHashSet[N]()
   for n in s:
@@ -22,7 +22,7 @@ proc boundaryExpansion*[N](g: Graph[N], s: HashSet[N]): float =
 
 proc mixingExpansion*[N](g: Graph[N], s: HashSet[N]): float =
   ## Compute the mixing expansion of a set S.
-  ## |edges(S, V\S)| / |S| where edges(S, V\S) are edges between S and its complement.
+  ## ``|edges(S, V\S)| / |S|`` where edges(S, V\S) are edges between S and its complement.
   if s.len == 0: return 0.0
   var crossEdges = 0
   for n in s:

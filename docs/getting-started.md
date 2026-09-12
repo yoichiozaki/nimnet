@@ -15,7 +15,7 @@ nimble install nimnet
 Or add to your `.nimble` file:
 
 ```nim
-requires "nimnet >= 0.1.0"
+requires "nimnet >= 1.0.0"
 ```
 
 ## Requirements
@@ -192,7 +192,7 @@ import nimnet
 
 let karate = karateClubGraph()
 let dolphins = dolphinsGraph()
-let florentine = florentineFamiliesGraph()
+let florentine = datasets.florentineFamiliesGraph()
 let lesmis = lesMiserablesGraph()
 ```
 
@@ -268,22 +268,153 @@ let cc = parallelClosenessCentrality(g)
 - [API Reference]({{ site.baseurl }}/api/nimnet.html) — Full module documentation (auto-generated from source)
 - [ADR Documents](https://github.com/yoichiozaki/nimnet/tree/main/docs/adr) — Architecture Decision Records
 
+## Development additions
+
+The following APIs are part of the current unreleased development batch.
+See the [backlog]({{ site.baseurl }}/backlog) and changelog for release status.
+A runnable version is in
+[`examples/library_improvements.nim`](https://github.com/yoichiozaki/nimnet/blob/main/examples/library_improvements.nim).
+
+### Exact matching and explicit bipartitions
+
+```nim
+import std/sets
+import nimnet
+
+var g = newGraph[string]()
+g.addEdgesFrom([("A", "X"), ("A", "Y"), ("B", "X")])
+let left = toHashSet(["A", "B"])
+assert maximumMatching(g, left).len == 2
+assert minimumVertexCover(g, left).len == 2
+
+var triangle = newGraph[int]()
+triangle.addEdgesFrom([(0, 1), (1, 2), (2, 0)])
+assert maximumCardinalityMatching(triangle).len == 1
+assert minEdgeCover(triangle).len == 2
+```
+
+`maximumCardinalityMatching` is an exact O(V³) general-graph solver using
+blossom contraction. Bipartite matching uses iterative Hopcroft-Karp in
+O((V+E)√V); supplying the left side skips partition inference, but validates
+unknown nodes and edges within either side. An isolate without a self-loop
+makes an edge cover infeasible and raises `NimNetUnfeasible`.
+Here minimum means the number of edges, not their total weight.
+
+`maxWeightMatching` / `approxMaxWeightMatching` and
+`minWeightMatching` / `approxMinWeightMatching` remain greedy, not exact
+weighted solvers. The maximum-weight variant has a 1/2 guarantee for finite
+nonnegative weights; the minimum-weight variant has no general guarantee.
+
+### Sparse graphs and shortest paths
+
+```nim
+import std/[math, tables]
+import nimnet
+
+let sparse = fastGnpRandomGraph(1000, 0.004, seed = 42)
+assert sparse.numberOfNodes() == 1000
+
+var weighted = newGraph[string]()
+weighted.addWeightedEdge("A", "B", 2.5)
+weighted.addWeightedEdge("B", "C", 1.0)
+let distances = johnsons(weighted)
+assert distances["A"]["C"] == 3.5
+weighted.addNode("isolated")
+assert not johnsons(weighted)["A"].hasKey("isolated")
+let completeDistances = johnsons(weighted, includeUnreachable = true)
+assert completeDistances["A"]["isolated"] == Inf
+```
+
+`fastGnpRandomGraph` uses geometric skipping in expected O(V+E). The original
+`erdosRenyiGraph` and its valid seeded output are unchanged. A nonzero seed is
+repeatable within each generator; zero uses a system-derived seed. Different
+generator algorithms do not promise identical edges for the same seed.
+Invalid sizes/probabilities raise `NimNetError`; probabilities must be finite
+and in `[0, 1]`.
+
+`gnmRandomGraph` retains complete-graph saturation when `m` exceeds the maximum.
+`randomRegularGraph` always returns the requested degrees or raises:
+invalid parameters produce `NimNetError`, and exhausted bounded pairing
+attempts produce `NimNetUnfeasible`. It never silently substitutes an empty
+graph. `johnsons` now accepts weighted undirected graphs as well as digraphs;
+its result is a nested `Table[N, Table[N, float]]` of source/destination
+distances. The default keeps the original directed API's reachable-only
+destination keys; each isolate still has a self-distance of zero.
+`includeUnreachable=true` explicitly requests complete rows with `Inf` for
+unreachable destinations. Negative undirected edges represent negative cycles
+and are rejected. `parallelJohnsons` produces complete rows in both threaded
+and non-threaded builds.
+
+### PageRank and community resolution
+
+```nim
+import std/tables
+import nimnet
+
+var isolate = newGraph[int]()
+isolate.addNode(0)
+assert pageRank(isolate)[0] == 1.0
+
+let clique = completeGraph[int](4)
+assert louvainCommunities(clique, resolution = 0.5, seed = 42).len == 1
+assert louvainCommunities(clique, resolution = 3.0, seed = 42).len == 4
+```
+
+PageRank is unweighted: edge weight attributes do not affect its transitions.
+Dangling mass is redistributed uniformly and a self-loop contributes one
+transition, so nonempty results remain normalized. The stopping condition is
+total L1 change `< tol`; reaching `maxIter` still returns the last iterate.
+Zero iterations return the uniform initialization. Invalid settings raise
+`ValueError`: `alpha` must be finite in `[0, 1]`, `tol` finite/nonnegative,
+and iteration counts nonnegative.
+
+Louvain optimizes weighted modularity; `resolution` scales the null-model term,
+not the entire gain. Higher values favor smaller communities. Use a nonzero
+seed for repeatability; community quality and partitions can still differ from
+other implementations.
+Resolution and edge weights must be finite and nonnegative (`ValueError`
+otherwise); unrepresentable arithmetic raises `NimNetAlgorithmError`.
+The method remains a heuristic with 100 passes per level and 20 levels.
+
+### Attributes, compact loops and directed loaders
+
+```nim
+import std/json
+import nimnet
+
+var edge = newEdgeAttr([("kind", "road")])
+edge.weight = 2.5
+assert edge.getWeight() == 2.5
+
+let node = newNodeAttr([("label", "Alpha")])
+node["active"] = %true
+
+let directed = loadFromEdgeListStringDirected[int]("1 2 3.5\n2 3 1.0")
+assert directed.hasEdge(1, 2)
+assert not directed.hasEdge(2, 1)
+```
+
+`EdgeAttr` has a numeric weight and string-valued `extra` attributes;
+`NodeAttr` is JSON-valued. `newEdgeAttr()` supplies weight `1.0`;
+the legacy `getWeight(default=...)` argument does not replace stored weights.
+
+Use `loadFromEdgeListFileDirected` for integer-node files and
+`readEdgelistDirected(filename, delimiter)` for string-node edge lists.
+The old `loadFromEdgeListString(..., directed=true)` cannot return a digraph
+with its declared `Graph` return type: it now raises an actionable error
+instead of silently ignoring the flag. `readEdgelist` accepts `createUsing =
+"graph"`; unsupported selectors fail rather than pretending to change graph
+kind. Malformed rows/weights raise `ValueError`.
+
+Compact graphs correctly count self-loops and their contribution of two to
+undirected degree. `toGraph` supports both compact graph kinds, retaining
+direction, topology and weights. Directed GEXF round-trips preserve node labels
+as well as edge weights.
+
 ## Performance
 
-nimnet is a pure Nim implementation with no C/Fortran dependencies — yet it outperforms Python's NetworkX (which uses scipy/numpy C backends) on most benchmarks.
-
-**Large graph (10,000 nodes, 50,000 edges):**
-
-| Benchmark | NimNet | NetworkX | Result |
-|-----------|--------|----------|--------|
-| Graph creation | 0.014s | 0.051s | **NimNet 3.6× faster** |
-| BFS traversal | 0.008s | 0.015s | **NimNet 1.9× faster** |
-| DFS traversal | 0.006s | 0.010s | **NimNet 1.7× faster** |
-| Dijkstra | 0.040s | 0.012s | NetworkX 3.3× faster |
-| PageRank | 0.079s | 0.035s | NetworkX 2.3× faster\* |
-| Connected components | 0.006s | 0.005s | ~1× |
-| MST (Kruskal) | 0.077s | 0.088s | **NimNet 1.1× faster** |
-
-\*NetworkX PageRank uses scipy sparse matrix operations (C/Fortran); NimNet is pure Nim.
-
-To reproduce benchmarks, see the [`benchmarks/`](https://github.com/yoichiozaki/nimnet/tree/main/benchmarks) directory.
+Use the [benchmark suite](https://github.com/yoichiozaki/nimnet/tree/main/benchmarks)
+for shared inputs, repeatable elapsed-time measurements and recorded
+environment details. Results depend on graph shape, size, algorithm and
+hardware; historical tables using different random graphs are not comparable
+with the current fixture-based measurements.

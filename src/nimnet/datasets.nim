@@ -7,35 +7,68 @@ import ./types
 import ./graph
 import ./digraph
 
-proc loadFromEdgeListString*[N: SomeInteger](data: string, directed: bool = false): Graph[N] =
-  ## Load a graph from an edge list string.
-  ## Lines starting with # or % are comments.
-  ## Each line: source target [weight]
-  result = newGraph[N]()
+proc parseEdgeListNode[N: SomeInteger](value: string): N =
+  when N is SomeUnsignedInt:
+    let node = parseBiggestUInt(value)
+    if node > BiggestUInt(high(N)):
+      raise newException(ValueError, "Edge list node is out of range: " & value)
+  else:
+    let node = parseBiggestInt(value)
+    if node < BiggestInt(low(N)) or node > BiggestInt(high(N)):
+      raise newException(ValueError, "Edge list node is out of range: " & value)
+  result = N(node)
+
+iterator edgeListEntries[N: SomeInteger](data: string): tuple[u, v: N, weight: float] =
+  var lineNumber = 0
   for line in data.splitLines():
+    inc lineNumber
     let stripped = line.strip()
     if stripped.len == 0 or stripped[0] == '#' or stripped[0] == '%':
       continue
     let parts = stripped.splitWhitespace()
-    if parts.len >= 2:
-      let u = N(parseInt(parts[0]))
-      let v = N(parseInt(parts[1]))
-      if parts.len >= 3:
-        try:
-          let w = parseFloat(parts[2])
-          result.addWeightedEdge(u, v, w)
-        except ValueError:
-          result.addEdge(u, v)
-      else:
-        result.addEdge(u, v)
+    if parts.len < 2 or parts.len > 3:
+      raise newException(ValueError, "Invalid edge list on line " & $lineNumber &
+        ": expected source target [weight]")
+    let u = parseEdgeListNode[N](parts[0])
+    let v = parseEdgeListNode[N](parts[1])
+    let weight = if parts.len == 3: parseFloat(parts[2]) else: 1.0
+    yield (u, v, weight)
+
+proc loadFromEdgeListString*[N: SomeInteger](data: string, directed: bool = false): Graph[N] =
+  ## Load an undirected graph with integer nodes from an edge list string.
+  ## Each non-comment line is ``source target [weight]``, separated by whitespace.
+  ## Lines starting with # or % are comments. Malformed input raises ``ValueError``.
+  ## ``directed = true`` raises ``NimNetError``; use
+  ## ``loadFromEdgeListStringDirected[N]`` for a statically typed directed graph.
+  if directed:
+    raise newException(NimNetError,
+      "loadFromEdgeListString returns Graph[N]; use " &
+      "loadFromEdgeListStringDirected[N](data) instead of directed=true")
+  result = newGraph[N]()
+  for (u, v, weight) in edgeListEntries[N](data):
+    result.addWeightedEdge(u, v, weight)
+
+proc loadFromEdgeListStringDirected*[N: SomeInteger](data: string): DiGraph[N] =
+  ## Load a directed graph with integer nodes from ``source target [weight]`` lines.
+  ## Whitespace, comments and parse errors follow ``loadFromEdgeListString``.
+  result = newDiGraph[N]()
+  for (u, v, weight) in edgeListEntries[N](data):
+    result.addWeightedEdge(u, v, weight)
 
 proc loadFromEdgeListFile*(filename: string): Graph[int] =
-  ## Load a graph from an edge list file.
-  ## Lines starting with # or % are comments.
+  ## Load an undirected integer graph from an edge list file.
+  ## Parsing follows ``loadFromEdgeListString``; file errors propagate as ``IOError``.
   if not fileExists(filename):
     raise newException(IOError, "File not found: " & filename)
   let data = readFile(filename)
   result = loadFromEdgeListString[int](data)
+
+proc loadFromEdgeListFileDirected*(filename: string): DiGraph[int] =
+  ## Load a directed integer graph from an edge list file.
+  ## Parsing follows ``loadFromEdgeListStringDirected``; file errors raise ``IOError``.
+  if not fileExists(filename):
+    raise newException(IOError, "File not found: " & filename)
+  result = loadFromEdgeListStringDirected[int](readFile(filename))
 
 proc dolphinsSocialNetwork*(): Graph[int] =
   ## Return the Dolphins social network (62 nodes, 159 edges).

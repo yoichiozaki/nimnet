@@ -4,42 +4,19 @@
 ## medium (1,000), and large (10,000) node graphs.
 ## Outputs results in CSV format for comparison with bench_micro_networkx.py.
 
-import std/[times, strformat, random, tables, algorithm, sequtils]
+import std/[strformat, tables]
 import nimnet
+import bench_common, bench_graphs
 
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
 
-const benchRuns = 5  # Number of timed runs per benchmark
+let benchRuns = benchmarkRuns()
 
 template bench(body: untyped): float =
-  ## Run body multiple times and return the median elapsed time.
-  # Warmup run (not timed)
-  body
-  var times: seq[float]
-  for _ in 0 ..< benchRuns:
-    let t0 = cpuTime()
+  medianTime(benchRuns):
     body
-    let elapsed = cpuTime() - t0
-    times.add(elapsed)
-  times.sort()
-  times[times.len div 2]  # median
-
-proc buildGraph(n: int, seed: int = 42): Graph[int] =
-  ## Build an Erdős-Rényi-like graph: n nodes, ~n*5 edges.
-  result = newGraph[int](capacity = n)
-  for i in 0 ..< n:
-    result.addNode(i)
-  var rng = initRand(seed)
-  let m = n * 5
-  var added = 0
-  while added < m:
-    let u = rng.rand(n - 1)
-    let v = rng.rand(n - 1)
-    if u != v and not result.hasEdge(u, v):
-      result.addWeightedEdge(u, v, rng.rand(1.0 .. 10.0))
-      added += 1
 
 # ---------------------------------------------------------------------------
 # Benchmark functions
@@ -61,11 +38,7 @@ proc benchWeightAccess(g: Graph[int]): float =
     doAssert total > 0.0
 
 proc benchHasEdge(g: Graph[int], n: int): float =
-  var rng = initRand(42)
-  var pairs: seq[(int, int)]
-  pairs.setLen(n * 5)
-  for i in 0 ..< n * 5:
-    pairs[i] = (rng.rand(n - 1), rng.rand(n - 1))
+  let pairs = queryPairs(n)
   bench:
     var count = 0
     for (u, v) in pairs:
@@ -94,24 +67,16 @@ proc benchDegreeAccess(g: Graph[int]): float =
       total += g.degree(node)
     doAssert total > 0
 
-proc benchAddEdgeBulk(n: int): float =
-  var rng = initRand(42)
-  var edgePairs: seq[(int, int)]
-  while edgePairs.len < n * 5:
-    let u = rng.rand(n - 1)
-    let v = rng.rand(n - 1)
-    if u != v:
-      edgePairs.add((u, v))
+proc benchAddEdgeBulk(fixture: Fixture): float =
   bench:
-    var g = newGraph[int](capacity = n)
-    for i in 0 ..< n:
-      g.addNode(i)
-    for (u, v) in edgePairs:
-      g.addEdge(u, v)
-    doAssert g.numberOfNodes() == n
+    let g = buildFixture(fixture)
+    doAssert g.numberOfNodes() == fixture.size.nodes
+    doAssert g.numberOfEdges() == fixture.size.edges
 
-proc benchGetEdgeAttr(g: Graph[int]): float =
-  let edges = g.edges.toSeq()
+proc benchGetEdgeAttr(g: Graph[int], fixture: Fixture): float =
+  var edges: seq[(int, int)]
+  for (u, v, _) in fixture.edges:
+    edges.add((u, v))
   bench:
     var total = 0.0
     for (u, v) in edges:
@@ -123,17 +88,13 @@ proc benchGetEdgeAttr(g: Graph[int]): float =
 # ---------------------------------------------------------------------------
 
 proc runMicroBenchmarks() =
+  let fixtures = loadFixtures()
   echo "library,benchmark,size,nodes,edges,time_seconds"
 
-  let sizes = [
-    ("small",  100,    500),
-    ("medium", 1_000,  5_000),
-    ("large",  10_000, 50_000),
-  ]
-
-  for (sizeName, n, _) in sizes:
-    let g = buildGraph(n)
-    let m = g.numberOfEdges()
+  for fixture in fixtures:
+    let (sizeName, n, m) = fixture.size
+    let g = buildFixture(fixture, weighted = true)
+    doAssert g.numberOfNodes() == n and g.numberOfEdges() == m
 
     let t1 = benchNeighborIteration(g)
     echo &"nimnet,neighbor_iteration,{sizeName},{n},{m},{t1:.6f}"
@@ -153,10 +114,10 @@ proc runMicroBenchmarks() =
     let t6 = benchDegreeAccess(g)
     echo &"nimnet,degree_access,{sizeName},{n},{m},{t6:.6f}"
 
-    let t7 = benchAddEdgeBulk(n)
+    let t7 = benchAddEdgeBulk(fixture)
     echo &"nimnet,add_edge_bulk,{sizeName},{n},{m},{t7:.6f}"
 
-    let t8 = benchGetEdgeAttr(g)
+    let t8 = benchGetEdgeAttr(g, fixture)
     echo &"nimnet,get_edge_attr,{sizeName},{n},{m},{t8:.6f}"
 
 when isMainModule:

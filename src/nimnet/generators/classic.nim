@@ -54,7 +54,7 @@ proc wheelGraph*[N: SomeInteger](n: N): Graph[N] =
 
 proc gridGraph*(rows, cols: int): Graph[int] =
   ## Generate a 2D grid graph with rows x cols nodes.
-  ## Nodes are numbered 0 to rows*cols-1, row-major.
+  ## Nodes are numbered 0 to ``rows*cols-1``, row-major.
   result = newGraph[int](capacity = rows * cols)
   for r in 0 ..< rows:
     for c in 0 ..< cols:
@@ -93,8 +93,8 @@ proc nullGraph*(): Graph[int] =
 proc barbellGraph*(m1, m2: int): Graph[int] =
   ## Generate a barbell graph: two complete graphs of m1 nodes
   ## connected by a path of m2 nodes.
-  ## Nodes: 0..m1-1 (left clique), m1..m1+m2-1 (bridge),
-  ## m1+m2..2*m1+m2-1 (right clique).
+  ## Nodes: ``0..m1-1`` (left clique), ``m1..m1+m2-1`` (bridge),
+  ## ``m1+m2..2*m1+m2-1`` (right clique).
   result = newGraph[int](capacity = 2 * m1 + m2)
   let total = 2 * m1 + m2
   for i in 0 ..< total:

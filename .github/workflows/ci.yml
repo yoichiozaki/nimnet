@@ -8,37 +8,61 @@ on:
 
 jobs:
   test:
+    name: ${{ matrix.nim == 'stable' && format('test ({0})', matrix.os) || format('test ({0}, Nim {1})', matrix.os, matrix.nim) }}
     strategy:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
+        nim: ['stable']
+        include:
+          - os: ubuntu-latest
+            nim: '2.0.0'
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - name: Cache choosenim and nimble
-        uses: actions/cache@v5
+        uses: actions/cache@v6
         with:
           path: |
             ~/.choosenim
             ~/.nimble
-          key: ${{ runner.os }}-nim-stable-v3
+          key: ${{ runner.os }}-${{ runner.arch }}-nim-${{ matrix.nim }}-${{ hashFiles('nimnet.nimble') }}
 
       - uses: jiro4989/setup-nim-action@v2
         with:
-          nim-version: 'stable'
+          nim-version: ${{ matrix.nim }}
           repo-token: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Record compiler version
+        id: compiler
+        shell: bash
+        run: |
+          version=$(nim --version | sed -n '1s/.*Version \([^ ]*\).*/\1/p')
+          test -n "$version"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+
       - name: Cache nimcache
-        uses: actions/cache@v5
+        uses: actions/cache@v6
         with:
           path: build/nimcache
-          key: ${{ runner.os }}-nimcache-${{ hashFiles('src/**/*.nim', 'tests/**/*.nim') }}
+          key: ${{ runner.os }}-${{ runner.arch }}-nimcache-${{ steps.compiler.outputs.version }}-${{ hashFiles('src/**/*.nim', 'tests/**/*.nim', 'benchmarks/*.nim', 'nimnet.nimble') }}
           restore-keys: |
-            ${{ runner.os }}-nimcache-
+            ${{ runner.os }}-${{ runner.arch }}-nimcache-${{ steps.compiler.outputs.version }}-
 
       - name: Install dependencies
         run: nimble install -y
+
+      - name: Verify requested compiler is still selected
+        shell: bash
+        env:
+          REQUESTED_NIM: ${{ matrix.nim }}
+        run: |
+          actual=$(nim --version | sed -n '1s/.*Version \([^ ]*\).*/\1/p')
+          if [[ "$REQUESTED_NIM" != stable && "$actual" != "$REQUESTED_NIM" ]]; then
+            echo "Expected Nim $REQUESTED_NIM, got $actual" >&2
+            exit 1
+          fi
 
       - name: Lint check
         run: nim check --threads:on -p:src --hints:off src/nimnet.nim
@@ -49,60 +73,16 @@ jobs:
       - name: Run tests
         run: nimble run_tests
 
-  coverage:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v6
+      - name: Run public API documentation example
+        run: nim c -r --threads:on --hints:off -p:src --nimcache:build/nimcache/library_improvements -o:build/library_improvements examples/library_improvements.nim
 
-      - name: Cache choosenim and nimble
-        uses: actions/cache@v5
+      - uses: actions/setup-python@v6
         with:
-          path: |
-            ~/.choosenim
-            ~/.nimble
-          key: Linux-nim-stable-v3
+          python-version: '3.12'
 
-      - uses: jiro4989/setup-nim-action@v2
-        with:
-          nim-version: 'stable'
-          repo-token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Test benchmark and coverage tooling
+        run: python -m unittest discover -s tests -p test_tooling.py -v
 
-      - name: Install dependencies
-        run: nimble install -y
-
-      - name: Install lcov
-        run: sudo apt-get install -y lcov
-
-      - name: Run tests with coverage
-        run: |
-          mkdir -p build coverage
-          for testfile in tests/t*.nim; do
-            testname=$(basename "$testfile" .nim)
-            nim c --threads:on -p:src \
-              --passC:--coverage --passL:--coverage \
-              --nimcache:build/nimcache_cov/"$testname" \
-              -o:build/"$testname" "$testfile"
-            ./build/"$testname" || true
-          done
-
-      - name: Collect coverage
-        run: |
-          lcov --capture --directory build/nimcache_cov \
-            --output-file coverage/lcov.info \
-            --ignore-errors inconsistent,gcov,source,empty,mismatch \
-            --rc geninfo_unexecuted_blocks=1 || true
-          if [ -f coverage/lcov.info ] && [ -s coverage/lcov.info ]; then
-            lcov --remove coverage/lcov.info '/usr/*' '*/choosenim/*' '*/nimble/*' \
-              --output-file coverage/lcov_filtered.info \
-              --ignore-errors inconsistent,unused,empty || true
-          else
-            echo "No coverage data collected"
-            touch coverage/lcov_filtered.info
-          fi
-
-      - name: Upload coverage to Codecov
-        if: always()
-        uses: codecov/codecov-action@v5
-        with:
-          files: coverage/lcov_filtered.info
-          fail_ci_if_error: false
+      - name: Build API documentation without diagnostics
+        if: matrix.os == 'ubuntu-latest' && matrix.nim == 'stable'
+        run: nimble docs

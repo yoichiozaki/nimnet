@@ -59,7 +59,7 @@ proc writePajek*[N](g: DiGraph[N], filename: string) =
 
 proc readPajek*(filename: string): Graph[int] =
   ## Read an undirected graph from Pajek .net format.
-  ## Returns Graph[int] with integer node labels.
+  ## Returns ``Graph[int]`` with integer node labels.
   let fs = newFileStream(filename, fmRead)
   if fs.isNil:
     raise newException(IOError, fmt"Cannot open file: {filename}")

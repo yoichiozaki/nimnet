@@ -1,6 +1,6 @@
 ## Community detection algorithms
 
-import std/[tables, sets, sequtils, deques, algorithm, random]
+import std/[tables, sets, sequtils, deques, algorithm, random, heapqueue]
 import ../types
 import ../graph
 
@@ -9,98 +9,149 @@ import ../graph
 # =============================================================================
 
 proc modularity*[N](g: Graph[N], communities: seq[HashSet[N]]): float =
-  ## Compute the modularity of a partition.
-  ## Q = (1/2m) * sum_ij [ A_ij - k_i * k_j / (2m) ] * delta(c_i, c_j)
+  ## Compute unweighted modularity for a partition of the graph's nodes.
+  ## ``Q = sum_C [ L_C / m - (D_C / (2m))^2 ]``, where ``m`` is the edge count,
+  ## ``L_C`` counts internal edges once (including self-loops), and ``D_C`` is the
+  ## sum of degrees (self-loops contribute twice). All edge attributes,
+  ## including weights, are ignored. Returns 0.0 when there are no edges.
   let m = g.numberOfEdges()
   if m == 0:
     return 0.0
   let m2 = 2.0 * float(m)
 
-  # Build community membership map
-  var membership = initTable[N, int]()
-  for i, comm in communities:
-    for n in comm:
-      membership[n] = i
-
-  var q = 0.0
   for comm in communities:
-    var lc = 0  # edges within community
-    var dc = 0  # sum of degrees in community
-    for u in comm:
+    var internalEndpoints = 0
+    var dc = 0
+    for u in sets.items(comm):
       dc += g.degree(u)
       for v in g.neighbors(u):
-        if v in comm:
-          lc.inc
-    lc = lc div 2  # each internal edge counted twice
-    q += float(lc) / float(m) - (float(dc) / m2) * (float(dc) / m2)
-  result = q
+        if sets.contains(comm, v):
+          internalEndpoints += (if u == v: 2 else: 1)
+    let fraction = float(dc) / m2
+    result += float(internalEndpoints) / m2 - fraction * fraction
 
 # =============================================================================
 # Greedy modularity optimization
 # =============================================================================
 
-proc greedyModularityCommunities*[N](g: Graph[N]): seq[HashSet[N]] =
-  ## Detect communities using greedy modularity optimization (CNM algorithm).
-  ## Returns a partition of nodes into communities.
-  if g.numberOfNodes() == 0:
-    return @[]
+type ModularityMerge = tuple[
+  priority: float, left, right, leftVersion, rightVersion: int]
 
-  # Start with each node in its own community
-  var communities: seq[HashSet[N]]
-  var nodeToComm = initTable[N, int]()
-  var idx = 0
-  for n in g.nodes:
-    var s = initHashSet[N]()
-    s.incl(n)
-    communities.add(s)
-    nodeToComm[n] = idx
-    idx.inc
+proc queueModularityMerge(queue: var HeapQueue[ModularityMerge],
+    left, right, count: int, degrees, versions: seq[int], m2: float) =
+  let lo = min(left, right)
+  let hi = max(left, right)
+  # Compare the numerator of delta-Q, avoiding subtraction of whole Q values.
+  let observed = m2 * float(count)
+  let expected = float(degrees[lo]) * float(degrees[hi])
+  let gain = observed - expected
+  const Roundoff = 8.0 * 2.220446049250313e-16
+  if gain > Roundoff * max(observed, expected):
+    queue.push((-gain, lo, hi, versions[lo], versions[hi]))
+
+proc modularityMergeHeap(links: seq[Table[int, int]], degrees,
+    versions: seq[int], m2: float): HeapQueue[ModularityMerge] =
+  for i in 0 ..< links.len:
+    for j, count in tables.pairs(links[i]):
+      if i < j:
+        queueModularityMerge(result, i, j, count, degrees, versions, m2)
+
+proc greedyModularityCommunities*[N](g: Graph[N]): seq[HashSet[N]] =
+  ## Greedily maximize the same unweighted objective as ``modularity``.
+  ## Weights are ignored; self-loops count once as edges and twice in degrees.
+  ## Starting from singleton communities, merge the adjacent pair with greatest
+  ## positive delta-Q, stopping when no gain exceeds floating-point roundoff.
+  ## Ties use indices in ``g.nodeSeq()`` order, never comparisons of node values.
+  ## Returns a valid partition, including singleton isolates; the empty graph
+  ## returns an empty sequence. This is a heuristic, not a global optimum.
+  ##
+  ## Maintains inter-community edge counts and degree sums in a lazy heap.
+  ## Only neighbors of a merged community are updated, without cloning
+  ## partitions or reevaluating modularity per candidate. Worst-case time is
+  ## O(V + VE log(V + 1)); auxiliary space is O(V + E).
+  let nodes = g.nodeSeq()
+  let n = nodes.len
+  if n == 0:
+    return @[]
 
   let m = g.numberOfEdges()
   if m == 0:
-    return communities
+    for node in nodes:
+      var singleton = initHashSet[N]()
+      sets.incl(singleton, node)
+      result.add(singleton)
+    return
 
-  var bestQ = modularity(g, communities)
+  var nodeIndex = initTable[N, int](n)
+  var degrees = newSeq[int](n)
+  var parent = newSeq[int](n)
+  var versions = newSeq[int](n)
+  var links = newSeq[Table[int, int]](n)
+  for i, node in nodes:
+    nodeIndex[node] = i
+    degrees[i] = g.degree(node)
+    parent[i] = i
+    links[i] = initTable[int, int]()
 
-  # Iteratively merge communities that increase modularity the most
-  var improved = true
-  while improved and communities.len > 1:
-    improved = false
-    var bestDeltaQ = 0.0
-    var bestI = -1
-    var bestJ = -1
+  var livePairs = 0
+  for i, node in nodes:
+    for neighbor in g.neighbors(node):
+      let j = nodeIndex[neighbor]
+      if i != j:
+        links[i][j] = 1
+        if i < j:
+          livePairs.inc
 
-    # Find the merge that maximizes modularity gain
-    for (u, v) in g.edges:
-      let ci = nodeToComm[u]
-      let cv = nodeToComm[v]
-      if ci != cv:
-        # Try merging ci and cv
-        var merged = communities
-        let lo = min(ci, cv)
-        let hi = max(ci, cv)
-        merged[lo] = merged[lo] + merged[hi]
-        merged.delete(hi)
-        let newQ = modularity(g, merged)
-        let deltaQ = newQ - bestQ
-        if deltaQ > bestDeltaQ:
-          bestDeltaQ = deltaQ
-          bestI = lo
-          bestJ = hi
+  let m2 = 2.0 * float(m)
+  var queue = modularityMergeHeap(links, degrees, versions, m2)
+  while queue.len > 0:
+    let candidate = queue.pop()
+    let a = candidate.left
+    let b = candidate.right
+    if parent[a] != a or parent[b] != b or
+        versions[a] != candidate.leftVersion or
+        versions[b] != candidate.rightVersion:
+      continue
 
-    if bestI >= 0 and bestDeltaQ > 0:
-      # Merge
-      communities[bestI] = communities[bestI] + communities[bestJ]
-      communities.delete(bestJ)
-      # Rebuild nodeToComm
-      nodeToComm.clear()
-      for i, comm in communities:
-        for n in comm:
-          nodeToComm[n] = i
-      bestQ += bestDeltaQ
-      improved = true
+    parent[b] = a
+    degrees[a] += degrees[b]
+    versions[a].inc
+    links[a].del(b)
+    links[b].del(a)
+    livePairs.dec
+    for neighbor, count in tables.pairs(links[b]):
+      links[neighbor].del(b)
+      if links[a].hasKey(neighbor):
+        livePairs.dec
+      let combined = links[a].getOrDefault(neighbor) + count
+      links[a][neighbor] = combined
+      links[neighbor][a] = combined
+    links[b] = default(Table[int, int])
 
-  result = communities
+    for neighbor, count in tables.pairs(links[a]):
+      queueModularityMerge(queue, a, neighbor, count, degrees, versions, m2)
+
+    # Bound stale heap storage even for highly unbalanced merge sequences.
+    if queue.len > 4 * livePairs:
+      queue = modularityMergeHeap(links, degrees, versions, m2)
+
+  var members = newSeq[HashSet[N]](n)
+  for i in 0 ..< n:
+    if parent[i] == i:
+      members[i] = initHashSet[N]()
+  for i, node in nodes:
+    var root = i
+    while parent[root] != root:
+      root = parent[root]
+    var current = i
+    while parent[current] != root:
+      let next = parent[current]
+      parent[current] = root
+      current = next
+    sets.incl(members[root], node)
+  for i in 0 ..< n:
+    if parent[i] == i:
+      result.add(members[i])
 
 # =============================================================================
 # Label propagation

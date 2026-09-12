@@ -144,12 +144,18 @@ proc betweennessCentrality*[N](g: Graph[N], normalized: bool = true): Table[N, f
 # PageRank
 # =============================================================================
 
-proc pageRank*[N](g: DiGraph[N], alpha: float = 0.85, maxIter: int = 100,
-                   tol: float = 1.0e-6): Table[N, float] =
-  ## Compute PageRank for a directed graph using power iteration.
-  ## Uses CSR-indexed computation internally for cache-friendly performance.
-  ## ``alpha``: damping factor (default 0.85).
-  let n = g.numberOfNodes()
+func validatePageRankSettings(alpha: float, maxIter: int, tol: float) =
+  if classify(alpha) in {fcNan, fcInf, fcNegInf} or alpha < 0.0 or alpha > 1.0:
+    raise newException(ValueError, "PageRank alpha must be finite and between 0 and 1")
+  if maxIter < 0:
+    raise newException(ValueError, "PageRank maxIter must be nonnegative")
+  if classify(tol) in {fcNan, fcInf, fcNegInf} or tol < 0.0:
+    raise newException(ValueError, "PageRank tol must be finite and nonnegative")
+
+proc indexedPageRank[N](adj, incoming: Table[N, Table[N, EdgeAttr]],
+    alpha: float, maxIter: int, tol: float): Table[N, float] =
+  validatePageRankSettings(alpha, maxIter, tol)
+  let n = adj.len
   if n == 0:
     return initTable[N, float]()
 
@@ -160,22 +166,22 @@ proc pageRank*[N](g: DiGraph[N], alpha: float = 0.85, maxIter: int = 100,
   var invOutDeg = newSeq[float](n)
 
   var idx = 0
-  for node in g.adj.keys:
+  for node in tables.keys(adj):
     nodeList.add(node)
     nodeIdx[node] = idx
-    outDeg[idx] = g.adj[node].len
+    outDeg[idx] = adj[node].len
     idx.inc
 
   # Build CSR predecessor adjacency
   var predOff = newSeq[int](n + 1)
   var totalPredEdges = 0
   for i in 0 ..< n:
-    totalPredEdges += g.pred[nodeList[i]].len
+    totalPredEdges += incoming[nodeList[i]].len
   var predNbr = newSeqOfCap[int](totalPredEdges)
   var off = 0
   for i in 0 ..< n:
     predOff[i] = off
-    for p in g.pred[nodeList[i]].keys:
+    for p in tables.keys(incoming[nodeList[i]]):
       predNbr.add(nodeIdx[p])
       off.inc
   predOff[n] = off
@@ -217,73 +223,29 @@ proc pageRank*[N](g: DiGraph[N], alpha: float = 0.85, maxIter: int = 100,
   for i in 0 ..< n:
     result[nodeList[i]] = rank[i]
 
+proc pageRank*[N](g: DiGraph[N], alpha: float = 0.85, maxIter: int = 100,
+                   tol: float = 1.0e-6): Table[N, float] =
+  ## Unweighted PageRank with uniform initialization and teleportation.
+  ## Each outgoing neighbor, including a self-loop, receives an equal share;
+  ## dangling nodes redistribute their probability uniformly. Weights are ignored.
+  ## Stops when total L1 change is strictly less than ``tol``, or after
+  ## ``maxIter`` iterations, returning the last iterate without a convergence
+  ## exception. Zero iterations return the uniform initial ranks.
+  ## Requires finite ``alpha`` in ``[0, 1]``, finite nonnegative ``tol``, and
+  ## nonnegative ``maxIter``; invalid settings raise ``ValueError``.
+  ## Empty graphs return an empty table. Uses O(V + E) working space and
+  ## O((maxIter + 1)(V + E)) time with one reusable indexed adjacency.
+  indexedPageRank(g.adj, g.pred, alpha, maxIter, tol)
+
 proc pageRank*[N](g: Graph[N], alpha: float = 0.85, maxIter: int = 100,
                    tol: float = 1.0e-6): Table[N, float] =
-  ## Compute PageRank for undirected graph (treated as bidirectional).
-  ## Uses CSR-indexed computation internally for cache-friendly performance.
-  let n = g.numberOfNodes()
-  if n == 0:
-    return initTable[N, float]()
-
-  # Build indexed structure with CSR layout for maximum cache locality
-  var nodeList = newSeqOfCap[N](n)
-  var nodeIdx = initTable[N, int](n)
-  var invDeg = newSeq[float](n)
-
-  var idx = 0
-  for node in g.adj.keys:
-    nodeList.add(node)
-    nodeIdx[node] = idx
-    idx.inc
-
-  # First pass: compute degrees
-  for i in 0 ..< n:
-    let node = nodeList[i]
-    var d = g.adj[node].len
-    if node in g.adj[node]: d.inc  # self-loop
-    invDeg[i] = if d > 0: 1.0 / float(d) else: 0.0
-
-  # Build CSR adjacency (flat arrays instead of seq[seq[int]])
-  var adjOff = newSeq[int](n + 1)
-  var totalEdges = 0
-  for i in 0 ..< n:
-    totalEdges += g.adj[nodeList[i]].len
-  var adjNbr = newSeqOfCap[int](totalEdges)
-  var off = 0
-  for i in 0 ..< n:
-    adjOff[i] = off
-    for neighbor in g.adj[nodeList[i]].keys:
-      adjNbr.add(nodeIdx[neighbor])
-      off.inc
-  adjOff[n] = off
-
-  # Power iteration with flat arrays — no hash lookups in inner loop
-  let initVal = 1.0 / float(n)
-  let base = (1.0 - alpha) / float(n)
-  var rank = newSeq[float](n)
-  var newRank = newSeq[float](n)
-  for i in 0 ..< n:
-    rank[i] = initVal
-
-  for iter in 0 ..< maxIter:
-    for i in 0 ..< n:
-      var r = base
-      for k in adjOff[i] ..< adjOff[i + 1]:
-        let j = adjNbr[k]
-        r += alpha * rank[j] * invDeg[j]
-      newRank[i] = r
-
-    var diff = 0.0
-    for i in 0 ..< n:
-      diff += abs(newRank[i] - rank[i])
-    swap(rank, newRank)
-    if diff < tol:
-      break
-
-  # Convert back to Table
-  result = initTable[N, float](n)
-  for i in 0 ..< n:
-    result[nodeList[i]] = rank[i]
+  ## Unweighted PageRank treating ordinary edges as bidirectional.
+  ## Normalizes by adjacency-row size: a self-loop is one transition, not two.
+  ## Isolates redistribute their probability uniformly. Initial ranks and
+  ## teleportation are uniform, and all edge weights are ignored.
+  ## Uses the same total-L1 stopping rule, last-iterate-on-cap behavior,
+  ## parameter validation, and complexity as the directed overload.
+  indexedPageRank(g.adj, g.adj, alpha, maxIter, tol)
 
 # =============================================================================
 # HITS (Hyperlink-Induced Topic Search)

@@ -63,6 +63,34 @@ nimble test
 - **Every public proc must have corresponding tests**
 - Use `suite` + `test` blocks with `check` assertions, `expect` for exceptions
 
+All `tests/t*.nim` files are discovered in sorted order by the same runner.
+`nimble list_tests` shows the inventory; `nimble build_tests` and
+`nimble run_tests` split compilation and execution without changing that list.
+Executables are written to `build/tests`, not beside their source files.
+
+For a focused run in PowerShell:
+
+```powershell
+$env:NIMNET_TESTS = "tgraph,tdigraph"
+nimble test
+Remove-Item Env:NIMNET_TESTS
+```
+
+On Linux/macOS, use `NIMNET_TESTS=tgraph,tdigraph nimble test`. Unknown test
+names fail explicitly. Run benchmark/coverage helper tests with
+`python -m unittest discover -s tests -p test_tooling.py`.
+`nimble coverage_tests` uses the same inventory with GCC coverage and Nim source
+line mapping. CI covers stable Nim on three platforms and Nim 2.0.0 on Linux.
+`nimble docs` generates API documentation in `build/docs` and rejects markup
+diagnostics even on Nim versions that report them with a zero exit code.
+Documentation and tooling commands require Python; library use does not.
+
+Performance changes should include an identical-input baseline, release-mode
+elapsed-time measurements with warmup and repeated samples, and correctness
+checks. Do not run competing benchmarks concurrently or disable assertions.
+See [the benchmark methodology](benchmarks/README.md) and
+[the current improvement backlog](docs/backlog.md).
+
 ## Architecture Decisions
 
 Significant design decisions are recorded as ADRs in `docs/adr/`. If your change involves an architectural decision, please create a new ADR using the template at `docs/adr/0000-template.md`.

@@ -13,6 +13,7 @@ type
     nodeIndex*: seq[int]      ## CSR row pointers (len = nodeCount + 1)
     neighbors*: seq[int]      ## CSR column indices (neighbor index into nodeList)
     weights*: seq[float]      ## edge weights (parallel to neighbors)
+    selfLoops: HashSet[int]   ## Loops occupy one slot but contribute two to degree.
 
   CompactDiGraph*[N] = object
     ## CSR representation of a directed graph.
@@ -37,6 +38,8 @@ proc toCompact*[N](g: Graph[N]): CompactGraph[N] =
     var count = 0
     for nb in g.neighbors(n):
       count += 1
+      if nb == n:
+        result.selfLoops.incl(i)
     result.nodeIndex[i + 1] = count
 
   # Prefix sum
@@ -104,7 +107,8 @@ func numberOfNodes*[N](cg: CompactGraph[N]): int {.inline.} =
   cg.nodeList.len
 
 func numberOfEdges*[N](cg: CompactGraph[N]): int {.inline.} =
-  cg.neighbors.len div 2  # undirected: each edge stored twice
+  ## Return the edge count in O(1), counting each self-loop once.
+  (cg.neighbors.len - cg.selfLoops.len) div 2 + cg.selfLoops.len
 
 func numberOfNodes*[N](cg: CompactDiGraph[N]): int {.inline.} =
   cg.nodeList.len
@@ -127,10 +131,12 @@ iterator neighborsCSR*[N](cg: CompactDiGraph[N], nodeIdx: int): int =
     yield cg.neighbors[i]
 
 func degreeCSR*[N](cg: CompactGraph[N], nodeIdx: int): int {.inline.} =
-  cg.nodeIndex[nodeIdx + 1] - cg.nodeIndex[nodeIdx]
+  ## Return the degree, counting self-loops twice as in ``Graph.degree``.
+  cg.nodeIndex[nodeIdx + 1] - cg.nodeIndex[nodeIdx] +
+    ord(nodeIdx in cg.selfLoops)
 
 proc toGraph*[N](cg: CompactGraph[N]): Graph[N] =
-  ## Convert a CompactGraph back to a mutable Graph.
+  ## Convert back to a Graph, preserving nodes, self-loops and edge weights.
   result = newGraph[N]()
   for n in cg.nodeList:
     result.addNode(n)
@@ -142,6 +148,15 @@ proc toGraph*[N](cg: CompactGraph[N]): Graph[N] =
       let v = cg.nodeList[cg.neighbors[j]]
       if not result.hasEdge(u, v):
         result.addWeightedEdge(u, v, cg.weights[j])
+
+proc toGraph*[N](cg: CompactDiGraph[N]): DiGraph[N] =
+  ## Convert back to a DiGraph, preserving nodes, arc directions and weights.
+  result = newDiGraph[N]()
+  for n in cg.nodeList:
+    result.addNode(n)
+  for i, u in cg.nodeList:
+    for j in cg.nodeIndex[i] ..< cg.nodeIndex[i + 1]:
+      result.addWeightedEdge(u, cg.nodeList[cg.neighbors[j]], cg.weights[j])
 
 proc bfsCSR*[N](cg: CompactGraph[N], sourceIdx: int): seq[int] =
   ## Cache-efficient BFS returning node indices in visit order.

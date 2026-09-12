@@ -19,6 +19,8 @@ import ../types, ../graph, ../digraph
 when compileOption("threads"):
   import malebolgia
   import std/cpuinfo
+else:
+  import ./all_pairs_shortest
 
 import std/isolation
 export isolation
@@ -35,7 +37,7 @@ type
     weights*: seq[seq[float]]  # weights[i][j_idx] = weight of edge i->adj[i][j_idx]
 
 proc toIndexed*[N](g: Graph[N]): (IndexedGraph, seq[N], Table[N, int]) =
-  ## Convert a Graph[N] to a cache-friendly indexed representation.
+  ## Convert a ``Graph[N]`` to a cache-friendly indexed representation.
   var nodeList: seq[N]
   for nd in g.nodes:
     nodeList.add(nd)
@@ -54,7 +56,7 @@ proc toIndexed*[N](g: Graph[N]): (IndexedGraph, seq[N], Table[N, int]) =
   result = (ig, nodeList, nodeIdx)
 
 proc toIndexedDi*[N](g: DiGraph[N]): (IndexedGraph, seq[seq[int]], seq[N], Table[N, int]) =
-  ## Convert a DiGraph[N] to indexed form.
+  ## Convert a ``DiGraph[N]`` to indexed form.
   ## Returns (forward adj, predecessor adj, nodeList, nodeIdx).
   var nodeList: seq[N]
   for nd in g.nodes:
@@ -285,6 +287,14 @@ proc parallelClustering*[N](g: Graph[N]): Table[N, float] =
 # Parallel PageRank (undirected)
 # ============================================================================
 
+func validatePageRankSettings(alpha: float, maxIter: int, tol: float) =
+  if classify(alpha) in {fcNan, fcInf, fcNegInf} or alpha < 0.0 or alpha > 1.0:
+    raise newException(ValueError, "PageRank alpha must be finite and between 0 and 1")
+  if maxIter < 0:
+    raise newException(ValueError, "PageRank maxIter must be nonnegative")
+  if classify(tol) in {fcNan, fcInf, fcNegInf} or tol < 0.0:
+    raise newException(ValueError, "PageRank tol must be finite and nonnegative")
+
 when compileOption("threads"):
   proc scatterChunkWorker(igPtr: ptr IndexedGraph,
                           rankPtr: ptr UncheckedArray[float],
@@ -300,7 +310,13 @@ when compileOption("threads"):
 proc parallelPageRank*[N](g: Graph[N], maxIter: int = 100,
                            alpha: float = 0.85,
                            tol: float = 1e-6): Table[N, float] =
-  ## Compute PageRank using iterative power method with parallel scatter.
+  ## Unweighted PageRank with parallel scatter and uniform initial ranks.
+  ## A self-loop is one outgoing transition; isolates redistribute uniformly.
+  ## Ignores weights and stops at total L1 change below ``tol``, returning the
+  ## last iterate at ``maxIter`` (uniform ranks when the cap is zero).
+  ## Requires finite ``alpha`` in ``[0, 1]``, finite nonnegative ``tol``, and
+  ## nonnegative ``maxIter``; invalid settings raise ``ValueError``.
+  validatePageRankSettings(alpha, maxIter, tol)
   let (ig, nodeList, nodeIdx) = toIndexed(g)
   let n = ig.n
   if n == 0:
@@ -347,13 +363,13 @@ proc parallelPageRank*[N](g: Graph[N], maxIter: int = 100,
           newRank[j] += perThread[t][j]
 
       let base = (1.0 - alpha + alpha * danglingSum) / float(n)
-      var maxDiff = 0.0
+      var diff = 0.0
       for i in 0 ..< n:
         newRank[i] = base + alpha * newRank[i]
-        maxDiff = max(maxDiff, abs(newRank[i] - rank[i]))
+        diff += abs(newRank[i] - rank[i])
 
       rank = newRank
-      if maxDiff < tol:
+      if diff < tol:
         break
   else:
     for iter in 0 ..< maxIter:
@@ -368,12 +384,12 @@ proc parallelPageRank*[N](g: Graph[N], maxIter: int = 100,
           for j in ig.adj[i]:
             newRank[j] += contrib
       let base = (1.0 - alpha + alpha * danglingSum) / float(n)
-      var maxDiff = 0.0
+      var diff = 0.0
       for i in 0 ..< n:
         newRank[i] = base + alpha * newRank[i]
-        maxDiff = max(maxDiff, abs(newRank[i] - rank[i]))
+        diff += abs(newRank[i] - rank[i])
       rank = newRank
-      if maxDiff < tol:
+      if diff < tol:
         break
 
   result = initTable[N, float]()
@@ -401,7 +417,13 @@ when compileOption("threads"):
 proc parallelPageRank*[N](g: DiGraph[N], maxIter: int = 100,
                            alpha: float = 0.85,
                            tol: float = 1e-6): Table[N, float] =
-  ## Compute PageRank for a directed graph using parallel power iteration.
+  ## Unweighted directed PageRank with uniform initialization, teleportation,
+  ## and dangling-node redistribution. Weights are ignored; self-loops are
+  ## single outgoing transitions. Uses total-L1 stopping and returns the last
+  ## iterate at ``maxIter``, matching the serial overload.
+  ## Requires finite ``alpha`` in ``[0, 1]``, finite nonnegative ``tol``, and
+  ## nonnegative ``maxIter``; invalid settings raise ``ValueError``.
+  validatePageRankSettings(alpha, maxIter, tol)
   let (ig, predAdj, nodeList, nodeIdx) = toIndexedDi(g)
   let n = ig.n
   if n == 0:
@@ -442,11 +464,11 @@ proc parallelPageRank*[N](g: DiGraph[N], maxIter: int = 100,
               cast[ptr UncheckedArray[float]](addr newRank[0]),
               alpha, base, s, e)
 
-      var maxDiff = 0.0
+      var diff = 0.0
       for i in 0 ..< n:
-        maxDiff = max(maxDiff, abs(newRank[i] - rank[i]))
+        diff += abs(newRank[i] - rank[i])
       rank = newRank
-      if maxDiff < tol:
+      if diff < tol:
         break
   else:
     for iter in 0 ..< maxIter:
@@ -462,11 +484,11 @@ proc parallelPageRank*[N](g: DiGraph[N], maxIter: int = 100,
           if outDeg[p] > 0:
             r += alpha * rank[p] / float(outDeg[p])
         newRank[i] = r
-      var maxDiff = 0.0
+      var diff = 0.0
       for i in 0 ..< n:
-        maxDiff = max(maxDiff, abs(newRank[i] - rank[i]))
+        diff += abs(newRank[i] - rank[i])
       rank = newRank
-      if maxDiff < tol:
+      if diff < tol:
         break
 
   result = initTable[N, float]()
@@ -516,27 +538,32 @@ when compileOption("threads"):
 
 proc parallelJohnsons*[N](g: DiGraph[N]): Table[N, Table[N, float]] =
   ## Johnson's algorithm with parallel Dijkstra from each source.
-  let (ig, predAdj, nodeList, nodeIdx) = toIndexedDi(g)
-  let n = ig.n
-  if n == 0:
-    return initTable[N, Table[N, float]]()
+  ## Always returns every source/destination pair, with Inf for unreachable
+  ## pairs. The non-threaded fallback explicitly requests this complete shape
+  ## from ``johnsons``.
+  when not compileOption("threads"):
+    result = johnsons(g, includeUnreachable = true)
+  else:
+    let (ig, predAdj, nodeList, nodeIdx) = toIndexedDi(g)
+    let n = ig.n
+    if n == 0:
+      return initTable[N, Table[N, float]]()
 
-  # Step 1: Bellman-Ford for h values (sequential)
-  var hVals = newSeq[float](n)
-  for iter in 0 ..< n - 1:
-    for u in 0 ..< n:
-      for jIdx in 0 ..< ig.adj[u].len:
-        let v = ig.adj[u][jIdx]
-        let w = ig.weights[u][jIdx]
-        if hVals[u] + w < hVals[v]:
-          hVals[v] = hVals[u] + w
+    # Step 1: Bellman-Ford for h values (sequential)
+    var hVals = newSeq[float](n)
+    for iter in 0 ..< n - 1:
+      for u in 0 ..< n:
+        for jIdx in 0 ..< ig.adj[u].len:
+          let v = ig.adj[u][jIdx]
+          let w = ig.weights[u][jIdx]
+          if hVals[u] + w < hVals[v]:
+            hVals[v] = hVals[u] + w
 
-  # Step 2: Parallel Dijkstra from each source
-  var distMatrix = newSeq[seq[float]](n)
-  for i in 0 ..< n:
-    distMatrix[i] = newSeq[float](n)
+    # Step 2: Parallel Dijkstra from each source
+    var distMatrix = newSeq[seq[float]](n)
+    for i in 0 ..< n:
+      distMatrix[i] = newSeq[float](n)
 
-  when compileOption("threads"):
     var m = createMaster()
     m.awaitAll:
       for s in 0 ..< n:
@@ -544,15 +571,9 @@ proc parallelJohnsons*[N](g: DiGraph[N]): Table[N, Table[N, float]] =
           cast[ptr UncheckedArray[float]](addr hVals[0]),
           cast[ptr UncheckedArray[float]](addr distMatrix[s][0]),
           n)
-  else:
-    for s in 0 ..< n:
-      dijkstraSingle(addr ig, s,
-        cast[ptr UncheckedArray[float]](addr hVals[0]),
-        cast[ptr UncheckedArray[float]](addr distMatrix[s][0]),
-        n)
 
-  result = initTable[N, Table[N, float]]()
-  for i, src in nodeList:
-    result[src] = initTable[N, float]()
-    for j, dst in nodeList:
-      result[src][dst] = distMatrix[i][j]
+    result = initTable[N, Table[N, float]]()
+    for i, src in nodeList:
+      result[src] = initTable[N, float]()
+      for j, dst in nodeList:
+        result[src][dst] = distMatrix[i][j]

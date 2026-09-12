@@ -6,10 +6,13 @@
 ## Compile: nim c -d:release --threads:on benchmarks/bench_parallel.nim
 ## Run: benchmarks/bench_parallel
 
-import std/[times, tables, math, strformat, strutils, cpuinfo, monotimes]
+import std/[tables, math, strformat, strutils, cpuinfo]
 import nimnet
 import nimnet/algorithms/parallel as par
 import nimnet/generators/random as rng
+import bench_common
+
+let benchRuns = benchmarkRuns()
 
 # ---------------------------------------------------------------------------
 # Timing helpers
@@ -32,11 +35,10 @@ proc fmtMs(ms: float): string =
     &"{ms / 1000.0:.2f} s"
 
 proc timeIt(body: proc()): float =
-  ## Returns elapsed milliseconds using monotonic clock.
-  let t0 = getMonoTime()
-  body()
-  let elapsed = getMonoTime() - t0
-  result = elapsed.inNanoseconds.float / 1_000_000.0
+  ## Returns median elapsed milliseconds after one warmup.
+  let elapsed = medianTime(benchRuns):
+    body()
+  result = elapsed * 1000.0
 
 # ---------------------------------------------------------------------------
 # Graph builders
@@ -102,7 +104,7 @@ proc benchJohnsons(dg: DiGraph[int]): BenchResult =
   result.name = "Johnson's APSP"
   result.nodes = dg.numberOfNodes
   result.edges = dg.numberOfEdges
-  result.seqMs = timeIt(proc() = discard johnsons(dg))
+  result.seqMs = timeIt(proc() = discard johnsons(dg, includeUnreachable = true))
   result.parMs = timeIt(proc() = discard par.parallelJohnsons(dg))
   result.speedup = result.seqMs / result.parMs
 

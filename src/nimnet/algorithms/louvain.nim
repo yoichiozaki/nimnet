@@ -3,7 +3,8 @@
 ## Full two-phase Louvain: Phase 1 (local moves) + Phase 2 (graph contraction),
 ## repeated until no further improvement. Uses flat-array inner loops for speed.
 
-import std/[tables, sets, random, algorithm, sequtils]
+import std/[tables, sets, random, sequtils, math]
+import ../types
 import ../graph
 
 # Internal flat-graph representation for contracted graphs
@@ -26,11 +27,12 @@ proc buildFlatGraph(n: int, adjIdx: seq[seq[(int, float)]]): FlatGraph =
     for (j, w) in adjIdx[i]:
       if j == i:
         result.selfLoop[i] += w
+        result.degree[i] += 2.0 * w
       else:
         totalEdges.inc
-      result.degree[i] += w
-    result.adjOff[i] = totalEdges - adjIdx[i].len + (if result.selfLoop[i] > 0: 1 else: 0)
-  # Rebuild offsets properly
+        result.degree[i] += w
+      if classify(result.degree[i]) in {fcNan, fcInf, fcNegInf}:
+        raise newException(NimNetAlgorithmError, "Louvain weighted degree is not finite")
   result.adjNbr = newSeqOfCap[int](totalEdges)
   result.adjWgt = newSeqOfCap[float](totalEdges)
   var off = 0
@@ -51,13 +53,12 @@ proc phase1(fg: FlatGraph, resolution: float, rng: var Rand): (seq[int], bool) =
     for i in 0 ..< n:
       s += fg.degree[i]
     s
+  if classify(m2) in {fcNan, fcInf, fcNegInf}:
+    raise newException(NimNetAlgorithmError, "Louvain total weighted degree is not finite")
   if m2 == 0.0:
     var com = newSeq[int](n)
     for i in 0 ..< n: com[i] = i
     return (com, false)
-
-  let invM2 = 1.0 / m2
-  let resInvM2sq = resolution * invM2 * invM2
 
   var com = newSeq[int](n)
   var sigTot = newSeq[float](n)
@@ -66,6 +67,7 @@ proc phase1(fg: FlatGraph, resolution: float, rng: var Rand): (seq[int], bool) =
     sigTot[i] = fg.degree[i]
 
   var ncWeight = newSeq[float](n)
+  var active = newSeq[bool](n)
   var activeComs = newSeqOfCap[int](64)
   var order = toSeq(0 ..< n)
   var improved = false
@@ -80,24 +82,27 @@ proc phase1(fg: FlatGraph, resolution: float, rng: var Rand): (seq[int], bool) =
     for idx in order:
       let currentCom = com[idx]
       let ki = fg.degree[idx]
+      let kiFraction = ki / m2
 
       # Accumulate weights to neighboring communities
       activeComs.setLen(0)
       for k in fg.adjOff[idx] ..< fg.adjOff[idx + 1]:
         let nc = com[fg.adjNbr[k]]
-        if ncWeight[nc] == 0.0:
+        if not active[nc]:
+          active[nc] = true
           activeComs.add(nc)
         ncWeight[nc] += fg.adjWgt[k]
 
       # Ensure current community is in activeComs
-      if ncWeight[currentCom] == 0.0:
+      if not active[currentCom]:
+        active[currentCom] = true
         activeComs.add(currentCom)
-        # It will stay at 0 weight — that's fine
 
       # Evaluate removal from current community
       let sigIn = ncWeight[currentCom]
       let sigC = sigTot[currentCom] - ki
-      let removeGain = -(sigIn * invM2 * resolution - sigC * ki * resInvM2sq)
+      let removeGain = -(sigIn / m2 -
+        resolution * (kiFraction * (sigC / m2)))
 
       var bestCom = currentCom
       var bestGain = 0.0
@@ -107,7 +112,7 @@ proc phase1(fg: FlatGraph, resolution: float, rng: var Rand): (seq[int], bool) =
           continue
         let wSum = ncWeight[nc]
         let sigN = sigTot[nc]
-        let addGain = wSum * invM2 * resolution - sigN * ki * resInvM2sq
+        let addGain = wSum / m2 - resolution * (kiFraction * (sigN / m2))
         let totalGain = removeGain + addGain
         if totalGain > bestGain:
           bestGain = totalGain
@@ -116,6 +121,7 @@ proc phase1(fg: FlatGraph, resolution: float, rng: var Rand): (seq[int], bool) =
       # Clean up
       for c in activeComs:
         ncWeight[c] = 0.0
+        active[c] = false
 
       if bestCom != currentCom:
         sigTot[currentCom] -= ki
@@ -157,6 +163,7 @@ proc contractGraph(fg: FlatGraph, com: seq[int]): (FlatGraph, seq[seq[int]]) =
 
   # Use a scratch array to accumulate weights
   var scratch = newSeq[float](numComms)
+  var active = newSeq[bool](numComms)
   var activeList = newSeqOfCap[int](numComms)
 
   for ci in 0 ..< numComms:
@@ -167,15 +174,17 @@ proc contractGraph(fg: FlatGraph, com: seq[int]): (FlatGraph, seq[seq[int]]) =
       selfW += fg.selfLoop[node]
       for k in fg.adjOff[node] ..< fg.adjOff[node + 1]:
         let cj = renumbered[fg.adjNbr[k]]
-        if scratch[cj] == 0.0:
+        if not active[cj]:
+          active[cj] = true
           activeList.add(cj)
         scratch[cj] += fg.adjWgt[k]
 
     for cj in activeList:
       let w = scratch[cj]
       scratch[cj] = 0.0
+      active[cj] = false
       if cj == ci:
-        selfW += w  # edges within community become self-loops
+        selfW += w / 2.0  # Internal non-loop edges appeared in both directions.
       else:
         newAdj[ci].add((cj, w))
 
@@ -183,45 +192,35 @@ proc contractGraph(fg: FlatGraph, com: seq[int]): (FlatGraph, seq[seq[int]]) =
       # Store self-loop info to preserve in FlatGraph
       newAdj[ci].add((ci, selfW))
 
-  # Build FlatGraph from newAdj (separating self-loops)
-  var fg2: FlatGraph
-  fg2.n = numComms
-  fg2.adjOff = newSeq[int](numComms + 1)
-  fg2.selfLoop = newSeq[float](numComms)
-  fg2.degree = newSeq[float](numComms)
-  var off = 0
-  var nbrBuf = newSeqOfCap[int](numComms * 4)
-  var wgtBuf = newSeqOfCap[float](numComms * 4)
-  for ci in 0 ..< numComms:
-    fg2.adjOff[ci] = off
-    for (cj, w) in newAdj[ci]:
-      fg2.degree[ci] += w
-      if cj == ci:
-        fg2.selfLoop[ci] += w
-      else:
-        nbrBuf.add(cj)
-        wgtBuf.add(w)
-        off.inc
-  fg2.adjOff[numComms] = off
-  fg2.adjNbr = nbrBuf
-  fg2.adjWgt = wgtBuf
-
-  result = (fg2, members)
+  result = (buildFlatGraph(numComms, newAdj), members)
 
 proc louvainCommunities*[N](g: Graph[N], resolution: float = 1.0, seed: int64 = 0): seq[HashSet[N]] =
-  ## Detect communities using the full Louvain algorithm (Phase 1 + Phase 2).
-  ## Returns a list of communities (sets of nodes).
-  ## `resolution` controls the size of communities (higher = smaller communities).
+  ## Weighted Louvain community detection with resolution ``gamma = resolution``.
+  ## Maximizes ``Q_gamma = sum_C [ L_C / m - gamma * (D_C / (2m))^2 ]``:
+  ## ``m`` is total edge weight, ``L_C`` is internal weight counting loops once,
+  ## and ``D_C`` is weighted degree counting loops twice. Resolution multiplies
+  ## only the null-model term; larger values favor smaller communities.
+  ##
+  ## Resolution and edge weights must be finite and nonnegative; invalid inputs
+  ## raise ``ValueError``. Unrepresentable weighted-degree arithmetic raises
+  ## ``NimNetAlgorithmError``. Empty graphs return an empty partition; graphs
+  ## with zero total weight return singleton communities.
+  ## A nonzero seed is repeatable for the same graph iteration order; zero uses
+  ## a nondeterministic seed. Accepts only strictly positive local gains, with
+  ## at most 100 passes per level and 20 levels, returning the resulting
+  ## heuristic partition, not a guaranteed global optimum.
+  ## Each pass takes O(V + E) time; working space is O(V + E).
+  if classify(resolution) in {fcNan, fcInf, fcNegInf} or resolution < 0.0:
+    raise newException(ValueError, "Louvain resolution must be finite and nonnegative")
   let nodes = g.nodeSeq()
   let n = nodes.len
   if n == 0:
     return @[]
 
   var rng = if seed != 0: initRand(seed) else: initRand()
-  let m2 = float(2 * g.numberOfEdges())
-  if m2 == 0.0:
+  if g.numberOfEdges() == 0:
     for node in nodes:
-      result.add([node].toHashSet)
+      result.add(sets.toHashSet([node]))
     return
 
   # Build initial indexed adjacency
@@ -233,7 +232,9 @@ proc louvainCommunities*[N](g: Graph[N], resolution: float = 1.0, seed: int64 = 
   for i in 0 ..< n:
     let node = nodes[i]
     adjIdx[i] = newSeqOfCap[(int, float)](g.adj[node].len)
-    for neighbor, attr in g.adj[node]:
+    for neighbor, attr in tables.pairs(g.adj[node]):
+      if classify(attr.weight) in {fcNan, fcInf, fcNegInf} or attr.weight < 0.0:
+        raise newException(ValueError, "Louvain edge weights must be finite and nonnegative")
       adjIdx[i].add((nodeIdx[neighbor], attr.weight))
 
   # Build initial FlatGraph
@@ -280,5 +281,5 @@ proc louvainCommunities*[N](g: Graph[N], resolution: float = 1.0, seed: int64 = 
   for ci in 0 ..< nodeMap.len:
     var s = initHashSet[N]()
     for origIdx in nodeMap[ci]:
-      s.incl(nodes[origIdx])
+      sets.incl(s, nodes[origIdx])
     result.add(s)

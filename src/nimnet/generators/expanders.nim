@@ -25,7 +25,7 @@ proc margulisGabberGalilGraph*(p: int): Graph[int] =
 
 proc chordalCycleGraph*(p: int): Graph[int] =
   ## Generate a chordal cycle graph on p nodes.
-  ## A cycle with additional chords connecting i to (i*i) mod p.
+  ## A cycle with additional chords connecting i to ``(i*i) mod p``.
   result = newGraph[int](capacity = p)
   for i in 0 ..< p:
     result.addNode(i)

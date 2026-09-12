@@ -132,7 +132,7 @@ proc nextToken(lex: var GmlLexer): (GmlToken, string) =
     return (gmlWord, s)
 
 proc readGml*(filename: string): Graph[int] =
-  ## Read a GML file and return an undirected Graph[int].
+  ## Read a GML file and return an undirected ``Graph[int]``.
   let data = readFile(filename)
   var lex = GmlLexer(data: data, pos: 0)
 

@@ -10,7 +10,8 @@ built-in datasets, and graph operators.
 - **ADRs**: Design decisions are in `docs/adr/`. Read them before making architectural changes.
 - **Data structure**: Adjacency map (`Table[N, Table[N, EdgeAttr]]`). See ADR-0002.
 - **Generic nodes**: `Graph[N]` where `N` must satisfy `hash` + `==`. See ADR-0003.
-- **Edge attributes**: `Table[string, string]`. Weight accessor: `getWeight(attr, default=1.0)`.
+- **Edge attributes**: `EdgeAttr` object with `weight: float` and `extra: Table[string, string]`. `getWeight()` reads the numeric field; its legacy `default` argument does not override stored values.
+- **Node attributes**: `NodeAttr = JsonNode`; use `newNodeAttr()` or JSON constructors for typed/nested values.
 - **Module layout**: `src/nimnet.nim` re-exports all; submodules in `src/nimnet/`. See ADR-0005.
 
 ## Key API Reference
@@ -18,15 +19,15 @@ built-in datasets, and graph operators.
 ### Attribute Access (common pitfall)
 ```nim
 # Edge attributes — use getEdgeAttr or subscript operator
-let attr = g.getEdgeAttr(u, v)   # returns EdgeAttr (Table[string, string])
+let attr = g.getEdgeAttr(u, v)   # returns EdgeAttr (weight + extra attributes)
 let attr = g[u, v]               # same thing, subscript sugar
 
 # Node attributes
-let attr = g.getNodeAttr(n)      # returns NodeAttr (Table[string, string])
+let attr = g.getNodeAttr(n)      # returns NodeAttr (JsonNode)
 
 # Weight extraction from EdgeAttr
-let w = attr.getWeight()          # default 1.0
-let w = attr.getWeight(default=0.0)
+let w = attr.getWeight()          # reads the stored numeric weight
+let w = newEdgeAttr().getWeight() # 1.0; the constructor supplies the default
 
 # Setting weight
 g.addWeightedEdge(u, v, 2.5)     # convenience proc
@@ -170,18 +171,23 @@ src/nimnet/views.nim         → Lazy graph views (SubGraph, NodeView, EdgeView)
 src/nimnet/compact.nim       → CompactGraph (CSR-based, read-only, cache-friendly)
 src/nimnet/static_graph.nim  → StaticGraph (compile-time fixed node set)
 tests/                       → Test files
-  ttypes.nim                 → 11 tests — types and edge attributes
-  tgraph.nim                 → 53 tests — undirected graph operations
-  tdigraph.nim               → 40 tests — directed graph operations
-  talgorithms_core.nim       → 100 tests — core algorithms (traversal, paths, centrality, etc.)
-  talgorithms_io_gen.nim     → 43 tests — advanced algorithms, I/O, generators, builder, datasets
-  talgorithms_extended.nim   → 73 tests — extended coverage (DiGraph variants, operators, convert)
-  talgorithms_advanced.nim   → 75 tests — advanced algorithms (distance, paths, efficiency, cycles, matching, etc.)
+  ttypes.nim                 → Types and edge attributes
+  tgraph.nim                 → Undirected graph operations
+  tdigraph.nim               → Directed graph operations
+  talgorithms_core.nim       → Core algorithms (traversal, paths, centrality, etc.)
+  talgorithms_io_gen.nim     → Advanced algorithms, I/O, generators, builder, datasets
+  talgorithms_extended.nim   → Extended coverage (DiGraph variants, operators, convert)
+  talgorithms_advanced.nim   → Distance, paths, efficiency, cycles and matching
   talgorithms_features.nim   → Feature tests (views, multigraph, compact, static graph)
   talgorithms_batch2.nim     → Batch 2 algorithm coverage
   talgorithms_batch3.nim     → Batch 3 algorithm coverage
   tcoverage.nim              → Coverage gap tests
-  tcoverage2.nim             → 198 tests — deeper code path coverage
+  tcoverage2.nim             → Deeper code path coverage
+  tcoverage3.nim             → Additional module coverage
+  tnewfeatures*.nim          → Extended public API coverage
+  t*_regressions.nim         → Dedicated correctness/scalability regressions
+  tbenchmark_fixtures.nim    → Shared benchmark fixture/timing validation
+  test_tooling.py            → Benchmark and coverage tooling (Python stdlib)
   tcrossvalidation.nim       → Cross-validation tests
   tparallel.nim              → Parallel algorithm tests (malebolgia threading)
 ```
@@ -189,7 +195,11 @@ tests/                       → Test files
 ## Testing
 - Framework: `std/unittest` (see ADR-0004)
 - Test files: `tests/t<module>.nim` with `t` prefix
-- Run: `nimble test` (runs all 15 test files, 1169+ total tests)
+- Run: `nimble test` (discovers all `tests/t*.nim`, sorted)
+- `nimble build_tests`, `run_tests`, `coverage_tests` and `list_tests` use the same inventory
+- Set `NIMNET_TESTS=tgraph,tdigraph` to select exact test basenames; unknown names fail
+- Test executables are in `build/tests`; coverage executables are in `build/coverage_tests`
+- Tooling checks: `python -m unittest discover -s tests -p test_tooling.py`
 - Every public proc MUST have corresponding tests
 - Use `suite` and `test` blocks, `check` for assertions, `expect` for exceptions
 
@@ -265,7 +275,8 @@ let g = small.florentineFamiliesGraph()
 - GitHub Actions: `.github/workflows/ci.yml`
 - Matrix: ubuntu-latest, macos-latest, windows-latest
 - Uses `jiro4989/setup-nim-action@v2`
-- Nim version: stable
+- Nim versions: stable on all three platforms; minimum supported 2.0.0 on Linux
+- Coverage is centralized in `.github/workflows/coverage.yml`; failing tests and empty source coverage fail the job
 
 ## Commit Message Format
 - `feat: <description>` — new feature

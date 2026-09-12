@@ -1,63 +1,73 @@
-# Run nimnet and NetworkX benchmarks on Windows, merge results.
-#
-# Usage:
-#   cd nimnet/
-#   pwsh benchmarks/run_benchmarks.ps1
-#
-# Prerequisites:
-#   - Nim compiler (nim, nimble)
-#   - Python 3 with networkx (optional):  pip install networkx
+# Run isolated benchmarks against the same generated fixture files.
+[CmdletBinding()]
+param(
+    [switch]$SkipNetworkX,
+    [switch]$Micro,
+    [string]$Python = "python"
+)
 
 $ErrorActionPreference = "Stop"
+
+function Invoke-Checked {
+    param([string]$Program, [string[]]$Arguments)
+    & $Program @Arguments
+    if ($LASTEXITCODE -ne 0) {
+        throw "$Program failed with exit code $LASTEXITCODE"
+    }
+}
 
 $ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 $RootDir = Split-Path -Parent $ScriptDir
 $ResultsDir = Join-Path $ScriptDir "results"
+$Utf8 = [System.Text.UTF8Encoding]::new($false)
+$prefix = if ($Micro) { "micro_" } else { "" }
+$benchmark = if ($Micro) { "bench_micro" } else { "bench_nimnet" }
+$pythonBenchmark = if ($Micro) { "bench_micro_networkx.py" } else { "bench_networkx.py" }
+$suite = if ($Micro) { "micro" } else { "main" }
+$nimCsv = Join-Path $ResultsDir "${prefix}nimnet.csv"
+$nxCsv = Join-Path $ResultsDir "${prefix}networkx.csv"
+$combinedCsv = Join-Path $ResultsDir "${prefix}combined.csv"
+$metadataPath = Join-Path $ResultsDir "${prefix}metadata.json"
 
-if (-not (Test-Path $ResultsDir)) { New-Item -ItemType Directory -Path $ResultsDir | Out-Null }
+New-Item -ItemType Directory -Force -Path $ResultsDir, "$RootDir\build" | Out-Null
+foreach ($name in @("nimnet.csv", "networkx.csv", "combined.csv", "metadata.json")) {
+    $path = Join-Path $ResultsDir "${prefix}${name}"
+    if (Test-Path -LiteralPath $path) { Remove-Item -LiteralPath $path }
+}
+if (-not $SkipNetworkX) {
+    Invoke-Checked -Program $Python -Arguments @("-c", "import networkx, numpy, scipy")
+}
+Invoke-Checked -Program $Python -Arguments @("$ScriptDir\fixtures.py")
 
 Write-Host "=== Building nimnet benchmark (release mode) ===" -ForegroundColor Cyan
-nim c -d:release -d:danger --opt:speed "-p:$RootDir\src" `
-  "--nimcache:$RootDir\build\nimcache\bench" `
-  "-o:$RootDir\build\bench_nimnet.exe" `
-  "$ScriptDir\bench_nimnet.nim"
+Invoke-Checked -Program "nim" -Arguments @(
+    "c", "--threads:on", "--hints:off", "-d:release", "--opt:speed",
+    "-p:$RootDir\src", "--nimcache:$RootDir\build\nimcache\$benchmark",
+    "-o:$RootDir\build\$benchmark.exe", "$ScriptDir\$benchmark.nim"
+)
 
-Write-Host ""
 Write-Host "=== Running nimnet benchmarks ===" -ForegroundColor Cyan
-& "$RootDir\build\bench_nimnet.exe" | Tee-Object -FilePath "$ResultsDir\nimnet.csv"
+$nimOutput = @(Invoke-Checked -Program "$RootDir\build\$benchmark.exe" -Arguments @())
+[System.IO.File]::WriteAllLines($nimCsv, [string[]]$nimOutput, $Utf8)
+$nimOutput | ForEach-Object { Write-Host $_ }
+$inputs = @($nimCsv)
+$metadataArgs = @("$ScriptDir\fixtures.py", "--metadata", $metadataPath, "--suite", $suite)
 
-Write-Host ""
-
-# NetworkX (optional)
-$pythonCmd = $null
-if (Get-Command python -ErrorAction SilentlyContinue) {
-    try { python -c "import networkx" 2>$null; $pythonCmd = "python" } catch {}
-}
-if (-not $pythonCmd -and (Get-Command python3 -ErrorAction SilentlyContinue)) {
-    try { python3 -c "import networkx" 2>$null; $pythonCmd = "python3" } catch {}
-}
-
-if ($pythonCmd) {
+if (-not $SkipNetworkX) {
     Write-Host "=== Running NetworkX benchmarks ===" -ForegroundColor Cyan
-    & $pythonCmd "$ScriptDir\bench_networkx.py" | Tee-Object -FilePath "$ResultsDir\networkx.csv"
+    $nxOutput = @(Invoke-Checked -Program $Python -Arguments @("$ScriptDir\$pythonBenchmark"))
+    [System.IO.File]::WriteAllLines($nxCsv, [string[]]$nxOutput, $Utf8)
+    $nxOutput | ForEach-Object { Write-Host $_ }
+    $inputs += $nxCsv
+    $metadataArgs += "--include-networkx"
 } else {
-    Write-Host "Skipping NetworkX benchmarks (python/networkx not found)" -ForegroundColor Yellow
+    Write-Host "NetworkX explicitly skipped (-SkipNetworkX)." -ForegroundColor Yellow
 }
 
-# Merge results
-Write-Host ""
-Write-Host "=== Merging results ===" -ForegroundColor Cyan
-$header = "library,benchmark,size,nodes,edges,time_seconds"
-$lines = @($header)
-foreach ($f in @("$ResultsDir\nimnet.csv", "$ResultsDir\networkx.csv")) {
-    if (Test-Path $f) {
-        $content = Get-Content $f | Select-Object -Skip 1
-        $lines += $content
-    }
-}
-$lines | Set-Content "$ResultsDir\combined.csv"
+Invoke-Checked -Program $Python -Arguments $metadataArgs
+Invoke-Checked -Program $Python -Arguments (@(
+    "$ScriptDir\compare_results.py", "--output", $combinedCsv, "--suite", $suite
+) + $inputs)
 
-Write-Host "Results written to $ResultsDir\combined.csv"
-Write-Host ""
-Write-Host "=== Summary ===" -ForegroundColor Cyan
-Import-Csv "$ResultsDir\combined.csv" | Format-Table -AutoSize
+Write-Host "Results written to $combinedCsv"
+Import-Csv $combinedCsv | Format-Table -AutoSize

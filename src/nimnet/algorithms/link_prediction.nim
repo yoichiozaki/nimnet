@@ -14,7 +14,7 @@ func commonNeighbors*[N](g: Graph[N], u, v: N): int =
 
 func jaccardCoefficient*[N](g: Graph[N], u, v: N): float =
   ## Return the Jaccard coefficient of u and v.
-  ## |N(u) ∩ N(v)| / |N(u) ∪ N(v)|
+  ## ``|N(u) ∩ N(v)| / |N(u) ∪ N(v)|``
   var neighborU = initHashSet[N]()
   var neighborV = initHashSet[N]()
   for w in g.neighbors(u):
