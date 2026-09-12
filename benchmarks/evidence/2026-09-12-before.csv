@@ -1,0 +1,13 @@
+library,benchmark,size,nodes,edges,time_seconds
+nimnet,greedy_modularity,n32,32,56,0.010897900
+nimnet,greedy_modularity,n64,64,112,0.091486900
+nimnet,greedy_modularity,n128,128,224,0.726852600
+nimnet,bipartite_matching,n256,256,8256,0.007044700
+nimnet,bipartite_matching,n512,512,32896,0.054419800
+nimnet,bipartite_matching,n1024,1024,131328,0.398706000
+nimnet,floyd_warshall_sparse,n64,64,128,0.020433500
+nimnet,floyd_warshall_sparse,n128,128,256,0.159264200
+nimnet,floyd_warshall_sparse,n256,256,512,1.297604600
+nimnet,gnp_dense,n1000,1000,1974,0.002121300
+nimnet,gnp_dense,n5000,5000,10072,0.034253100
+nimnet,gnp_dense,n10000,10000,19951,0.132082400

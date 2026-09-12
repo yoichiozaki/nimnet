@@ -1,74 +1,34 @@
 ## NimNet Benchmark Suite
 ##
 ## Measures nimnet performance on common graph operations across
-## small (100), medium (10,000), and large (1,000,000) graphs.
+## small (100), medium (1,000), and large (10,000) graphs.
 ## Outputs results in CSV format for comparison.
 
-import std/[times, strformat, strutils, random, tables, sets, os, algorithm]
-
-# Use relative path for nimble or direct compilation
-when defined(benchDirect):
-  import nimnet
-else:
-  import nimnet
+import std/[strformat, tables, sets]
+import nimnet
+import bench_common
+import bench_graphs
 
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
 
-const benchRuns = when defined(ciBenchRuns): 3 else: 5
+let benchRuns = benchmarkRuns()
 
 template bench(name: string, body: untyped): float =
-  ## Run body multiple times and return the median elapsed time.
-  # Warmup run (not timed)
-  body
-  var times: seq[float]
-  for run in 0 ..< benchRuns:
-    let t0 = cpuTime()
+  medianTime(benchRuns):
     body
-    let elapsed = cpuTime() - t0
-    times.add(elapsed)
-  times.sort()
-  times[times.len div 2]  # median
-
-proc buildErdosRenyi(n: int, m: int): Graph[int] =
-  ## Build a random graph with n nodes and m edges (fast, no duplicate check).
-  result = newGraph[int](capacity = n)
-  for i in 0 ..< n:
-    result.addNode(i)
-  var rng = initRand(42)
-  var added = 0
-  while added < m:
-    let u = rng.rand(n - 1)
-    let v = rng.rand(n - 1)
-    if u != v and not result.hasEdge(u, v):
-      result.addEdge(u, v)
-      added += 1
-
-proc buildWeightedErdosRenyi(n: int, m: int): Graph[int] =
-  ## Build a random weighted graph.
-  result = newGraph[int](capacity = n)
-  for i in 0 ..< n:
-    result.addNode(i)
-  var rng = initRand(42)
-  var added = 0
-  while added < m:
-    let u = rng.rand(n - 1)
-    let v = rng.rand(n - 1)
-    if u != v and not result.hasEdge(u, v):
-      let w = rng.rand(1.0 .. 10.0)
-      result.addWeightedEdge(u, v, w)
-      added += 1
 
 # ---------------------------------------------------------------------------
 # Benchmark functions
 # ---------------------------------------------------------------------------
 
-proc benchGraphCreation(n: int, m: int): float =
-  ## Benchmark: create graph with n nodes, m edges.
+proc benchGraphCreation(fixture: Fixture): float =
+  ## Benchmark graph construction, excluding random generation and file I/O.
   bench("graph_creation"):
-    let g = buildErdosRenyi(n, m)
-    doAssert g.numberOfNodes() == n
+    let g = buildFixture(fixture)
+    doAssert g.numberOfNodes() == fixture.size.nodes
+    doAssert g.numberOfEdges() == fixture.size.edges
 
 proc benchBFS(g: Graph[int]): float =
   ## Benchmark: BFS traversal from node 0.
@@ -93,8 +53,13 @@ proc benchDijkstra(g: Graph[int], target: int): float =
 proc benchPageRank(g: Graph[int]): float =
   ## Benchmark: PageRank computation.
   bench("pagerank"):
-    let pr = pageRank(g)
-    doAssert pr.len > 0
+    let pr = pageRank(g, alpha = 0.85, maxIter = 100, tol = 1e-6)
+    doAssert pr.len == g.numberOfNodes()
+    var total = 0.0
+    for value in pr.values:
+      doAssert value >= 0.0
+      total += value
+    doAssert abs(total - 1.0) < 1e-8
 
 proc benchConnectedComponents(g: Graph[int]): float =
   ## Benchmark: find connected components.
@@ -111,7 +76,7 @@ proc benchMSTKruskal(g: Graph[int]): float =
 proc benchCommunityLouvain(g: Graph[int]): float =
   ## Benchmark: Louvain community detection.
   bench("louvain"):
-    let communities = louvainCommunities(g)
+    let communities = louvainCommunities(g, resolution = 1.0, seed = 42)
     doAssert communities.len > 0
 
 proc benchClustering(g: Graph[int]): float =
@@ -130,25 +95,22 @@ proc benchTriangleCount(g: Graph[int]): float =
 # Main
 # ---------------------------------------------------------------------------
 
-type BenchSize = tuple[name: string, nodes: int, edges: int]
-
 proc runBenchmarks() =
-  let sizes: seq[BenchSize] = @[
-    ("small", 100, 500),
-    ("medium", 1_000, 5_000),
-    ("large", 10_000, 50_000),
-  ]
-
+  let fixtures = loadFixtures()
   echo "library,benchmark,size,nodes,edges,time_seconds"
 
-  for (sizeName, n, m) in sizes:
+  for fixture in fixtures:
+    let (sizeName, n, m) = fixture.size
     # Graph creation
-    let tCreate = benchGraphCreation(n, m)
+    let tCreate = benchGraphCreation(fixture)
     echo &"nimnet,graph_creation,{sizeName},{n},{m},{tCreate:.6f}"
 
     # Build graphs for other benchmarks
-    let g = buildErdosRenyi(n, m)
-    let gw = buildWeightedErdosRenyi(n, m)
+    let g = buildFixture(fixture)
+    let gw = buildFixture(fixture, weighted = true)
+    doAssert gw.numberOfNodes() == n and gw.numberOfEdges() == m
+    for (u, v, weightMillis) in fixture.edges:
+      doAssert gw.weight(u, v) == weightMillis.float / 1000.0
 
     # BFS
     let tBFS = benchBFS(g)
@@ -160,11 +122,8 @@ proc runBenchmarks() =
 
     # Dijkstra (shortest path to a node roughly n/2)
     let target = n div 2
-    try:
-      let tDijkstra = benchDijkstra(gw, target)
-      echo &"nimnet,dijkstra,{sizeName},{n},{m},{tDijkstra:.6f}"
-    except:
-      echo &"nimnet,dijkstra,{sizeName},{n},{m},NA"
+    let tDijkstra = benchDijkstra(gw, target)
+    echo &"nimnet,dijkstra,{sizeName},{n},{m},{tDijkstra:.6f}"
 
     # PageRank
     let tPR = benchPageRank(g)

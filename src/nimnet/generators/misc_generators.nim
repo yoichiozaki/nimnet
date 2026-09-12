@@ -36,7 +36,7 @@ proc randomCograph*(n: int, seed: int64 = 0): Graph[int] =
 
 proc intervalGraph*(intervals: openArray[(float, float)]): Graph[int] =
   ## Generate an interval graph from a list of intervals.
-  ## Node i corresponds to intervals[i]; edges connect overlapping intervals.
+  ## Node i corresponds to ``intervals[i]``; edges connect overlapping intervals.
   result = newGraph[int](capacity = intervals.len)
   for i in 0 ..< intervals.len:
     result.addNode(i)
@@ -71,7 +71,7 @@ proc sudokuGraph*(n: int = 3): Graph[int] =
 proc visibilityGraph*(timeSeries: openArray[float]): Graph[int] =
   ## Generate a visibility graph from a time series.
   ## Node i = time step i. Edge (i,j) if all intermediate values are below
-  ## the line connecting (i, ts[i]) and (j, ts[j]).
+  ## the line connecting ``(i, ts[i])`` and ``(j, ts[j])``.
   let n = timeSeries.len
   result = newGraph[int](capacity = n)
   for i in 0 ..< n:

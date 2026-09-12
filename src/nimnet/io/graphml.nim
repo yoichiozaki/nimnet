@@ -75,7 +75,7 @@ proc writeGraphml*[N](g: DiGraph[N], filename: string) =
   f.writeLine("</graphml>")
 
 proc readGraphml*(filename: string): Graph[string] =
-  ## Read a GraphML file and return a Graph[string].
+  ## Read a GraphML file and return a ``Graph[string]``.
   let data = readFile(filename)
   let xml = parseXml(data)
 

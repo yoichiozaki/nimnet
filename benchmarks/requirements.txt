@@ -1,3 +1,4 @@
-networkx
-numpy
-scipy
+# Reproducible comparison environment (Python >= 3.12).
+networkx==3.6.1
+numpy==2.5.2
+scipy==1.18.1

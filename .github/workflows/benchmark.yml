@@ -6,6 +6,15 @@ on:
     paths:
       - 'src/**'
       - 'benchmarks/**'
+      - 'nimnet.nimble'
+      - '.github/workflows/benchmark.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'src/**'
+      - 'benchmarks/**'
+      - 'nimnet.nimble'
+      - '.github/workflows/benchmark.yml'
   workflow_dispatch:
 
 concurrency:
@@ -16,15 +25,15 @@ jobs:
   benchmark:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - name: Cache choosenim and nimble
-        uses: actions/cache@v5
+        uses: actions/cache@v6
         with:
           path: |
             ~/.choosenim
             ~/.nimble
-          key: ${{ runner.os }}-nim-stable-v3
+          key: ${{ runner.os }}-${{ runner.arch }}-nim-stable-${{ hashFiles('nimnet.nimble') }}
 
       - uses: jiro4989/setup-nim-action@v2
         with:
@@ -40,32 +49,19 @@ jobs:
 
       - name: Install dependencies
         run: |
-          pip install -r benchmarks/requirements.txt &
-          nimble install -y &
-          wait
+          pip install -r benchmarks/requirements.txt
+          nimble install -y
 
-      - name: Compile NimNet benchmark
-        run: nim c -d:release -d:danger -d:ciBenchRuns --opt:speed -p:src -o:build/bench_nimnet benchmarks/bench_nimnet.nim
-
-      - name: Run benchmarks in parallel
+      - name: Run equivalent benchmarks sequentially
         env:
           BENCH_RUNS: "3"
-        run: |
-          ./build/bench_nimnet > results_nimnet.csv &
-          PID_NIM=$!
-          python benchmarks/bench_networkx.py > results_networkx.csv &
-          PID_PY=$!
-          wait $PID_NIM $PID_PY
-          echo "=== NimNet Results ==="
-          cat results_nimnet.csv
-          echo ""
-          echo "=== NetworkX Results ==="
-          cat results_networkx.csv
+        run: bash benchmarks/run_benchmarks.sh
 
       - name: Upload benchmark results
         uses: actions/upload-artifact@v7
         with:
           name: benchmark-results
           path: |
-            results_nimnet.csv
-            results_networkx.csv
+            benchmarks/results/*.csv
+            benchmarks/results/metadata.json
+            benchmarks/results/fixtures/*.json

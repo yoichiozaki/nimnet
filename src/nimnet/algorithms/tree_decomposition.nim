@@ -56,7 +56,7 @@ proc treewidthUpperBound*[N](g: Graph[N]): int =
 proc treeDecomposition*[N](g: Graph[N]): (Graph[int], Table[int, HashSet[N]]) =
   ## Compute a tree decomposition using min-degree elimination.
   ## Returns (tree, bags) where:
-  ##   tree is a Graph[int] representing the tree structure
+  ##   tree is a ``Graph[int]`` representing the tree structure
   ##   bags maps each tree node to a set of original graph nodes
   let nodes = g.nodeSeq()
   let n = nodes.len

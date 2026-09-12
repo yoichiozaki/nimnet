@@ -29,7 +29,7 @@ proc averageDegree*[N](g: Graph[N]): float =
 proc degreeAssortativity*[N](g: Graph[N]): float =
   ## Compute the degree assortativity coefficient.
   ## Measures the correlation between degrees of adjacent nodes.
-  ## Range: [-1, 1]. Positive = assortative (high connects to high).
+  ## Range: ``[-1, 1]``. Positive = assortative (high connects to high).
   let m = g.numberOfEdges()
   if m == 0:
     return 0.0

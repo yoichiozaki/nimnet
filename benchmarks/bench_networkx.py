@@ -9,15 +9,14 @@ Usage:
   python bench_networkx.py
 """
 
-import os
 import time
-import random
 import statistics
 import networkx as nx
 
-random.seed(42)
+from fixtures import benchmark_runs, load_fixtures
+from bench_graphs import build_fixture
 
-BENCH_RUNS = int(os.environ.get("BENCH_RUNS", "5"))
+BENCH_RUNS = benchmark_runs()
 
 
 def bench(func, *args, **kwargs):
@@ -33,27 +32,15 @@ def bench(func, *args, **kwargs):
     return statistics.median(times), result
 
 
-def build_erdos_renyi(n, m):
-    """Build random graph with n nodes, m edges (same seed as Nim version)."""
-    return nx.gnm_random_graph(n, m, seed=42)
-
-
-def build_weighted_erdos_renyi(n, m):
-    """Build weighted random graph."""
-    g = nx.gnm_random_graph(n, m, seed=42)
-    rng = random.Random(42)
-    for u, v in g.edges():
-        g[u][v]["weight"] = rng.uniform(1.0, 10.0)
-    return g
-
-
-def bench_graph_creation(n, m):
-    t, g = bench(nx.gnm_random_graph, n, m, seed=42)
+def bench_graph_creation(fixture):
+    t, g = bench(build_fixture, fixture)
+    assert len(g) == fixture["nodes"] and g.number_of_edges() == len(fixture["edges"])
     return t
 
 
 def bench_bfs(g):
-    t, _ = bench(lambda: list(nx.bfs_tree(g, 0).nodes()))
+    t, count = bench(lambda: sum(1 for _ in nx.bfs_edges(g, 0)))
+    assert count > 0
     return t
 
 
@@ -68,7 +55,16 @@ def bench_dijkstra(g, target):
 
 
 def bench_pagerank(g):
-    t, _ = bench(nx.pagerank, g)
+    def run():
+        ranks = nx.pagerank(g, alpha=0.85, max_iter=100, tol=1e-6 / len(g), weight=None)
+        assert len(ranks) == len(g)
+        total = 0.0
+        for value in ranks.values():
+            assert value >= 0.0
+            total += value
+        assert abs(total - 1.0) < 1e-8
+        return ranks
+    t, _ = bench(run)
     return t
 
 
@@ -83,7 +79,10 @@ def bench_mst_kruskal(g):
 
 
 def bench_louvain(g):
-    t, _ = bench(nx.community.louvain_communities, g, seed=42)
+    t, _ = bench(
+        nx.community.louvain_communities, g, weight=None, resolution=1.0,
+        seed=42, threshold=0.0, max_level=20,
+    )
     return t
 
 
@@ -97,23 +96,20 @@ def bench_triangles(g):
     return t
 
 
-SIZES = [
-    ("small", 100, 500),
-    ("medium", 1_000, 5_000),
-    ("large", 10_000, 50_000),
-]
-
-
 def main():
+    fixtures = load_fixtures()
     print("library,benchmark,size,nodes,edges,time_seconds")
 
-    for size_name, n, m in SIZES:
+    for fixture in fixtures:
+        size_name, n, m = fixture["name"], fixture["nodes"], len(fixture["edges"])
         # Graph creation
-        t = bench_graph_creation(n, m)
+        t = bench_graph_creation(fixture)
         print(f"networkx,graph_creation,{size_name},{n},{m},{t:.6f}")
 
-        g = build_erdos_renyi(n, m)
-        gw = build_weighted_erdos_renyi(n, m)
+        g = build_fixture(fixture)
+        gw = build_fixture(fixture, weighted=True)
+        assert len(gw) == n and gw.number_of_edges() == m
+        assert all(gw[u][v]["weight"] == w / 1000.0 for u, v, w in fixture["edges"])
 
         # BFS
         t = bench_bfs(g)
@@ -125,11 +121,8 @@ def main():
 
         # Dijkstra
         target = n // 2
-        try:
-            t = bench_dijkstra(gw, target)
-            print(f"networkx,dijkstra,{size_name},{n},{m},{t:.6f}")
-        except Exception:
-            print(f"networkx,dijkstra,{size_name},{n},{m},NA")
+        t = bench_dijkstra(gw, target)
+        print(f"networkx,dijkstra,{size_name},{n},{m},{t:.6f}")
 
         # PageRank
         t = bench_pagerank(g)

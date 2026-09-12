@@ -23,6 +23,12 @@ A comprehensive network science library for [Nim](https://nim-lang.org/), inspir
 - **Builder DSL**: Fluent graph construction with method chaining and `buildGraph` template
 - **Built-in datasets**: Dolphins social network, Florentine families, les misérables
 
+The [improvement backlog](docs/backlog.md) tracks the current development batch,
+including exact cardinality matching, Hopcroft-Karp, sparse random graphs,
+undirected sparse all-pairs paths, directed loaders, PageRank probability
+conservation and meaningful Louvain resolution. These
+additions are unreleased until included in a tagged version.
+
 ## Installation
 
 ```bash
@@ -96,11 +102,11 @@ let loaded = readGml("my_graph.gml")
 |----------|--------|-----------|
 | Traversal | `traversal` | BFS, DFS (edges, tree, layers, preorder, postorder) |
 | Shortest Paths | `shortest_paths` | Dijkstra, Bellman-Ford, A*, unweighted BFS |
-| All-Pairs Shortest | `all_pairs_shortest` | Floyd-Warshall, Johnson's algorithm |
+| All-Pairs Shortest | `all_pairs_shortest` | Floyd-Warshall, sparse Johnson/Dijkstra distances for Graph and DiGraph |
 | Components | `components` | Connected, strongly connected (Tarjan), weakly connected, condensation |
 | Centrality | `centrality` | Degree, closeness, PageRank, eigenvector, Katz, HITS |
 | Clustering | `clustering` | Clustering coefficient, transitivity, triangles |
-| Community | `community`, `louvain` | Greedy modularity, Louvain method |
+| Community | `community`, `louvain` | Incremental greedy modularity, Louvain method |
 | MST | `mst` | Kruskal, Prim |
 | DAG | `dag` | Topological sort, cycle detection, ancestors, descendants, transitive closure/reduction |
 | Flow | `flow` | Edmonds-Karp max flow, minimum cut |
@@ -118,7 +124,7 @@ let loaded = readGml("my_graph.gml")
 | Independent Set | `independent_set` | Maximum independent set, vertex cover |
 | Dominating Set | `dominating` | Minimum dominating set |
 | Coloring | `coloring` | Greedy coloring (largest-first, DSATUR) |
-| Bipartite | `bipartite` | Bipartiteness, maximum matching |
+| Bipartite | `bipartite` | Bipartiteness, Hopcroft-Karp matching, explicit partitions, minimum vertex cover |
 | Euler | `euler` | Eulerian circuits/paths, Hamiltonian detection |
 | Bridges | `bridges` | Bridges (cut edges), articulation points, biconnected components |
 | Ego Graph | `ego` | Ego graph extraction (k-hop neighborhood subgraph) |
@@ -128,7 +134,7 @@ let loaded = readGml("my_graph.gml")
 | Rich Club | `richclub` | Rich-club coefficient |
 | Wiener Index | `wiener` | Wiener index |
 | Cycles | `cycles` | Cycle basis, simple cycles (directed) |
-| Matching | `matching` | Maximal matching, max/min-weight matching |
+| Matching | `matching` | Exact maximum-cardinality matching and minimum edge cover; greedy weighted matching |
 | Graph Products | `graph_products` | Cartesian, tensor, strong, lexicographic product |
 | Small-World | `smallworld` | Small-world sigma (σ) and omega (ω) coefficients |
 | Graph Hashing | `graph_hashing` | Weisfeiler-Lehman graph/subgraph hashes |
@@ -167,39 +173,41 @@ let loaded = readGml("my_graph.gml")
 
 ## Performance
 
-Benchmark results comparing NimNet (compiled Nim, pure implementation) vs NetworkX 3.6 (Python + scipy/numpy C backend) on Erdős-Rényi random graphs. Times are in seconds; lower is better.
+NimNet uses indexed adjacency, CSR traversal and incremental algorithm state
+where they improve performance without replacing the flexible graph API.
+`fastGnpRandomGraph` provides expected O(V+E) sparse generation alongside the
+existing O(V²) `erdosRenyiGraph`.
 
-**Medium graph (1,000 nodes, 5,000 edges):**
+The [benchmark suite](benchmarks/README.md) measures both targeted improvements
+and comparisons with NetworkX. Both libraries read identical graph/weight
+fixtures, perform equivalent operations, and run sequentially using median
+elapsed times after warmup. Compiler/package versions and fixture hashes are
+recorded with the results; assertions remain enabled.
 
-| Benchmark | NimNet | NetworkX | Ratio |
-|-----------|--------|----------|-------|
-| Graph creation | 0.001 | 0.005 | **NimNet 5×** |
-| BFS | <0.001 | 0.001 | **NimNet** |
-| DFS | <0.001 | 0.001 | **NimNet** |
-| Dijkstra | <0.001 | <0.001 | ~1× |
-| PageRank | <0.001 | 0.003 | **NimNet 3×+** |
-| Connected components | <0.001 | <0.001 | — |
-| MST (Kruskal) | 0.001 | 0.005 | **NimNet 5×** |
-| Louvain | 0.003 | 0.088 | **NimNet 29×** |
-| Clustering | 0.001 | 0.015 | **NimNet 15×** |
-| Triangles | 0.001 | 0.003 | **NimNet 3×** |
+Performance depends on graph structure, size, algorithm and hardware. There is
+no blanket claim that one library wins every workload. NetworkX also uses
+NumPy/SciPy native backends for some algorithms; NimNet's algorithms are
+implemented in Nim without those dependencies.
 
-**Large graph (10,000 nodes, 50,000 edges):**
+## Attributes and algorithm guarantees
 
-| Benchmark | NimNet | NetworkX | Ratio |
-|-----------|--------|----------|-------|
-| Graph creation | 0.016 | 0.056 | **NimNet 3.5×** |
-| BFS | 0.004 | 0.015 | **NimNet 3.8×** |
-| DFS | 0.003 | 0.014 | **NimNet 4.6×** |
-| Dijkstra | 0.006 | 0.011 | **NimNet 1.8×** |
-| PageRank | 0.006 | 0.035 | **NimNet 5.9×** |
-| Connected components | 0.005 | 0.004 | 1.3× |
-| MST (Kruskal) | 0.016 | 0.055 | **NimNet 3.4×** |
-| Louvain | 0.114 | 3.370 | **NimNet 30×** |
-| Clustering | 0.012 | 0.156 | **NimNet 13×** |
-| Triangles | 0.012 | 0.037 | **NimNet 3×** |
+Greedy modularity uses the unweighted objective (attributes are ignored), with
+self-loops counted consistently. Louvain uses weighted modularity and applies
+resolution only to the null-model term. Both community methods are heuristics.
 
-> **Note:** NimNet is a pure Nim implementation with no C/Fortran bindings. NetworkX leverages NumPy/SciPy for numerically intensive algorithms like PageRank. NimNet outperforms NetworkX across all benchmarks at scale. See [`benchmarks/`](benchmarks/) for details and reproduction scripts.
+`EdgeAttr` stores a numeric `weight` and an `extra: Table[string, string]`.
+`newEdgeAttr()` starts with weight `1.0`; `getWeight()` returns the stored value.
+The legacy `default` argument does not override that value. `NodeAttr` is a
+`JsonNode`, so node attributes can contain typed or nested values.
+
+`maximumCardinalityMatching` is exact for general graphs, including odd cycles.
+The existing `maxWeightMatching` and `minWeightMatching` are **greedy
+approximations**, also exposed as `approxMaxWeightMatching` and
+`approxMinWeightMatching`. Only the maximum-weight greedy routine has a 1/2
+weight guarantee, and only for finite nonnegative weights; the minimum-weight
+routine has no general approximation guarantee.
+
+See the [API guide](docs/getting-started.md) for new APIs and migration notes.
 
 ## Examples
 
@@ -207,7 +215,7 @@ See the [`examples/`](examples/) directory for complete, runnable programs:
 
 - **Social network analysis** — centrality, clustering, community detection on the karate club graph
 - **Shortest path demo** — Dijkstra, Bellman-Ford, A* on a weighted city network
-- **Graph I/O roundtrip** — export/import in all 10 supported formats
+- **Graph I/O roundtrip** — reading, writing and round-trip examples for supported formats
 - **Network resilience** — bridges, articulation points, connectivity analysis
 
 ```bash

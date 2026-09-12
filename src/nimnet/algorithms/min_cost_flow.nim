@@ -10,7 +10,7 @@ proc minimumCostFlow*[N](g: DiGraph[N], demand: Table[N, float]): (float, Table[
   ## Solve minimum cost flow problem.
   ## Each edge has capacity (weight attribute) and cost (cost attribute if present, else 1.0).
   ## `demand` maps nodes to their demand: positive = supply, negative = demand.
-  ## Returns (total_cost, flow) where flow[u][v] is the flow on edge (u, v).
+  ## Returns (total_cost, flow) where ``flow[u][v]`` is the flow on edge (u, v).
 
   # Build residual network
   var capacity = initTable[N, Table[N, float]]()

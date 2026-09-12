@@ -43,7 +43,7 @@ proc kRandomIntersectionGraph*(n, m, k: int, seed: int64 = 0): Graph[int] =
 
 proc generalRandomIntersectionGraph*(n, m: int, probs: openArray[float], seed: int64 = 0): Graph[int] =
   ## Generate a general random intersection graph.
-  ## Each object j has probability probs[j] of being chosen by each actor.
+  ## Each object j has probability ``probs[j]`` of being chosen by each actor.
   var rng = if seed != 0: initRand(seed) else: initRand()
   result = newGraph[int](capacity = n)
   for i in 0 ..< n:

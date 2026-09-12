@@ -78,7 +78,7 @@ proc strongProduct*[N](g1, g2: Graph[N]): Graph[string] =
           result.addEdge(n1, $u2 & "," & $v2)
 
 proc lexicographicProduct*[N](g1, g2: Graph[N]): Graph[string] =
-  ## Return the lexicographic product G1[G2].
+  ## Return the lexicographic product ``G1[G2]``.
   ## Nodes (u1,v1) and (u2,v2) are adjacent iff:
   ##   u1~u2 in G1, or (u1=u2 and v1~v2 in G2).
   result = newGraph[string]()

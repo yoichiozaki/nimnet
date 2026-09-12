@@ -52,94 +52,205 @@ proc bipartiteSets*[N](g: Graph[N]): (HashSet[N], HashSet[N]) =
           raise newException(NimNetError, "Graph is not bipartite")
   result = (setA, setB)
 
-proc maximumMatching*[N](g: Graph[N]): seq[(N, N)] =
-  ## Find a maximum matching using augmenting paths.
-  ## Returns a list of matched edge pairs.
-  ## Requires the graph to be bipartite.
-  let (setA, setB) = bipartiteSets(g)
-  var matchA = initTable[N, N]()  # A -> B matching
-  var matchB = initTable[N, N]()  # B -> A matching
+type IndexedBipartite[N] = object
+  nodes: seq[N]
+  adjacency: seq[seq[int]]
+  top: seq[int]
 
-  proc augment(u: N; visitedA, visitedB: var HashSet[N]): bool =
-    ## DFS for an augmenting path from u (in setA).
-    ## visitedA/visitedB track visited nodes in the current search to prevent cycles.
-    ## Returns true if an augmenting path was found and matching updated.
-    if u in visitedA:
-      return false
-    visitedA.incl(u)
-    for v in g.neighbors(u):
-      if v in setB and v notin visitedB:
-        visitedB.incl(v)
-        if v notin matchB or augment(matchB[v], visitedA, visitedB):
-          matchA[u] = v
-          matchB[v] = u
-          return true
-    return false
+proc indexBipartite[N](g: Graph[N], topNodes: HashSet[N],
+    inferPartition: bool): IndexedBipartite[N] =
+  var indices = initTable[N, int]()
+  for node in g.nodes:
+    indices[node] = result.nodes.len
+    result.nodes.add(node)
+  let n = result.nodes.len
+  result.adjacency = newSeq[seq[int]](n)
+  for i, node in result.nodes:
+    for neighbor in g.adj[node].keys:
+      result.adjacency[i].add(indices[neighbor])
 
-  # Repeatedly search for augmenting paths until none can be found.
+  var color = newSeq[int](n)
+  if inferPartition:
+    for i in 0 ..< n:
+      color[i] = -1
+    var queue = newSeqOfCap[int](n)
+    for start in 0 ..< n:
+      if color[start] != -1:
+        continue
+      color[start] = 0
+      queue.setLen(0)
+      queue.add(start)
+      var head = 0
+      while head < queue.len:
+        let u = queue[head]
+        head.inc
+        for v in result.adjacency[u]:
+          if color[v] == -1:
+            color[v] = 1 - color[u]
+            queue.add(v)
+          elif color[v] == color[u]:
+            raise newException(NimNetError, "Graph is not bipartite")
+  else:
+    for i in 0 ..< n:
+      color[i] = 1
+    for node in topNodes:
+      let i = indices.getOrDefault(node, -1)
+      if i == -1:
+        raise newException(NodeNotFound, "topNodes contains a node not in the graph")
+      color[i] = 0
+    for u, neighbors in result.adjacency:
+      for v in neighbors:
+        if color[u] == color[v]:
+          raise newException(NimNetError,
+            "topNodes and its complement must form a bipartition")
+  for i in 0 ..< n:
+    if color[i] == 0:
+      result.top.add(i)
+
+proc hopcroftKarp(adjacency: seq[seq[int]], top: seq[int]): seq[int] =
+  let n = adjacency.len
+  var mate = newSeq[int](n)
+  var distance = newSeq[int](n)
+  var cursor = newSeq[int](n)
+  var queue = newSeqOfCap[int](top.len)
+  var path = newSeqOfCap[int](top.len)
+  for i in 0 ..< n:
+    mate[i] = -1
+
   while true:
-    var changed = false
-    for u in setA:
-      if u notin matchA:
-        var visitedA = initHashSet[N]()
-        var visitedB = initHashSet[N]()
-        if augment(u, visitedA, visitedB):
-          changed = true
-    if not changed:
+    queue.setLen(0)
+    for u in top:
+      cursor[u] = 0
+      if mate[u] == -1:
+        distance[u] = 0
+        queue.add(u)
+      else:
+        distance[u] = -1
+    var shortest = -1
+    var head = 0
+    while head < queue.len:
+      let u = queue[head]
+      head.inc
+      if shortest != -1 and distance[u] >= shortest:
+        continue
+      for v in adjacency[u]:
+        let next = mate[v]
+        if next == -1:
+          shortest = distance[u] + 1
+        elif distance[next] == -1:
+          distance[next] = distance[u] + 1
+          queue.add(next)
+    if shortest == -1:
       break
 
-  result = @[]
-  for u, v in matchA:
-    result.add((u, v))
+    for root in top:
+      if mate[root] != -1 or distance[root] == -1:
+        continue
+      path.setLen(0)
+      path.add(root)
+      var augmented = false
+      while path.len > 0 and not augmented:
+        let u = path[^1]
+        var descended = false
+        while cursor[u] < adjacency[u].len:
+          let v = adjacency[u][cursor[u]]
+          cursor[u].inc
+          let next = mate[v]
+          if next == -1:
+            if distance[u] + 1 != shortest:
+              continue
+            # The old mate of each child is its incoming right-hand vertex.
+            # Unwind the explicit stack to update both directions together.
+            var right = v
+            for i in countdown(path.high, 0):
+              let left = path[i]
+              let oldRight = mate[left]
+              mate[left] = right
+              mate[right] = left
+              right = oldRight
+              distance[left] = -1
+            augmented = true
+            break
+          elif distance[next] == distance[u] + 1:
+            path.add(next)
+            descended = true
+            break
+        if not descended and not augmented:
+          distance[u] = -1
+          discard path.pop()
+  result = mate
+
+proc matchingPairs[N](indexed: IndexedBipartite[N], mate: seq[int]): seq[(N, N)] =
+  for u in indexed.top:
+    if mate[u] != -1:
+      result.add((indexed.nodes[u], indexed.nodes[mate[u]]))
+
+proc vertexCover[N](indexed: IndexedBipartite[N], mate: seq[int]): HashSet[N] =
+  result = initHashSet[N]()
+  var reached = newSeq[bool](indexed.nodes.len)
+  var queue = newSeqOfCap[int](indexed.top.len)
+  for u in indexed.top:
+    if mate[u] == -1:
+      reached[u] = true
+      queue.add(u)
+  var head = 0
+  while head < queue.len:
+    let u = queue[head]
+    head.inc
+    for v in indexed.adjacency[u]:
+      if mate[u] == v or reached[v]:
+        continue
+      reached[v] = true
+      result.incl(indexed.nodes[v])
+      let next = mate[v]
+      if next != -1 and not reached[next]:
+        reached[next] = true
+        queue.add(next)
+  # König's theorem: (top \ reached) union (bottom intersect reached).
+  for u in indexed.top:
+    if not reached[u]:
+      result.incl(indexed.nodes[u])
+
+proc maximumMatching*[N](g: Graph[N]): seq[(N, N)] =
+  ## Return an exact maximum-cardinality bipartite matching using layered
+  ## Hopcroft-Karp, with indexed data and iterative, stack-safe augmentation.
+  ## Time is O((V + E) sqrt(V)); auxiliary space is O(V + E).
+  ## Each matched edge occurs once, oriented from an inferred first partition.
+  ## Disconnected components and isolates are supported; weights are ignored.
+  ## Raises ``NimNetError`` for odd cycles or self-loops.
+  let indexed = indexBipartite(g, initHashSet[N](), true)
+  matchingPairs(indexed, hopcroftKarp(indexed.adjacency, indexed.top))
+
+proc maximumMatching*[N](g: Graph[N], topNodes: HashSet[N]): seq[(N, N)] =
+  ## Return an exact maximum-cardinality matching using the supplied partition.
+  ## Each pair is (node in topNodes, node outside topNodes), occurring once.
+  ## topNodes and its complement must cover the two sides of every edge;
+  ## disconnected components may be oriented independently and isolates may
+  ## be on either side. The partition is validated once, without inference.
+  ## Raises ``NodeNotFound`` for unknown topNodes and ``NimNetError`` for
+  ## intra-part edges (including self-loops). No node ordering is required.
+  ## Uses stack-safe Hopcroft-Karp in O((V + E) sqrt(V)) time, O(V + E) space.
+  let indexed = indexBipartite(g, topNodes, false)
+  matchingPairs(indexed, hopcroftKarp(indexed.adjacency, indexed.top))
 
 proc minimumVertexCover*[N](g: Graph[N]): HashSet[N] =
-  ## Find minimum vertex cover for bipartite graph using König's theorem.
-  ## |minimum vertex cover| = |maximum matching|
-  let matching = maximumMatching(g)
-  let (setA, setB) = bipartiteSets(g)
+  ## Return an exact minimum vertex cover of a bipartite graph.
+  ## By König's theorem its size equals the maximum matching cardinality.
+  ## Infers and validates the partition once, reusing indexed Hopcroft-Karp
+  ## data. Disconnected graphs and isolates are supported. Raises
+  ## ``NimNetError`` for odd cycles or self-loops.
+  ## Time is O((V + E) sqrt(V)); auxiliary space is O(V + E).
+  let indexed = indexBipartite(g, initHashSet[N](), true)
+  vertexCover(indexed, hopcroftKarp(indexed.adjacency, indexed.top))
 
-  # Build matching sets
-  var matchedA = initHashSet[N]()
-  var matchedB = initHashSet[N]()
-  var matchA = initTable[N, N]()
-  var matchB = initTable[N, N]()
-  for (u, v) in matching:
-    matchedA.incl(u)
-    matchedB.incl(v)
-    matchA[u] = v
-    matchB[v] = u
-
-  # Find alternating tree from unmatched vertices in A
-  var visited = initHashSet[N]()
-  var queue = initDeque[N]()
-  for u in setA:
-    if u notin matchedA:
-      queue.addLast(u)
-      visited.incl(u)
-
-  while queue.len > 0:
-    let u = queue.popFirst()
-    if u in setA:
-      for v in g.neighbors(u):
-        # From A to B, follow only unmatched edges (König's theorem)
-        if v in setB and v notin visited and (u notin matchA or matchA[u] != v):
-          visited.incl(v)
-          queue.addLast(v)
-    else:  # u in setB
-      if u in matchB:
-        let w = matchB[u]
-        if w notin visited:
-          visited.incl(w)
-          queue.addLast(w)
-
-  # König's theorem: min vertex cover = (A \ Z) ∪ (B ∩ Z)
-  result = initHashSet[N]()
-  for u in setA:
-    if u notin visited:
-      result.incl(u)
-  for v in setB:
-    if v in visited:
-      result.incl(v)
+proc minimumVertexCover*[N](g: Graph[N], topNodes: HashSet[N]): HashSet[N] =
+  ## Return an exact minimum vertex cover using the supplied bipartition.
+  ## Partition rules and exceptions are the same as for
+  ## ``maximumMatching(g, topNodes)``. Validation occurs once, with no hidden
+  ## inference. Isolates are never needed in the cover.
+  ## Time is O((V + E) sqrt(V)); auxiliary space is O(V + E).
+  let indexed = indexBipartite(g, topNodes, false)
+  vertexCover(indexed, hopcroftKarp(indexed.adjacency, indexed.top))
 
 # =============================================================================
 # Extended Bipartite (#132)

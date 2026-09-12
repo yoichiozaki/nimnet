@@ -2,13 +2,14 @@
 ## Usage: nim e tools/clean.nims
 ## Or:    nimble cleanup
 
-import std/strutils
+import std/[os, strutils]
 
-let root = getCurrentDir()
-const dirs = ["tests", "examples", "build", "src"]
+let root = parentDir(thisDir())
+let dirs = ["tests", "examples", "build", "src",
+            "build" / "tests", "build" / "coverage_tests"]
 
 for dir in dirs:
-  let full = root & "/" & dir
+  let full = root / dir
   if dirExists(full):
     for f in listFiles(full):
       if f.endsWith(".exe"):

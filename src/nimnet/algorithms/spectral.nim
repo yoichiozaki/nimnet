@@ -13,7 +13,7 @@ import ../types, ../graph, ../digraph
 
 proc laplacianMatrix*[N](g: Graph[N]): (seq[N], seq[seq[float]]) =
   ## Compute the Laplacian matrix L = D - A.
-  ## Returns (nodeList, matrix) where nodeList[i] is the node for row/col i.
+  ## Returns (nodeList, matrix) where ``nodeList[i]`` is the node for row/col i.
   var nodeList: seq[N]
   for n in g.nodes:
     nodeList.add(n)
@@ -394,7 +394,7 @@ proc laplacianSpectrum*[N](g: Graph[N]): float =
 
 proc incidenceMatrix*[N](g: Graph[N]): (seq[N], seq[(N, N)], seq[seq[float]]) =
   ## Compute the incidence matrix.
-  ## Returns (nodeList, edgeList, matrix) where matrix[i][j] indicates
+  ## Returns (nodeList, edgeList, matrix) where ``matrix[i][j]`` indicates
   ## node i is incident to edge j.
   var nodeList: seq[N]
   for n in g.nodes:

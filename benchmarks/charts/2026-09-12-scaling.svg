@@ -1,0 +1,198 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1180" height="1012" viewBox="0 0 1180 1012" role="img" aria-labelledby="chart-title chart-description">
+  <title id="chart-title">NimNet timings across recorded graph sizes</title>
+  <desc id="chart-description">Four panels show every recorded size. Node counts are on linear x axes; elapsed milliseconds are on logarithmic y axes, with independent ranges per panel. Hollow circles represent the reference and diamonds the improved method. Lines join measurements only and are not extrapolations.</desc>
+  <style>text { font-family: "Segoe UI", Arial, sans-serif; font-size: 14px; fill: #334155; }
+.title { font-size: 28px; font-weight: 700; fill: #0f172a; }
+.heading { font-size: 18px; font-weight: 700; fill: #0f172a; }
+.section { font-size: 15px; font-weight: 700; fill: #334155; }
+.small { font-size: 13px; fill: #475569; }
+.tick { font-size: 12px; fill: #475569; }
+.reference { fill: #475569; }
+.improved { fill: #087f5b; font-weight: 600; }
+.ratio { font-size: 24px; font-weight: 700; fill: #07543e; }
+.grid { stroke: #dbe3eb; stroke-width: 1; }
+.axis { stroke: #94a3b8; stroke-width: 1; }
+.reference-line { stroke: #64748b; stroke-width: 3; fill: none; }
+.improved-line { stroke: #087f5b; stroke-width: 3; fill: none; }</style>
+  <rect x="0" y="0" width="1180" height="1012" fill="#ffffff" rx="16" />
+  <text x="32" y="42" text-anchor="start" class="title">Timings across recorded graph sizes</text>
+  <text x="32" y="70" text-anchor="start" class="small">2026-09-12 | Median of 3 runs after 1 warmup | NimNet only, not a NetworkX comparison</text>
+  <circle cx="790" cy="96" r="5" fill="#ffffff" stroke="#64748b" stroke-width="2.5" data-series="reference">
+    <title>Reference / earlier method</title>
+  </circle>
+  <text x="804" y="101" text-anchor="start" class="small">Reference / earlier</text>
+  <polygon points="992,90 998,96 992,102 986,96" fill="#087f5b" stroke="#ffffff" stroke-width="1.5" data-series="improved">
+    <title>Improved method</title>
+  </polygon>
+  <text x="1006" y="101" text-anchor="start" class="small">Improved</text>
+  <rect x="24" y="128" width="552" height="390" rx="12" fill="#f8fafc" stroke="#e2e8f0" />
+  <text x="44" y="160" text-anchor="start" class="heading">Greedy modularity</text>
+  <text x="44" y="184" text-anchor="start" class="small">Original vs Incremental</text>
+  <text x="107" y="214" text-anchor="start" class="small">Time (ms, log scale) | lower is better</text>
+  <line x1="107" y1="438" x2="552" y2="438" class="grid" />
+  <text x="95" y="442" text-anchor="end" class="tick">0.01</text>
+  <line x1="107" y1="396.2" x2="552" y2="396.2" class="grid" />
+  <text x="95" y="400.2" text-anchor="end" class="tick">0.1</text>
+  <line x1="107" y1="354.4" x2="552" y2="354.4" class="grid" />
+  <text x="95" y="358.4" text-anchor="end" class="tick">1</text>
+  <line x1="107" y1="312.6" x2="552" y2="312.6" class="grid" />
+  <text x="95" y="316.6" text-anchor="end" class="tick">10</text>
+  <line x1="107" y1="270.8" x2="552" y2="270.8" class="grid" />
+  <text x="95" y="274.8" text-anchor="end" class="tick">100</text>
+  <line x1="107" y1="229" x2="552" y2="229" class="grid" />
+  <text x="95" y="233" text-anchor="end" class="tick">1,000</text>
+  <line x1="107" y1="229" x2="107" y2="438" class="grid" />
+  <text x="107" y="461" text-anchor="middle" class="tick">32</text>
+  <line x1="255.333" y1="229" x2="255.333" y2="438" class="grid" />
+  <text x="255.333" y="461" text-anchor="middle" class="tick">64</text>
+  <line x1="552" y1="229" x2="552" y2="438" class="grid" />
+  <text x="552" y="461" text-anchor="middle" class="tick">128</text>
+  <text x="329.5" y="486" text-anchor="middle" class="small">Number of nodes (linear scale)</text>
+  <polyline points="107,311.039 255.333,272.415 552,234.792" class="reference-line" />
+  <circle cx="107" cy="311.039" r="5" fill="#ffffff" stroke="#64748b" stroke-width="2.5" data-series="reference">
+    <title>Original, 32 nodes: 10.8979 ms</title>
+  </circle>
+  <circle cx="255.333" cy="272.415" r="5" fill="#ffffff" stroke="#64748b" stroke-width="2.5" data-series="reference">
+    <title>Original, 64 nodes: 91.4869 ms</title>
+  </circle>
+  <circle cx="552" cy="234.792" r="5" fill="#ffffff" stroke="#64748b" stroke-width="2.5" data-series="reference">
+    <title>Original, 128 nodes: 726.8526 ms</title>
+  </circle>
+  <polyline points="107,418.861 255.333,404.907 552,383.882" class="improved-line" />
+  <polygon points="107,412.861 113,418.861 107,424.861 101,418.861" fill="#087f5b" stroke="#ffffff" stroke-width="1.5" data-series="improved">
+    <title>Incremental, 32 nodes: 0.0287 ms</title>
+  </polygon>
+  <polygon points="255.333,398.907 261.333,404.907 255.333,410.907 249.333,404.907" fill="#087f5b" stroke="#ffffff" stroke-width="1.5" data-series="improved">
+    <title>Incremental, 64 nodes: 0.0619 ms</title>
+  </polygon>
+  <polygon points="552,377.882 558,383.882 552,389.882 546,383.882" fill="#087f5b" stroke="#ffffff" stroke-width="1.5" data-series="improved">
+    <title>Incremental, 128 nodes: 0.1971 ms</title>
+  </polygon>
+  <rect x="604" y="128" width="552" height="390" rx="12" fill="#f8fafc" stroke="#e2e8f0" />
+  <text x="624" y="160" text-anchor="start" class="heading">Bipartite matching</text>
+  <text x="624" y="184" text-anchor="start" class="small">DFS augmentation vs Hopcroft-Karp</text>
+  <text x="687" y="214" text-anchor="start" class="small">Time (ms, log scale) | lower is better</text>
+  <line x1="687" y1="438" x2="1132" y2="438" class="grid" />
+  <text x="675" y="442" text-anchor="end" class="tick">0.1</text>
+  <line x1="687" y1="385.75" x2="1132" y2="385.75" class="grid" />
+  <text x="675" y="389.75" text-anchor="end" class="tick">1</text>
+  <line x1="687" y1="333.5" x2="1132" y2="333.5" class="grid" />
+  <text x="675" y="337.5" text-anchor="end" class="tick">10</text>
+  <line x1="687" y1="281.25" x2="1132" y2="281.25" class="grid" />
+  <text x="675" y="285.25" text-anchor="end" class="tick">100</text>
+  <line x1="687" y1="229" x2="1132" y2="229" class="grid" />
+  <text x="675" y="233" text-anchor="end" class="tick">1,000</text>
+  <line x1="687" y1="229" x2="687" y2="438" class="grid" />
+  <text x="687" y="461" text-anchor="middle" class="tick">256</text>
+  <line x1="835.333" y1="229" x2="835.333" y2="438" class="grid" />
+  <text x="835.333" y="461" text-anchor="middle" class="tick">512</text>
+  <line x1="1132" y1="229" x2="1132" y2="438" class="grid" />
+  <text x="1132" y="461" text-anchor="middle" class="tick">1,024</text>
+  <text x="909.5" y="486" text-anchor="middle" class="small">Number of nodes (linear scale)</text>
+  <polyline points="687,341.449 835.333,295.057 1132,249.866" class="reference-line" />
+  <circle cx="687" cy="341.449" r="5" fill="#ffffff" stroke="#64748b" stroke-width="2.5" data-series="reference">
+    <title>DFS augmentation, 256 nodes: 7.0447 ms</title>
+  </circle>
+  <circle cx="835.333" cy="295.057" r="5" fill="#ffffff" stroke="#64748b" stroke-width="2.5" data-series="reference">
+    <title>DFS augmentation, 512 nodes: 54.4198 ms</title>
+  </circle>
+  <circle cx="1132" cy="249.866" r="5" fill="#ffffff" stroke="#64748b" stroke-width="2.5" data-series="reference">
+    <title>DFS augmentation, 1,024 nodes: 398.706 ms</title>
+  </circle>
+  <polyline points="687,397.056 835.333,363.242 1132,327.461" class="improved-line" />
+  <polygon points="687,391.056 693,397.056 687,403.056 681,397.056" fill="#087f5b" stroke="#ffffff" stroke-width="1.5" data-series="improved">
+    <title>Hopcroft-Karp, 256 nodes: 0.6076 ms</title>
+  </polygon>
+  <polygon points="835.333,357.242 841.333,363.242 835.333,369.242 829.333,363.242" fill="#087f5b" stroke="#ffffff" stroke-width="1.5" data-series="improved">
+    <title>Hopcroft-Karp, 512 nodes: 2.6963 ms</title>
+  </polygon>
+  <polygon points="1132,321.461 1138,327.461 1132,333.461 1126,327.461" fill="#087f5b" stroke="#ffffff" stroke-width="1.5" data-series="improved">
+    <title>Hopcroft-Karp, 1,024 nodes: 13.0493 ms</title>
+  </polygon>
+  <rect x="24" y="550" width="552" height="390" rx="12" fill="#f8fafc" stroke="#e2e8f0" />
+  <text x="44" y="582" text-anchor="start" class="heading">Sparse all-pairs paths</text>
+  <text x="44" y="606" text-anchor="start" class="small">Floyd-Warshall vs Johnson</text>
+  <text x="107" y="636" text-anchor="start" class="small">Time (ms, log scale) | lower is better</text>
+  <line x1="107" y1="860" x2="552" y2="860" class="grid" />
+  <text x="95" y="864" text-anchor="end" class="tick">0.1</text>
+  <line x1="107" y1="818.2" x2="552" y2="818.2" class="grid" />
+  <text x="95" y="822.2" text-anchor="end" class="tick">1</text>
+  <line x1="107" y1="776.4" x2="552" y2="776.4" class="grid" />
+  <text x="95" y="780.4" text-anchor="end" class="tick">10</text>
+  <line x1="107" y1="734.6" x2="552" y2="734.6" class="grid" />
+  <text x="95" y="738.6" text-anchor="end" class="tick">100</text>
+  <line x1="107" y1="692.8" x2="552" y2="692.8" class="grid" />
+  <text x="95" y="696.8" text-anchor="end" class="tick">1,000</text>
+  <line x1="107" y1="651" x2="552" y2="651" class="grid" />
+  <text x="95" y="655" text-anchor="end" class="tick">10,000</text>
+  <line x1="107" y1="651" x2="107" y2="860" class="grid" />
+  <text x="107" y="883" text-anchor="middle" class="tick">64</text>
+  <line x1="255.333" y1="651" x2="255.333" y2="860" class="grid" />
+  <text x="255.333" y="883" text-anchor="middle" class="tick">128</text>
+  <line x1="552" y1="651" x2="552" y2="860" class="grid" />
+  <text x="552" y="883" text-anchor="middle" class="tick">256</text>
+  <text x="329.5" y="908" text-anchor="middle" class="small">Number of nodes (linear scale)</text>
+  <polyline points="107,763.742 255.333,726.207 552,688.227" class="reference-line" />
+  <circle cx="107" cy="763.742" r="5" fill="#ffffff" stroke="#64748b" stroke-width="2.5" data-series="reference">
+    <title>Floyd-Warshall, 64 nodes: 20.0827 ms</title>
+  </circle>
+  <circle cx="255.333" cy="726.207" r="5" fill="#ffffff" stroke="#64748b" stroke-width="2.5" data-series="reference">
+    <title>Floyd-Warshall, 128 nodes: 158.7802 ms</title>
+  </circle>
+  <circle cx="552" cy="688.227" r="5" fill="#ffffff" stroke="#64748b" stroke-width="2.5" data-series="reference">
+    <title>Floyd-Warshall, 256 nodes: 1,286.4617 ms</title>
+  </circle>
+  <polyline points="107,832.927 255.333,807.578 552,780.392" class="improved-line" />
+  <polygon points="107,826.927 113,832.927 107,838.927 101,832.927" fill="#087f5b" stroke="#ffffff" stroke-width="1.5" data-series="improved">
+    <title>Johnson, 64 nodes: 0.4443 ms</title>
+  </polygon>
+  <polygon points="255.333,801.578 261.333,807.578 255.333,813.578 249.333,807.578" fill="#087f5b" stroke="#ffffff" stroke-width="1.5" data-series="improved">
+    <title>Johnson, 128 nodes: 1.7952 ms</title>
+  </polygon>
+  <polygon points="552,774.392 558,780.392 552,786.392 546,780.392" fill="#087f5b" stroke="#ffffff" stroke-width="1.5" data-series="improved">
+    <title>Johnson, 256 nodes: 8.026 ms</title>
+  </polygon>
+  <rect x="604" y="550" width="552" height="390" rx="12" fill="#f8fafc" stroke="#e2e8f0" />
+  <text x="624" y="582" text-anchor="start" class="heading">Sparse G(n,p) generation</text>
+  <text x="624" y="606" text-anchor="start" class="small">Dense sampler vs Fast sampler</text>
+  <text x="687" y="636" text-anchor="start" class="small">Time (ms, log scale) | lower is better</text>
+  <line x1="687" y1="860" x2="1132" y2="860" class="grid" />
+  <text x="675" y="864" text-anchor="end" class="tick">0.1</text>
+  <line x1="687" y1="807.75" x2="1132" y2="807.75" class="grid" />
+  <text x="675" y="811.75" text-anchor="end" class="tick">1</text>
+  <line x1="687" y1="755.5" x2="1132" y2="755.5" class="grid" />
+  <text x="675" y="759.5" text-anchor="end" class="tick">10</text>
+  <line x1="687" y1="703.25" x2="1132" y2="703.25" class="grid" />
+  <text x="675" y="707.25" text-anchor="end" class="tick">100</text>
+  <line x1="687" y1="651" x2="1132" y2="651" class="grid" />
+  <text x="675" y="655" text-anchor="end" class="tick">1,000</text>
+  <line x1="687" y1="651" x2="687" y2="860" class="grid" />
+  <text x="687" y="883" text-anchor="middle" class="tick">1,000</text>
+  <line x1="884.778" y1="651" x2="884.778" y2="860" class="grid" />
+  <text x="884.778" y="883" text-anchor="middle" class="tick">5,000</text>
+  <line x1="1132" y1="651" x2="1132" y2="860" class="grid" />
+  <text x="1132" y="883" text-anchor="middle" class="tick">10,000</text>
+  <text x="909.5" y="908" text-anchor="middle" class="small">Number of nodes (linear scale)</text>
+  <polyline points="687,797.353 884.778,727.753 1132,696.925" class="reference-line" />
+  <circle cx="687" cy="797.353" r="5" fill="#ffffff" stroke="#64748b" stroke-width="2.5" data-series="reference">
+    <title>Dense sampler, 1,000 nodes: 1.5812 ms</title>
+  </circle>
+  <circle cx="884.778" cy="727.753" r="5" fill="#ffffff" stroke="#64748b" stroke-width="2.5" data-series="reference">
+    <title>Dense sampler, 5,000 nodes: 33.9662 ms</title>
+  </circle>
+  <circle cx="1132" cy="696.925" r="5" fill="#ffffff" stroke="#64748b" stroke-width="2.5" data-series="reference">
+    <title>Dense sampler, 10,000 nodes: 132.1479 ms</title>
+  </circle>
+  <polyline points="687,825.759 884.778,787.403 1132,769.601" class="improved-line" />
+  <polygon points="687,819.759 693,825.759 687,831.759 681,825.759" fill="#087f5b" stroke="#ffffff" stroke-width="1.5" data-series="improved">
+    <title>Fast sampler, 1,000 nodes: 0.4522 ms</title>
+  </polygon>
+  <polygon points="884.778,781.403 890.778,787.403 884.778,793.403 878.778,787.403" fill="#087f5b" stroke="#ffffff" stroke-width="1.5" data-series="improved">
+    <title>Fast sampler, 5,000 nodes: 2.4514 ms</title>
+  </polygon>
+  <polygon points="1132,763.601 1138,769.601 1132,775.601 1126,769.601" fill="#087f5b" stroke="#ffffff" stroke-width="1.5" data-series="improved">
+    <title>Fast sampler, 10,000 nodes: 5.3718 ms</title>
+  </polygon>
+  <text x="32" y="972" text-anchor="start" class="small">Independent y ranges per panel. Lines guide the eye between measured sizes; no extrapolation.</text>
+  <text x="32" y="994" text-anchor="start" class="small">Nim 2.2.12 | Windows 11 Home | 12th Gen Intel Core i7-12700K</text>
+</svg>

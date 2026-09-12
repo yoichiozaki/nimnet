@@ -15,7 +15,7 @@ import ../graph
 
 proc cavemanGraph*(l, k: int): Graph[int] =
   ## Generate a caveman graph: ``l`` cliques of size ``k``, unconnected.
-  ## Total nodes: l*k. No edges between cliques.
+  ## Total nodes: ``l*k``. No edges between cliques.
   result = newGraph[int]()
   for c in 0 ..< l:
     let base = c * k
@@ -66,7 +66,7 @@ proc plantedPartitionGraph*(l, k: int, pIn, pOut: float,
 proc windmillGraph*(n, k: int): Graph[int] =
   ## Generate a windmill graph: ``n`` copies of the complete graph K_k,
   ## all sharing a single universal node (node 0).
-  ## Total nodes: n*(k-1) + 1.
+  ## Total nodes: ``n*(k-1) + 1``.
   result = newGraph[int]()
   result.addNode(0)  # universal node
   var nodeId = 1

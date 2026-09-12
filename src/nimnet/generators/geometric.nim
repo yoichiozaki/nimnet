@@ -13,7 +13,7 @@ import ../graph
 
 proc randomGeometricGraph*(n: int, radius: float, seed = 0): Graph[int] =
   ## Generate a random geometric graph with ``n`` nodes.
-  ## Nodes are uniformly placed in the unit square [0,1]×[0,1].
+  ## Nodes are uniformly placed in the unit square ``[0,1]×[0,1]``.
   ## An edge connects two nodes if their Euclidean distance ≤ ``radius``.
   if seed != 0:
     randomize(seed)

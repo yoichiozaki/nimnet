@@ -13,13 +13,11 @@ Usage:
 """
 
 import time
-import random
 import statistics
-import networkx as nx
+from fixtures import benchmark_runs, load_fixtures, query_pairs
+from bench_graphs import build_fixture
 
-random.seed(42)
-
-BENCH_RUNS = 5  # Number of timed runs per benchmark
+BENCH_RUNS = benchmark_runs()
 
 
 def bench(fn):
@@ -32,22 +30,6 @@ def bench(fn):
         fn()
         times.append(time.perf_counter() - t0)
     return statistics.median(times)
-
-
-def build_graph(n, seed=42):
-    """Build an Erdős-Rényi-like graph: n nodes, ~n*5 edges."""
-    rng = random.Random(seed)
-    g = nx.Graph()
-    g.add_nodes_from(range(n))
-    added = 0
-    m = n * 5
-    while added < m:
-        u = rng.randint(0, n - 1)
-        v = rng.randint(0, n - 1)
-        if u != v and not g.has_edge(u, v):
-            g.add_edge(u, v, weight=rng.uniform(1.0, 10.0))
-            added += 1
-    return g
 
 
 def bench_neighbor_iteration(g):
@@ -70,8 +52,7 @@ def bench_weight_access(g):
 
 
 def bench_has_edge(g, n):
-    rng = random.Random(42)
-    pairs = [(rng.randint(0, n - 1), rng.randint(0, n - 1)) for _ in range(n * 5)]
+    pairs = query_pairs(n)
 
     def fn():
         count = 0
@@ -109,22 +90,15 @@ def bench_degree_access(g):
     return bench(fn)
 
 
-def bench_add_edge_bulk(n):
-    rng = random.Random(42)
-    pairs = [(rng.randint(0, n - 1), rng.randint(0, n - 1)) for _ in range(n * 5)]
-
+def bench_add_edge_bulk(fixture):
     def fn():
-        g = nx.Graph()
-        g.add_nodes_from(range(n))
-        for u, v in pairs:
-            if u != v:
-                g.add_edge(u, v)
-        assert g.number_of_nodes() == n
+        g = build_fixture(fixture)
+        assert len(g) == fixture["nodes"] and g.number_of_edges() == len(fixture["edges"])
     return bench(fn)
 
 
-def bench_get_edge_attr(g):
-    edges = list(g.edges())
+def bench_get_edge_attr(g, fixture):
+    edges = [(u, v) for u, v, _ in fixture["edges"]]
 
     def fn():
         total = 0.0
@@ -135,17 +109,13 @@ def bench_get_edge_attr(g):
 
 
 def run_benchmarks():
+    fixtures = load_fixtures()
     print("library,benchmark,size,nodes,edges,time_seconds")
 
-    sizes = [
-        ("small",  100,    500),
-        ("medium", 1_000,  5_000),
-        ("large",  10_000, 50_000),
-    ]
-
-    for size_name, n, _ in sizes:
-        g = build_graph(n)
-        m = g.number_of_edges()
+    for fixture in fixtures:
+        size_name, n, m = fixture["name"], fixture["nodes"], len(fixture["edges"])
+        g = build_fixture(fixture, weighted=True)
+        assert len(g) == n and g.number_of_edges() == m
 
         t = bench_neighbor_iteration(g)
         print(f"networkx,neighbor_iteration,{size_name},{n},{m},{t:.6f}")
@@ -165,10 +135,10 @@ def run_benchmarks():
         t = bench_degree_access(g)
         print(f"networkx,degree_access,{size_name},{n},{m},{t:.6f}")
 
-        t = bench_add_edge_bulk(n)
+        t = bench_add_edge_bulk(fixture)
         print(f"networkx,add_edge_bulk,{size_name},{n},{m},{t:.6f}")
 
-        t = bench_get_edge_attr(g)
+        t = bench_get_edge_attr(g, fixture)
         print(f"networkx,get_edge_attr,{size_name},{n},{m},{t:.6f}")
 
 

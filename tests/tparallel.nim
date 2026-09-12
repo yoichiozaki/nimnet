@@ -2,6 +2,7 @@
 ## Verifies that parallel versions produce results matching sequential versions.
 
 import std/[unittest, tables, math, sets, sequtils, algorithm]
+import std/random as stdrandom
 import nimnet
 import nimnet/algorithms/parallel as par
 import nimnet/generators/random as rng
@@ -21,6 +22,33 @@ proc approxEqualTable[N](a, b: Table[N, float], eps: float = Eps): bool =
     if k notin b: return false
     if not approxEqual(v, b[k], eps): return false
   return true
+
+proc checkJohnsonsDistances[N](g: DiGraph[N], eps: float = Eps) =
+  let expected = floydWarshall(g)
+  let sequential = johnsons(g, includeUnreachable = true)
+  let parallel = par.parallelJohnsons(g)
+  let n = g.numberOfNodes()
+  check sequential.len == n
+  check parallel.len == n
+  for src in g.nodes:
+    require sequential.hasKey(src)
+    require parallel.hasKey(src)
+    check sequential[src].len == n
+    check parallel[src].len == n
+    for dst in g.nodes:
+      require sequential[src].hasKey(dst)
+      require parallel[src].hasKey(dst)
+      let expectedDistance = expected[src][dst]
+      let sequentialDistance = sequential[src][dst]
+      let parallelDistance = parallel[src][dst]
+      if expectedDistance == Inf:
+        # Unreachable pairs require positive infinity, never NaN or a sentinel.
+        check sequentialDistance == Inf
+        check parallelDistance == Inf
+      else:
+        check approxEqual(sequentialDistance, parallelDistance, eps)
+        check approxEqual(sequentialDistance, expectedDistance, eps)
+        check approxEqual(parallelDistance, expectedDistance, eps)
 
 # ============================================================================
 # Small graphs
@@ -246,11 +274,7 @@ suite "Parallel Johnson's All-Pairs Shortest Paths":
     g.addEdge(0, 1)
     g.addEdge(1, 2)
     g.addEdge(0, 2)
-    let seq_j = johnsons(g)
-    let par_j = par.parallelJohnsons(g)
-    for src in seq_j.keys:
-      for dst in seq_j[src].keys:
-        check approxEqual(seq_j[src][dst], par_j[src][dst])
+    checkJohnsonsDistances(g)
 
   test "weighted graph":
     var g = newDiGraph[int]()
@@ -259,17 +283,20 @@ suite "Parallel Johnson's All-Pairs Shortest Paths":
     g.addWeightedEdge(0, 2, 10.0)
     let par_j = par.parallelJohnsons(g)
     check approxEqual(par_j[0][2], 4.0) # 0→1→2 = 3+1
+    checkJohnsonsDistances(g)
 
   test "single node":
     var g = newDiGraph[int]()
     g.addNode(0)
     let par_j = par.parallelJohnsons(g)
     check par_j[0][0] == 0.0
+    checkJohnsonsDistances(g)
 
   test "empty graph":
     var g = newDiGraph[int]()
     let par_j = par.parallelJohnsons(g)
     check par_j.len == 0
+    checkJohnsonsDistances(g)
 
   test "medium graph consistency":
     var g = newDiGraph[int]()
@@ -277,11 +304,41 @@ suite "Parallel Johnson's All-Pairs Shortest Paths":
       for j in 0 ..< 20:
         if i != j and (i + j) mod 3 == 0:
           g.addEdge(i, j)
-    let seq_j = johnsons(g)
-    let par_j = par.parallelJohnsons(g)
-    for src in seq_j.keys:
-      for dst in seq_j[src].keys:
-        check approxEqual(seq_j[src][dst], par_j[src][dst], 1e-5)
+    checkJohnsonsDistances(g, 1e-5)
+
+  test "unreachable pairs, isolated nodes and nonnegative self loops":
+    var g = newDiGraph[string]()
+    g.addWeightedEdge("source", "target", 0.0)
+    g.addWeightedEdge("loop", "loop", 2.0)
+    g.addNode("isolated")
+    checkJohnsonsDistances(g)
+
+  test "negative edges and zero cycles in disconnected components":
+    var g = newDiGraph[int]()
+    g.addWeightedEdge(0, 1, -3.0)
+    g.addWeightedEdge(1, 0, 3.0)
+    g.addWeightedEdge(1, 2, 0.25)
+    g.addWeightedEdge(2, 3, -0.5)
+    g.addWeightedEdge(4, 5, -2.0)
+    g.addNode(6)
+    checkJohnsonsDistances(g)
+
+  test "seeded weighted graphs agree with independent Floyd distances":
+    var prng = stdrandom.initRand(167_004)
+    for n in 1 .. 10:
+      for sample in 0 ..< 6:
+        var g = newDiGraph[int]()
+        var potential = newSeq[float](n)
+        for node in 0 ..< n:
+          g.addNode(node)
+          potential[node] = prng.rand(-20 .. 20).float / 4.0
+        g.addNode(n)
+        for u in 0 ..< n:
+          for v in 0 ..< n:
+            if prng.rand(99) < 35:
+              let reducedWeight = prng.rand(0 .. 12).float / 4.0
+              g.addWeightedEdge(u, v, reducedWeight + potential[v] - potential[u])
+        checkJohnsonsDistances(g)
 
 # ============================================================================
 # Benchmark helper (not timed in test, just runs to verify no crash)

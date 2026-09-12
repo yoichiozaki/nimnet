@@ -7,7 +7,7 @@ import ../graph
 proc grid2dGraph*(m, n: int, periodic: bool = false): Graph[int] =
   ## Generate a 2D grid graph with m rows and n columns.
   ## If periodic=true, creates a torus (wrapping both dimensions).
-  ## Nodes numbered 0..m*n-1 in row-major order.
+  ## Nodes numbered ``0..m*n-1`` in row-major order.
   result = newGraph[int](capacity = m * n)
   for i in 0 ..< m * n:
     result.addNode(i)

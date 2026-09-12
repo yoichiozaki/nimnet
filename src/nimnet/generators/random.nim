@@ -5,9 +5,25 @@ import ../types
 import ../graph
 import ../algorithms/components
 
+proc validateGnpParameters(n: int, p: float) =
+  if n < 0:
+    raise newException(NimNetError, "n must be non-negative")
+  if not (p >= 0.0 and p <= 1.0):
+    raise newException(NimNetError, "p must be finite and in [0, 1]")
+
+func logOneMinus(p: float): float =
+  let q = 1.0 - p
+  if q == 1.0:
+    return -p
+  # Compensate for rounding in 1 - p, including probabilities below epsilon.
+  ln(q) * (p / (1.0 - q))
+
 proc erdosRenyiGraph*(n: int, p: float, seed: int64 = 0): Graph[int] =
   ## Generate an Erdős-Rényi random graph G(n, p).
-  ## Each edge exists independently with probability p.
+  ## Each edge exists independently with probability p. Runs in O(n^2) time.
+  ## Nonzero seeds are reproducible; zero uses the system-seeded RNG.
+  ## Raises ``NimNetError`` for negative n or non-finite/out-of-range p.
+  validateGnpParameters(n, p)
   var rng = if seed != 0: initRand(seed) else: initRand()
   result = newGraph[int](capacity = n)
   for i in 0 ..< n:
@@ -16,6 +32,44 @@ proc erdosRenyiGraph*(n: int, p: float, seed: int64 = 0): Graph[int] =
     for j in i + 1 ..< n:
       if rng.rand(1.0) < p:
         result.addEdge(i, j)
+
+proc fastGnpRandomGraph*(n: int, p: float, seed: int64 = 0): Graph[int] =
+  ## Generate a simple Erdős-Rényi graph G(n, p) by geometric gap skipping.
+  ## Expected time and graph storage are O(n + E), where E is the edge count.
+  ## Nonzero seeds are reproducible; zero uses the system-seeded RNG.
+  ## Seeded graphs need not match ``erdosRenyiGraph`` with the same seed.
+  ## Raises ``NimNetError`` for negative n or non-finite/out-of-range p.
+  validateGnpParameters(n, p)
+  result = newGraph[int](capacity = n)
+  for i in 0 ..< n:
+    result.addNode(i)
+  if n < 2 or p == 0.0:
+    return
+  if p == 1.0:
+    for i in 0 ..< n:
+      for j in i + 1 ..< n:
+        result.addEdge(i, j)
+    return
+
+  var rng = if seed != 0: initRand(seed) else: initRand()
+  let logNoEdge = logOneMinus(p)
+  for v in 1 ..< n:
+    var w = 0
+    while w < v:
+      var uniform = rng.rand(1.0)
+      while uniform <= 0.0 or uniform >= 1.0:
+        uniform = rng.rand(1.0)
+      let logSample = ln(uniform)
+      let remaining = v - w
+      # Bound the gap before division: tiny p could otherwise overflow to Inf.
+      if logSample <= logNoEdge * float(remaining):
+        break
+      let gap = logSample / logNoEdge
+      if gap >= float(remaining):
+        break
+      w += int(gap)
+      result.addEdge(v, w)
+      inc w
 
 proc barabasiAlbertGraph*(n, m: int, seed: int64 = 0): Graph[int] =
   ## Generate a Barabási-Albert preferential attachment graph.
@@ -84,16 +138,25 @@ proc wattsStrogatzGraph*(n, k: int, p: float, seed: int64 = 0): Graph[int] =
           result.addEdge(i, newTarget)
 
 proc gnmRandomGraph*(n, m: int, seed: int64 = 0): Graph[int] =
-  ## Generate a random graph G(n, m) with exactly m edges.
+  ## Generate a simple random graph G(n, m).
+  ## Returns exactly ``min(m, n*(n-1)/2)`` edges: requests at or above the
+  ## complete-graph edge count saturate to the complete graph.
+  ## Nonzero seeds are reproducible; zero uses the system-seeded RNG.
+  ## Raises ``NimNetError`` if n or m is negative.
+  if n < 0 or m < 0:
+    raise newException(NimNetError, "n and m must be non-negative")
   var rng = if seed != 0: initRand(seed) else: initRand()
   result = newGraph[int](capacity = n)
   for i in 0 ..< n:
     result.addNode(i)
+  if n < 2:
+    return
 
   var edgeCount = 0
-  let maxEdges = n * (n - 1) div 2
-  if m > maxEdges:
-    # Can't have more edges than complete graph
+  let a = if n mod 2 == 0: n div 2 else: n
+  let b = if n mod 2 == 0: n - 1 else: (n - 1) div 2
+  # Compare m with n*(n-1)/2 without forming a possibly overflowing product.
+  if b <= m div a:
     for i in 0 ..< n:
       for j in i + 1 ..< n:
         result.addEdge(i, j)
@@ -107,13 +170,42 @@ proc gnmRandomGraph*(n, m: int, seed: int64 = 0): Graph[int] =
       edgeCount.inc
 
 proc randomRegularGraph*(n, d: int, seed: int64 = 0): Graph[int] =
-  ## Generate a random d-regular graph on n nodes.
-  ## Uses the pairing model: may retry on failure.
-  ## n*d must be even.
-  if (n * d) mod 2 != 0:
-    raise newException(ValueError, "n*d must be even for regular graph")
+  ## Generate a simple random d-regular graph on n nodes.
+  ## Requires non-negative n and d, d < n and even ``n*d``; (0, 0) is allowed.
+  ## Uses up to 100 pairing attempts, generating the complement for dense d.
+  ## Zero-degree and complete graphs are constructed without retries.
+  ## Nonzero seeds are reproducible; zero uses the system-seeded RNG.
+  ## Raises ``NimNetError`` for invalid or overflowing parameters and
+  ## ``NimNetUnfeasible`` if all attempts fail; never returns a partial graph.
+  if n < 0 or d < 0:
+    raise newException(NimNetError, "n and d must be non-negative")
+  if n == 0:
+    if d != 0:
+      raise newException(NimNetError, "d must be zero for an empty graph")
+    return newGraph[int]()
   if d >= n:
-    raise newException(ValueError, "d must be less than n")
+    raise newException(NimNetError, "d must be less than n")
+  if n mod 2 != 0 and d mod 2 != 0:
+    raise newException(NimNetError, "n*d must be even for regular graph")
+
+  let edgeFactor = if n mod 2 == 0: n div 2 else: n
+  let degreeFactor = if n mod 2 == 0: d else: d div 2
+  if degreeFactor > 0 and edgeFactor > high(int) div degreeFactor:
+    raise newException(NimNetError, "Regular graph edge count exceeds int capacity")
+  let useComplement = d > (n - 1) div 2
+  let sampleDegree = if useComplement: n - 1 - d else: d
+  if sampleDegree > 0 and n > high(int) div sampleDegree:
+    raise newException(NimNetError, "Regular graph stub count exceeds int capacity")
+
+  if d == 0 or d == n - 1:
+    result = newGraph[int](capacity = n)
+    for i in 0 ..< n:
+      result.addNode(i)
+    if d != 0:
+      for i in 0 ..< n:
+        for j in i + 1 ..< n:
+          result.addEdge(i, j)
+    return
 
   var rng = if seed != 0: initRand(seed) else: initRand()
 
@@ -122,10 +214,9 @@ proc randomRegularGraph*(n, d: int, seed: int64 = 0): Graph[int] =
     for i in 0 ..< n:
       result.addNode(i)
 
-    # Create stubs: d stubs per node
-    var stubs: seq[int] = @[]
+    var stubs = newSeqOfCap[int](n * sampleDegree)
     for i in 0 ..< n:
-      for _ in 0 ..< d:
+      for _ in 0 ..< sampleDegree:
         stubs.add(i)
 
     rng.shuffle(stubs)
@@ -142,12 +233,19 @@ proc randomRegularGraph*(n, d: int, seed: int64 = 0): Graph[int] =
       i += 2
 
     if valid:
+      if useComplement:
+        var complement = newGraph[int](capacity = n)
+        for node in 0 ..< n:
+          complement.addNode(node)
+        for u in 0 ..< n:
+          for v in u + 1 ..< n:
+            if not result.hasEdge(u, v):
+              complement.addEdge(u, v)
+        return complement
       return result
 
-  # Fallback: return last attempt
-  result = newGraph[int](capacity = n)
-  for i in 0 ..< n:
-    result.addNode(i)
+  raise newException(NimNetUnfeasible,
+    "Failed to generate a simple regular graph after 100 pairing attempts")
 
 proc newmanWattsStrogatzGraph*(n, k: int, p: float, seed: int64 = 0): Graph[int] =
   ## Generate a Newman-Watts-Strogatz small-world graph.

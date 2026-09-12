@@ -12,7 +12,7 @@ type
   # --- Node type concept --------------------------------------------------
   Nodeable* = concept n
     ## Compile-time concept documenting the requirements for graph node types.
-    ## Any type used as N in Graph[N] must support hash, ==, and $.
+    ## Any type used as N in ``Graph[N]`` must support hash, ==, and $.
     hash(n) is Hash
     `==`(n, n) is bool
     `$`(n) is string

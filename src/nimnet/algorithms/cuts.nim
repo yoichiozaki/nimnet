@@ -6,7 +6,7 @@
 ## - ``volume`` — sum of degrees of nodes in S
 ## - ``conductance`` — cutSize / min(vol(S), vol(V\S))
 ## - ``normalizedCutSize`` — cut/vol(S) + cut/vol(V\S)
-## - ``edgeExpansion`` — cut / min(|S|, |V\S|)
+## - ``edgeExpansion`` — ``cut / min(|S|, |V\S|)``
 ## - ``nodeBoundary`` — nodes in V\S adjacent to S
 ## - ``edgeBoundary`` — edges with one endpoint in S, one in V\S
 
@@ -70,7 +70,7 @@ proc normalizedCutSize*[N](g: Graph[N], s: HashSet[N]): float =
   result = cut / volS + cut / volC
 
 proc edgeExpansion*[N](g: Graph[N], s: HashSet[N]): float =
-  ## Return the edge expansion: cutSize(S) / min(|S|, |V\S|).
+  ## Return the edge expansion: ``cutSize(S) / min(|S|, |V\S|)``.
   ## Also known as isoperimetric number of the cut.
   let cut = cutSize(g, s).float
   let sizeS = s.len
