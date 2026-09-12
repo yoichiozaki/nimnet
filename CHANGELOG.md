@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.1.0] - 2026-09-12
+
 ### Added
 - Reproducible benchmark overview and size-scaling SVG figures, generated from
   recorded CSV/environment evidence with accessible labels and CI freshness checks.

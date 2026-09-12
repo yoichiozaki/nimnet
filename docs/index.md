@@ -44,7 +44,7 @@ for node in g:
 | Category | Modules |
 |:---------|:--------|
 | **Core** | `Graph[N]`, `DiGraph[N]`, `MultiGraph[N]`, `MultiDiGraph[N]`, generic node types, cached metrics |
-| **Algorithms (61 modules)** | Traversal, shortest paths, centrality, communities, connectivity, flow, matching, spectral analysis, layouts, approximation and network analysis. Includes exact cardinality matching, Hopcroft-Karp and sparse undirected all-pairs paths in the development batch. |
+| **Algorithms (61 modules)** | Traversal, shortest paths, centrality, communities, connectivity, flow, matching, spectral analysis, layouts, approximation and network analysis. Includes exact cardinality matching, Hopcroft-Karp and sparse undirected all-pairs paths introduced in 1.1.0. |
 | **Generators (21 modules)** | Classic, random, sparse G(n,p), small/famous, tree, lattice, geometric, community, degree-sequence, directed, duplication, expander, Harary, internet, intersection, joint-degree, Mycielski, non-isomorphic tree, stochastic, triad and miscellaneous generators. |
 | **I/O (13 modules)** | Edge list, adjacency list, multiline adjacency list, JSON graph, DOT, GML, GraphML, GEXF, Graph6/Sparse6, Pajek, LEDA, network text and SVG. Some formats are export-only. |
 | **Operators** | Union, complement, compose, intersection, difference, disjoint union, node relabeling, directed ↔ undirected conversion |
@@ -58,5 +58,5 @@ uses shared graph/weight fixtures, equivalent operations, monotonic elapsed
 timing, sequential runs and recorded environments. Historical tables using
 different random graphs and timing methods have been retired.
 
-The [improvement backlog]({{ site.baseurl }}/backlog) records the current,
-unreleased development batch and its delivery evidence.
+The [improvement backlog]({{ site.baseurl }}/backlog) records the changes
+introduced in 1.1.0 and their delivery evidence.

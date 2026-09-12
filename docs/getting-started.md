@@ -9,13 +9,14 @@ nav_order: 2
 ## Installation
 
 ```bash
-nimble install nimnet
+nimble install "https://github.com/yoichiozaki/nimnet@1.1.0"
 ```
 
-Or add to your `.nimble` file:
+NimNet is not yet listed in the official Nimble package index. Use the GitHub
+URL directly, or add it to your `.nimble` file:
 
 ```nim
-requires "nimnet >= 1.0.0"
+requires "https://github.com/yoichiozaki/nimnet >= 1.1.0"
 ```
 
 ## Requirements
@@ -268,10 +269,11 @@ let cc = parallelClosenessCentrality(g)
 - [API Reference]({{ site.baseurl }}/api/nimnet.html) — Full module documentation (auto-generated from source)
 - [ADR Documents](https://github.com/yoichiozaki/nimnet/tree/main/docs/adr) — Architecture Decision Records
 
-## Development additions
+## New in 1.1.0
 
-The following APIs are part of the current unreleased development batch.
-See the [backlog]({{ site.baseurl }}/backlog) and changelog for release status.
+The following APIs are available from NimNet 1.1.0.
+See the [backlog]({{ site.baseurl }}/backlog) and changelog for implementation
+and compatibility details.
 A runnable version is in
 [`examples/library_improvements.nim`](https://github.com/yoichiozaki/nimnet/blob/main/examples/library_improvements.nim).
 
