@@ -1,0 +1,113 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1180" height="676" viewBox="0 0 1180 676" role="img" aria-labelledby="chart-title chart-description">
+  <title id="chart-title">NimNet improvement snapshot</title>
+  <desc id="chart-description">Paired elapsed times on a logarithmic millisecond axis; lower is better. The first two workloads compare revisions, the other two compare algorithms within the candidate revision. The right-hand values are reference/improved time ratios.</desc>
+  <style>text { font-family: "Segoe UI", Arial, sans-serif; font-size: 14px; fill: #334155; }
+.title { font-size: 28px; font-weight: 700; fill: #0f172a; }
+.heading { font-size: 18px; font-weight: 700; fill: #0f172a; }
+.section { font-size: 15px; font-weight: 700; fill: #334155; }
+.small { font-size: 13px; fill: #475569; }
+.tick { font-size: 12px; fill: #475569; }
+.reference { fill: #475569; }
+.improved { fill: #087f5b; font-weight: 600; }
+.ratio { font-size: 24px; font-weight: 700; fill: #07543e; }
+.grid { stroke: #dbe3eb; stroke-width: 1; }
+.axis { stroke: #94a3b8; stroke-width: 1; }
+.reference-line { stroke: #64748b; stroke-width: 3; fill: none; }
+.improved-line { stroke: #087f5b; stroke-width: 3; fill: none; }</style>
+  <rect x="0" y="0" width="1180" height="676" fill="#ffffff" rx="16" />
+  <text x="32" y="42" text-anchor="start" class="title">NimNet improvement snapshot</text>
+  <text x="32" y="70" text-anchor="start" class="small">2026-09-12 | Median of 3 runs after 1 warmup | NimNet only, not a NetworkX comparison</text>
+  <circle cx="790" cy="96" r="5" fill="#ffffff" stroke="#64748b" stroke-width="2.5" data-series="reference">
+    <title>Reference / earlier method</title>
+  </circle>
+  <text x="804" y="101" text-anchor="start" class="small">Reference / earlier</text>
+  <polygon points="992,90 998,96 992,102 986,96" fill="#087f5b" stroke="#ffffff" stroke-width="1.5" data-series="improved">
+    <title>Improved method</title>
+  </polygon>
+  <text x="1006" y="101" text-anchor="start" class="small">Improved</text>
+  <text x="36" y="119" text-anchor="start" class="section">REVISION COMPARISON   2ece49c -&gt; 6e47786</text>
+  <text x="36" y="367" text-anchor="start" class="section">ALGORITHM CHOICE   within 6e47786</text>
+  <rect x="24" y="133" width="1132" height="180" rx="12" fill="#f8fafc" stroke="#e2e8f0" />
+  <rect x="24" y="386" width="1132" height="173" rx="12" fill="#f8fafc" stroke="#e2e8f0" />
+  <line x1="332" y1="143" x2="332" y2="303" class="grid" />
+  <line x1="332" y1="396" x2="332" y2="549" class="grid" />
+  <text x="332" y="583" text-anchor="middle" class="tick">0.1</text>
+  <line x1="460" y1="143" x2="460" y2="303" class="grid" />
+  <line x1="460" y1="396" x2="460" y2="549" class="grid" />
+  <text x="460" y="583" text-anchor="middle" class="tick">1</text>
+  <line x1="588" y1="143" x2="588" y2="303" class="grid" />
+  <line x1="588" y1="396" x2="588" y2="549" class="grid" />
+  <text x="588" y="583" text-anchor="middle" class="tick">10</text>
+  <line x1="716" y1="143" x2="716" y2="303" class="grid" />
+  <line x1="716" y1="396" x2="716" y2="549" class="grid" />
+  <text x="716" y="583" text-anchor="middle" class="tick">100</text>
+  <line x1="844" y1="143" x2="844" y2="303" class="grid" />
+  <line x1="844" y1="396" x2="844" y2="549" class="grid" />
+  <text x="844" y="583" text-anchor="middle" class="tick">1,000</text>
+  <line x1="972" y1="143" x2="972" y2="303" class="grid" />
+  <line x1="972" y1="396" x2="972" y2="549" class="grid" />
+  <text x="972" y="583" text-anchor="middle" class="tick">10,000</text>
+  <text x="652" y="609" text-anchor="middle" class="small">Elapsed time in milliseconds (log scale) | lower is better</text>
+  <text x="38" y="162" text-anchor="start" class="heading">Greedy modularity</text>
+  <text x="38" y="183" text-anchor="start" class="small">Original -&gt; Incremental</text>
+  <text x="38" y="203" text-anchor="start" class="tick">128 nodes / 224 edges</text>
+  <line x1="826.265" y1="178" x2="369.72" y2="178" stroke="#94a3b8" stroke-width="2" />
+  <circle cx="826.265" cy="178" r="5" fill="#ffffff" stroke="#64748b" stroke-width="2.5" data-series="reference">
+    <title>Original: 726.8526 ms</title>
+  </circle>
+  <text x="826.265" y="164" text-anchor="middle" class="reference">726.8526 ms</text>
+  <polygon points="369.72,172 375.72,178 369.72,184 363.72,178" fill="#087f5b" stroke="#ffffff" stroke-width="1.5" data-series="improved">
+    <title>Incremental: 0.1971 ms</title>
+  </polygon>
+  <text x="369.72" y="203" text-anchor="middle" class="improved">0.1971 ms</text>
+  <rect x="997" y="149" width="143" height="59" rx="10" fill="#e4f5ed" />
+  <text x="1068" y="176" text-anchor="middle" class="ratio">3,687.7x</text>
+  <text x="1068" y="196" text-anchor="middle" class="tick">reference / improved</text>
+  <text x="38" y="253" text-anchor="start" class="heading">Bipartite matching</text>
+  <text x="38" y="274" text-anchor="start" class="small">DFS augmentation -&gt; Hopcroft-Karp</text>
+  <text x="38" y="294" text-anchor="start" class="tick">1,024 nodes / 131,328 edges</text>
+  <line x1="792.884" y1="269" x2="602.795" y2="269" stroke="#94a3b8" stroke-width="2" />
+  <circle cx="792.884" cy="269" r="5" fill="#ffffff" stroke="#64748b" stroke-width="2.5" data-series="reference">
+    <title>DFS augmentation: 398.706 ms</title>
+  </circle>
+  <text x="792.884" y="255" text-anchor="middle" class="reference">398.706 ms</text>
+  <polygon points="602.795,263 608.795,269 602.795,275 596.795,269" fill="#087f5b" stroke="#ffffff" stroke-width="1.5" data-series="improved">
+    <title>Hopcroft-Karp: 13.0493 ms</title>
+  </polygon>
+  <text x="602.795" y="294" text-anchor="middle" class="improved">13.0493 ms</text>
+  <rect x="997" y="240" width="143" height="59" rx="10" fill="#e4f5ed" />
+  <text x="1068" y="267" text-anchor="middle" class="ratio">30.6x</text>
+  <text x="1068" y="287" text-anchor="middle" class="tick">reference / improved</text>
+  <text x="38" y="409" text-anchor="start" class="heading">Sparse all-pairs paths</text>
+  <text x="38" y="430" text-anchor="start" class="small">Floyd-Warshall -&gt; Johnson</text>
+  <text x="38" y="450" text-anchor="start" class="tick">256 nodes / 512 edges</text>
+  <line x1="858.003" y1="425" x2="575.776" y2="425" stroke="#94a3b8" stroke-width="2" />
+  <circle cx="858.003" cy="425" r="5" fill="#ffffff" stroke="#64748b" stroke-width="2.5" data-series="reference">
+    <title>Floyd-Warshall: 1,286.4617 ms</title>
+  </circle>
+  <text x="858.003" y="411" text-anchor="middle" class="reference">1,286.4617 ms</text>
+  <polygon points="575.776,419 581.776,425 575.776,431 569.776,425" fill="#087f5b" stroke="#ffffff" stroke-width="1.5" data-series="improved">
+    <title>Johnson: 8.026 ms</title>
+  </polygon>
+  <text x="575.776" y="450" text-anchor="middle" class="improved">8.026 ms</text>
+  <rect x="997" y="396" width="143" height="59" rx="10" fill="#e4f5ed" />
+  <text x="1068" y="423" text-anchor="middle" class="ratio">160.3x</text>
+  <text x="1068" y="443" text-anchor="middle" class="tick">reference / improved</text>
+  <text x="38" y="500" text-anchor="start" class="heading">Sparse G(n,p) generation</text>
+  <text x="38" y="521" text-anchor="start" class="small">Dense sampler -&gt; Fast sampler</text>
+  <text x="38" y="541" text-anchor="start" class="tick">10,000 nodes / p = 4 / n</text>
+  <line x1="731.496" y1="516" x2="553.455" y2="516" stroke="#94a3b8" stroke-width="2" />
+  <circle cx="731.496" cy="516" r="5" fill="#ffffff" stroke="#64748b" stroke-width="2.5" data-series="reference">
+    <title>Dense sampler: 132.1479 ms</title>
+  </circle>
+  <text x="731.496" y="502" text-anchor="middle" class="reference">132.1479 ms</text>
+  <polygon points="553.455,510 559.455,516 553.455,522 547.455,516" fill="#087f5b" stroke="#ffffff" stroke-width="1.5" data-series="improved">
+    <title>Fast sampler: 5.3718 ms</title>
+  </polygon>
+  <text x="553.455" y="541" text-anchor="middle" class="improved">5.3718 ms</text>
+  <rect x="997" y="487" width="143" height="59" rx="10" fill="#e4f5ed" />
+  <text x="1068" y="514" text-anchor="middle" class="ratio">24.6x</text>
+  <text x="1068" y="534" text-anchor="middle" class="tick">reference / improved</text>
+  <text x="32" y="638" text-anchor="start" class="small">Nim 2.2.12 | Windows 11 Home | 12th Gen Intel Core i7-12700K</text>
+  <text x="32" y="659" text-anchor="start" class="small">G(n,p): equal n, p and seed; different sampled edges. These are fixture-specific observations.</text>
+</svg>

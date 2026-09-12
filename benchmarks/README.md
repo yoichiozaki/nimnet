@@ -3,6 +3,20 @@
 Reproducible comparisons with Python's [NetworkX](https://networkx.org/), plus
 targeted before/after workloads for the library improvement backlog.
 
+## Results at a glance
+
+**These figures compare NimNet revisions or algorithms, not NimNet with
+NetworkX.** Hollow circles show the reference; filled diamonds show the
+improved method. Elapsed-time axes are logarithmic so both small and large
+changes remain visible. Lower time is better.
+
+![NimNet timing overview: separate revision and algorithm comparisons, showing elapsed milliseconds and speedup ratios for four measured workloads.](charts/2026-09-12-overview.svg)
+
+The snapshot uses the recorded 2026-09-12 evidence, not newly sampled results.
+See [size scaling](#recorded-size-scaling),
+[exact timings and conditions](#recorded-improvement-results-2026-09-12), or
+[run the benchmarks](#running-benchmarks).
+
 ## Benchmarks
 
 | Benchmark | Description |
@@ -172,6 +186,39 @@ Raw [baseline CSV](evidence/2026-09-12-before.csv),
 include every measured size, not just the highlighted cases. The final G(n,p)
 outputs contain 19,951 and 20,052 edges respectively, as expected for different
 samplers of the same distribution.
+
+### Recorded size scaling
+
+Every recorded size is shown below, not just the largest speedup. Each panel
+has its own logarithmic time range; node counts use a linear axis. Lines only
+connect measurements and do not extrapolate performance or establish an
+asymptotic complexity bound.
+
+![Four size-scaling plots show all recorded timings for greedy modularity, bipartite matching, sparse all-pairs paths, and sparse G(n,p) generation. Reference and improved series use distinct colors and marker shapes.](charts/2026-09-12-scaling.svg)
+
+The first two panels compare `2ece49c` with `6e47786`. The last two compare
+algorithms within `6e47786`. G(n,p) uses equal `n`, `p=4/n` and seed `42`, but
+the samplers produce different edge sets; it is not an identical-output claim.
+
+### Regenerating the figures
+
+The SVG images are generated directly from the committed CSV and environment
+JSON using Python's standard library; no plotting package is needed. The
+generator checks matching inputs, finite timings and consistency with the
+recorded ratios before drawing. Text alternatives and the numeric table remain
+available alongside the images.
+
+```powershell
+python benchmarks\render_charts.py
+python benchmarks\render_charts.py --check
+```
+
+On Linux/macOS, use `python benchmarks/render_charts.py` (and `--check`).
+The check is also run in CI and rejects missing or stale images without
+rewriting them. To render another recorded snapshot, pass `--date YYYY-MM-DD`;
+`--evidence-dir` and `--output-dir` can select separate input and output folders.
+
+### Reproducing the recorded source comparison
 
 To reproduce the source comparison without replacing the active working tree,
 use a fresh build subdirectory and the candidate's archived driver:

@@ -83,6 +83,9 @@ jobs:
       - name: Test benchmark and coverage tooling
         run: python -m unittest discover -s tests -p test_tooling.py -v
 
+      - name: Check committed benchmark charts
+        run: python benchmarks/render_charts.py --check
+
       - name: Build API documentation without diagnostics
         if: matrix.os == 'ubuntu-latest' && matrix.nim == 'stable'
         run: nimble docs

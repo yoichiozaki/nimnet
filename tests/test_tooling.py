@@ -1,5 +1,7 @@
 import copy
 import csv
+from datetime import date
+from decimal import Decimal
 import hashlib
 import json
 import os
@@ -8,6 +10,7 @@ import sys
 import tempfile
 import unittest
 from unittest.mock import patch
+import xml.etree.ElementTree as ET
 
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "benchmarks"))
@@ -17,6 +20,7 @@ from compare_results import BENCHMARKS, COLUMNS, MICRO_BENCHMARKS, merge_results
 from build_docs import has_diagnostics
 from coverage_badge import coverage_counts, make_badge
 from fixtures import benchmark_runs, make_fixture, query_pairs, selected_sizes, validate_fixture, write_metadata
+from render_charts import SVG, load_snapshot, log_position, read_samples, render, write_charts
 
 
 class FixtureTests(unittest.TestCase):
@@ -225,6 +229,148 @@ class MetadataTests(unittest.TestCase):
             self.assertNotIn("pagerank", data)
             self.assertNotIn("louvain", data)
             self.assertNotIn("packages", data)
+
+
+class ChartTests(unittest.TestCase):
+    recorded_date = date(2026, 9, 12)
+    prefix = "2026-09-12"
+
+    def setUp(self):
+        self.temp = tempfile.TemporaryDirectory(prefix="nimnet-charts-")
+        self.addCleanup(self.temp.cleanup)
+        self.directory = Path(self.temp.name)
+        for suffix in ("before.csv", "after.csv", "environment.json"):
+            name = f"{self.prefix}-{suffix}"
+            (self.directory / name).write_bytes((ROOT / "benchmarks" / "evidence" / name).read_bytes())
+
+    def rows(self, suffix):
+        with (self.directory / f"{self.prefix}-{suffix}.csv").open(
+            encoding="utf-8-sig", newline=""
+        ) as stream:
+            return list(csv.DictReader(stream))
+
+    def write_rows(self, suffix, rows):
+        with (self.directory / f"{self.prefix}-{suffix}.csv").open(
+            "w", encoding="utf-8", newline=""
+        ) as stream:
+            writer = csv.DictWriter(stream, fieldnames=COLUMNS)
+            writer.writeheader()
+            writer.writerows(rows)
+
+    def test_chart_pairs_preserve_comparison_scope_and_exact_values(self):
+        snapshot = load_snapshot(self.directory, self.recorded_date)
+        self.assertEqual((snapshot.baseline, snapshot.candidate), ("2ece49c", "6e47786"))
+        self.assertEqual([c.category for c in snapshot.comparisons],
+                         ["revision", "revision", "algorithm", "algorithm"])
+        self.assertEqual([len(c.pairs) for c in snapshot.comparisons], [3, 3, 3, 3])
+        greedy, matching, apsp, gnp = snapshot.comparisons
+        self.assertEqual(greedy.pairs[-1][0].milliseconds, Decimal("726.8526"))
+        self.assertEqual(matching.pairs[-1][1].milliseconds, Decimal("13.0493"))
+        self.assertEqual(apsp.pairs[-1][0].milliseconds, Decimal("1286.4617"))
+        self.assertNotEqual(apsp.pairs[-1][0].milliseconds, Decimal("1297.6046"))
+        self.assertEqual((gnp.pairs[-1][0].edges, gnp.pairs[-1][1].edges), (19951, 20052))
+
+    def test_rendering_is_deterministic_and_independent_of_csv_order(self):
+        expected = render(load_snapshot(self.directory, self.recorded_date))
+        for suffix in ("before", "after"):
+            self.write_rows(suffix, list(reversed(self.rows(suffix))))
+        self.assertEqual(render(load_snapshot(self.directory, self.recorded_date)), expected)
+
+    def test_images_are_accessible_and_include_all_measured_points(self):
+        charts = render(load_snapshot(self.directory, self.recorded_date))
+        for name, content in charts.items():
+            root = ET.fromstring(content)
+            self.assertEqual(root.attrib["role"], "img")
+            self.assertEqual(root.attrib["aria-labelledby"], "chart-title chart-description")
+            self.assertTrue(root.find(f"{{{SVG}}}title").text)
+            self.assertTrue(root.find(f"{{{SVG}}}desc").text)
+            self.assertFalse(root.findall(f".//{{{SVG}}}script"))
+            self.assertIn("log scale", content)
+            self.assertIn("not a NetworkX comparison", content)
+            text = " ".join(root.itertext())
+            for label in ("Floyd-Warshall", "Johnson", "Dense sampler", "Fast sampler"):
+                self.assertIn(label, text)
+            expected = 5 if name == "overview.svg" else 13
+            for series in ("reference", "improved"):
+                self.assertEqual(sum(e.get("data-series") == series for e in root.iter()), expected)
+            width, height = float(root.get("width")), float(root.get("height"))
+            for element in root.iter():
+                for axis, maximum in (("x", width), ("cx", width), ("y", height), ("cy", height)):
+                    if axis in element.attrib:
+                        self.assertGreaterEqual(float(element.get(axis)), 0)
+                        self.assertLessEqual(float(element.get(axis)), maximum)
+
+    def test_log_axis_uses_equal_spacing_for_decades(self):
+        positions = [log_position(v, (-1, 3), 0, 400) for v in (0.1, 1, 10, 100, 1000)]
+        self.assertEqual(positions, [0, 100, 200, 300, 400])
+        for invalid in (0, -1, float("nan"), float("inf")):
+            with self.assertRaises(ValueError):
+                log_position(invalid, (-1, 3), 0, 400)
+
+    def test_nonpositive_or_nonfinite_measurements_are_rejected(self):
+        original = self.rows("after")
+        for value in ("0", "-1", "NaN", "Infinity", "invalid"):
+            rows = copy.deepcopy(original)
+            rows[0]["time_seconds"] = value
+            self.write_rows("after", rows)
+            with self.subTest(value=value), self.assertRaises(ValueError):
+                read_samples(self.directory / f"{self.prefix}-after.csv")
+
+    def test_missing_duplicate_or_changed_inputs_are_rejected(self):
+        original = self.rows("after")
+        mutations = [
+            lambda rows: rows.pop(),
+            lambda rows: rows.append(rows[0].copy()),
+            lambda rows: rows[0].update(edges=str(int(rows[0]["edges"]) + 1)),
+            lambda rows: rows[0].update(library="networkx"),
+            lambda rows: rows[0].update(size="n0"),
+        ]
+        for mutation in mutations:
+            rows = copy.deepcopy(original)
+            mutation(rows)
+            self.write_rows("after", rows)
+            with self.assertRaises(ValueError):
+                load_snapshot(self.directory, self.recorded_date)
+
+    def test_stale_metadata_and_unsafe_numeric_configuration_are_rejected(self):
+        path = self.directory / f"{self.prefix}-environment.json"
+        original = json.loads(path.read_text(encoding="utf-8-sig"))
+        for mutation in (
+            lambda data: data["validated_comparisons"][0].update(speedup=2),
+            lambda data: data["validated_comparisons"][0].update(before_seconds=1),
+            lambda data: data.update(repetitions=True),
+            lambda data: data.update(warmups_per_workload=-1),
+            lambda data: data.update(candidate_revision="not-a-revision"),
+        ):
+            data = copy.deepcopy(original)
+            mutation(data)
+            path.write_text(json.dumps(data), encoding="utf-8")
+            with self.assertRaises(ValueError):
+                load_snapshot(self.directory, self.recorded_date)
+
+    def test_metadata_text_is_xml_escaped(self):
+        path = self.directory / f"{self.prefix}-environment.json"
+        metadata = json.loads(path.read_text(encoding="utf-8-sig"))
+        metadata["processors"][0]["Name"] = 'CPU <script> & "quoted"'
+        path.write_text(json.dumps(metadata), encoding="utf-8")
+        for content in render(load_snapshot(self.directory, self.recorded_date)).values():
+            root = ET.fromstring(content)
+            self.assertFalse(root.findall(f".//{{{SVG}}}script"))
+            self.assertIn("&lt;script&gt; &amp;", content)
+
+    def test_check_detects_stale_or_missing_assets_without_rewriting(self):
+        charts = render(load_snapshot(self.directory, self.recorded_date))
+        output = self.directory / "charts"
+        with self.assertRaises(ValueError):
+            write_charts(charts, output, self.prefix, check=True)
+        self.assertFalse(output.exists())
+        write_charts(charts, output, self.prefix)
+        write_charts(charts, output, self.prefix, check=True)
+        path = output / f"{self.prefix}-overview.svg"
+        path.write_text("stale", encoding="utf-8")
+        with self.assertRaises(ValueError):
+            write_charts(charts, output, self.prefix, check=True)
+        self.assertEqual(path.read_text(encoding="utf-8"), "stale")
 
 
 if __name__ == "__main__":

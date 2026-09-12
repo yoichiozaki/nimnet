@@ -52,9 +52,9 @@ part of this batch.
 
 All fourteen implementations are committed on `feat/library-backlog-20260912`
 and delivered in [PR #180](https://github.com/yoichiozaki/nimnet/pull/180).
-**Implementation completion is not merge completion:** `main` requires one
-independent approving review. That requirement is not bypassed. The PR links
-all fourteen issues for automatic closure when it is approved and merged.
+All fourteen accepted issues were closed after verified implementation at the
+maintainer's request. The maintainer also authorized merging the PR; its live
+status records integration. Branch-protection settings are unchanged.
 
 The verified implementation commit is `6e47786`:
 

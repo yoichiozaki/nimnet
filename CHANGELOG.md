@@ -8,6 +8,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Reproducible benchmark overview and size-scaling SVG figures, generated from
+  recorded CSV/environment evidence with accessible labels and CI freshness checks.
 - Exact general-graph `maximumCardinalityMatching`, including odd cycles, and
   explicitly named `approxMaxWeightMatching` / `approxMinWeightMatching` aliases.
 - Known-partition overloads for bipartite matching and minimum vertex cover.
