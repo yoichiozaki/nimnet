@@ -23,22 +23,22 @@ A comprehensive network science library for [Nim](https://nim-lang.org/), inspir
 - **Builder DSL**: Fluent graph construction with method chaining and `buildGraph` template
 - **Built-in datasets**: Dolphins social network, Florentine families, les misérables
 
-The [improvement backlog](docs/backlog.md) tracks the current development batch,
-including exact cardinality matching, Hopcroft-Karp, sparse random graphs,
+Version **1.1.0** includes exact cardinality matching, Hopcroft-Karp, sparse random graphs,
 undirected sparse all-pairs paths, directed loaders, PageRank probability
-conservation and meaningful Louvain resolution. These
-additions are unreleased until included in a tagged version.
+conservation and meaningful Louvain resolution. The
+[improvement backlog](docs/backlog.md) records the implementation and acceptance evidence.
 
 ## Installation
 
 ```bash
-nimble install nimnet
+nimble install "https://github.com/yoichiozaki/nimnet@1.1.0"
 ```
 
-Or add to your `.nimble` file:
+NimNet is not yet listed in the official Nimble package index. Install directly
+from its GitHub repository, or add the repository URL to your `.nimble` file:
 
 ```nim
-requires "nimnet >= 1.0.0"
+requires "https://github.com/yoichiozaki/nimnet >= 1.1.0"
 ```
 
 ## Quick Start

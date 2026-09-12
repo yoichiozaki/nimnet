@@ -1,7 +1,7 @@
 import std/[algorithm, os, strutils]
 
 # Package
-version       = "1.0.0"
+version       = "1.1.0"
 author        = "yoichiozaki"
 description   = "A comprehensive network science library for Nim, inspired by NetworkX"
 license       = "MIT"

@@ -52,6 +52,7 @@ part of this batch.
 
 All fourteen implementations are committed on `feat/library-backlog-20260912`
 and delivered in [PR #180](https://github.com/yoichiozaki/nimnet/pull/180).
+They are included in [NimNet v1.1.0](https://github.com/yoichiozaki/nimnet/releases/tag/v1.1.0).
 All fourteen accepted issues were closed after verified implementation at the
 maintainer's request. The maintainer also authorized merging the PR; its live
 status records integration. Branch-protection settings are unchanged.
