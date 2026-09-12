@@ -217,7 +217,7 @@ g.addEdgesFrom([(1,2), (2,3), (3,4)])
 
 # Create a read-only view (no graph copy)
 let v = view(g)
-echo v.numberOfNodes()  # 3
+echo v.numberOfNodes()  # 4
 for n in v.nodes:
   echo n
 ```

@@ -150,6 +150,50 @@ parameters, **not identical output edges**; actual edge counts are recorded.
 The new sparse generator intentionally does not reproduce the dense
 generator's random stream.
 
+### Recorded improvement results (2026-09-12)
+
+Baseline `2ece49c` and candidate `6e47786` were built with the same driver,
+Nim 2.2.12 and release/speed options on Windows 11, Intel Core i7-12700K
+(12 cores, 20 logical processors). The table uses three-run medians after
+one warmup, in milliseconds. All four measured cases exceeded the 2x
+acceptance target; these are fixture-specific observations, not general
+performance guarantees.
+
+| Workload | Comparison | Earlier/baseline | Improved | Ratio |
+|----------|------------|------------------|----------|-------|
+| Greedy modularity, 128 nodes / 224 edges | Baseline vs candidate | 726.8526 ms | 0.1971 ms | 3,687.7x |
+| Bipartite matching, 1,024 nodes / 131,328 edges | Baseline vs candidate | 398.7060 ms | 13.0493 ms | 30.6x |
+| Sparse APSP, 256 nodes / 512 edges | Candidate Floyd vs candidate Johnson | 1,286.4617 ms | 8.0260 ms | 160.3x |
+| G(n,p), 10,000 nodes, p=0.0004 | Candidate dense vs candidate fast generator | 132.1479 ms | 5.3718 ms | 24.6x |
+
+Raw [baseline CSV](evidence/2026-09-12-before.csv),
+[candidate CSV](evidence/2026-09-12-after.csv), and
+[environment, hashes and validated ratios](evidence/2026-09-12-environment.json)
+include every measured size, not just the highlighted cases. The final G(n,p)
+outputs contain 19,951 and 20,052 edges respectively, as expected for different
+samplers of the same distribution.
+
+To reproduce the source comparison without replacing the active working tree,
+use a fresh build subdirectory and the candidate's archived driver:
+
+```powershell
+New-Item -ItemType Directory -Force build\reproduce | Out-Null
+git archive --format=zip --output=build\reproduce\baseline.zip 2ece49c src
+git archive --format=zip --output=build\reproduce\candidate.zip 6e47786 src benchmarks
+Expand-Archive build\reproduce\baseline.zip build\reproduce\baseline
+Expand-Archive build\reproduce\candidate.zip build\reproduce\candidate
+$env:BENCH_RUNS = "3"
+nim c --threads:on -d:release --opt:speed -p:build\reproduce\baseline\src `
+  --nimcache:build\nimcache\reproduce_before -o:build\reproduce\before.exe `
+  build\reproduce\candidate\benchmarks\bench_regressions.nim
+nim c --threads:on -d:release --opt:speed -p:build\reproduce\candidate\src `
+  --nimcache:build\nimcache\reproduce_after -o:build\reproduce\after.exe `
+  build\reproduce\candidate\benchmarks\bench_regressions.nim
+.\build\reproduce\before.exe
+.\build\reproduce\after.exe
+Remove-Item Env:BENCH_RUNS
+```
+
 ## Micro-benchmarks
 
 | Benchmark | Description |

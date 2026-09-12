@@ -1,0 +1,70 @@
+{
+  "measured_at_utc": "2026-09-12T05:32:36.6429657Z",
+  "baseline_revision": "2ece49c8360ad38ffd277a6cdbb14c4dcd116162",
+  "candidate_revision": "6e47786212bba6a3b23a7585e05c2d9f350c77fe",
+  "operating_system": [
+    {
+      "Caption": "Microsoft Windows 11 Home",
+      "Version": "10.0.26200",
+      "BuildNumber": "26200"
+    }
+  ],
+  "processors": [
+    {
+      "Name": "12th Gen Intel(R) Core(TM) i7-12700K",
+      "NumberOfCores": 12,
+      "NumberOfLogicalProcessors": 20
+    }
+  ],
+  "nim_version": "Nim Compiler Version 2.2.12 [Windows: amd64]\nCompiled at 2026-09-08\nCopyright (c) 2006-2026 by Andreas Rumpf\n\nactive boot switches: -d:release",
+  "compiler_flags": [
+    "--threads:on",
+    "-d:release",
+    "--opt:speed"
+  ],
+  "repetitions": 3,
+  "warmups_per_workload": 1,
+  "statistic": "median monotonic elapsed seconds",
+  "execution": "Baseline and candidate executed sequentially after all tool-owned builds and agents became idle",
+  "driver_sha256": "9845d8f350d28eb9b3eb0e4772ccccf925a0bb303ee2cba2e179a9bcd589a84c",
+  "timing_helper_sha256": "192b54f81d147ff32ebea75817af2c50790ba782da525ccc41992641beb8130e",
+  "baseline_binary_sha256": "e9d9be1e4c5907ed996630b74096df6605cb6f88be38fb69eb6b4e496b0b7481",
+  "candidate_binary_sha256": "a4178d6dbe207c84f086dfb2ce489c0be48b4f9fe47b99f653783a61f2721d36",
+  "notes": [
+    "Community and bipartite matching use identical deterministic graphs across revisions.",
+    "Sparse APSP compares explicit complete-output Johnson with Floyd-Warshall on the same graph.",
+    "Dense and fast G(n,p) compare n, p=4/n and seed=42, not identical output edges; actual counts are recorded.",
+    "Measurements describe these workloads and this machine, not universal speedup guarantees."
+  ],
+  "tracked_source_tree_clean_after_measurement": true,
+  "validated_comparisons": [
+    {
+      "name": "greedy_modularity_128",
+      "before_seconds": 0.7268526,
+      "after_seconds": 0.0001971,
+      "speedup": 3687.7351598173514
+    },
+    {
+      "name": "bipartite_matching_1024",
+      "before_seconds": 0.398706,
+      "after_seconds": 0.0130493,
+      "speedup": 30.55382281041895
+    },
+    {
+      "name": "sparse_apsp_256",
+      "before_seconds": 1.2864617,
+      "after_seconds": 0.008026,
+      "speedup": 160.28678046349364
+    },
+    {
+      "name": "sparse_gnp_10000",
+      "before_seconds": 0.1321479,
+      "after_seconds": 0.0053718,
+      "speedup": 24.6003015748911
+    }
+  ],
+  "minimum_target_speedup": 2,
+  "driver_sha256_lf": "d514bf6f3af4ab0b53a1fd05a7f56336701e07b7287e5b29c498b2622e5e68c1",
+  "timing_helper_sha256_lf": "3107a312269c8a67a133b0c085a7f01ee90550620338621644498ae7fdba8482",
+  "source_hash_note": "Raw hashes describe the measured Windows files; _sha256_lf hashes normalize CRLF to LF and match the candidate revision."
+}
