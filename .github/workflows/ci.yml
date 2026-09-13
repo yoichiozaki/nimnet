@@ -76,7 +76,7 @@ jobs:
       - name: Run public API documentation example
         run: nim c -r --threads:on --hints:off -p:src --nimcache:build/nimcache/library_improvements -o:build/library_improvements examples/library_improvements.nim
 
-      - uses: actions/setup-python@v6
+      - uses: actions/setup-python@v7
         with:
           python-version: '3.12'
 
